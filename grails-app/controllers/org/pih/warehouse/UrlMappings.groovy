@@ -610,6 +610,12 @@ class UrlMappings {
             action = [DELETE: "removeAllItems"]
         }
 
+        // Custom: stock-transfer-document-upload
+        "/api/custom/stockTransfers/$id/documents"(parseRequest: true) {
+            controller = "customStockTransferDocument"
+            action = [GET: "list", POST: "upload"]
+        }
+
         // Requirement API
 
         "/api/requirements"(parseRequest: true) {

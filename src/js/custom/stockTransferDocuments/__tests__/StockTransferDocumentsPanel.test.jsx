@@ -1,0 +1,188 @@
+/* eslint-env jest */
+import React from 'react';
+
+import {
+  fireEvent, render, screen, waitFor,
+} from '@testing-library/react';
+import StockTransferDocumentsPanel from 'custom/stockTransferDocuments/components/StockTransferDocumentsPanel';
+import {
+  fetchStockTransferDocuments,
+  uploadStockTransferDocument,
+} from 'custom/stockTransferDocuments/utils/api';
+
+import '@testing-library/jest-dom';
+
+jest.mock('custom/stockTransferDocuments/utils/api');
+
+jest.mock('react-localize-redux', () => ({
+  Translate: ({ defaultMessage }) => <span>{defaultMessage}</span>,
+}));
+
+const STOCK_TRANSFER_ID = 'st-123';
+const SAMPLE_DOCUMENT = {
+  id: 'doc-1',
+  name: 'certificate.pdf',
+  contentType: 'application/pdf',
+  uri: '/openboxes/document/download/doc-1',
+};
+
+const LABELS = {
+  panelTitle: 'Supporting documents',
+  empty: 'No documents attached yet',
+  requiredWarning:
+    'A document must be attached before this stock transfer can be completed',
+  fetchError: 'Unable to load documents',
+  uploadError: 'Document upload failed',
+  uploadButton: 'Upload',
+  removeButton: 'Remove',
+};
+
+const mockFetchResolved = (payload) => {
+  fetchStockTransferDocuments.mockResolvedValueOnce({ data: { data: payload } });
+};
+
+const mockFetchRejected = () => {
+  fetchStockTransferDocuments.mockRejectedValueOnce(new Error('network'));
+};
+
+const renderPanel = (overrides = {}) => {
+  const onCanCompleteChange = jest.fn();
+  const utils = render(
+    <StockTransferDocumentsPanel
+      stockTransferId={STOCK_TRANSFER_ID}
+      onCanCompleteChange={onCanCompleteChange}
+      {...overrides}
+    />,
+  );
+  return { ...utils, onCanCompleteChange };
+};
+
+const createFile = (name = SAMPLE_DOCUMENT.name) =>
+  new File(['hello'], name, { type: 'text/plain' });
+
+const dropFile = async (container, file) => {
+  const dropzone = container.querySelector('[role="presentation"]');
+  const dataTransfer = {
+    files: [file],
+    items: [{
+      kind: 'file', type: file.type, getAsFile: () => file,
+    }],
+    types: ['Files'],
+  };
+  fireEvent.drop(dropzone, { dataTransfer });
+  await waitFor(() => {
+    expect(screen.getByText(file.name)).toBeInTheDocument();
+  });
+};
+
+beforeEach(() => {
+  jest.clearAllMocks();
+});
+
+describe('StockTransferDocumentsPanel', () => {
+  describe('initial load', () => {
+    it('shows the empty state and reports canComplete=true when not required', async () => {
+      mockFetchResolved({ documentRequired: false, documents: [] });
+
+      const { onCanCompleteChange } = renderPanel();
+      expect(screen.getByText(LABELS.panelTitle)).toBeInTheDocument();
+
+      await waitFor(() => {
+        expect(screen.getByText(LABELS.empty)).toBeInTheDocument();
+      });
+      expect(onCanCompleteChange).toHaveBeenLastCalledWith(true);
+      expect(screen.queryByText(LABELS.requiredWarning)).not.toBeInTheDocument();
+    });
+
+    it('shows the required warning and reports canComplete=false when required with no documents', async () => {
+      mockFetchResolved({ documentRequired: true, documents: [] });
+
+      const { onCanCompleteChange } = renderPanel();
+
+      await waitFor(() => {
+        expect(screen.getByText(LABELS.requiredWarning)).toBeInTheDocument();
+      });
+      expect(onCanCompleteChange).toHaveBeenLastCalledWith(false);
+    });
+
+    it('lists loaded documents and reports canComplete=true when required with documents', async () => {
+      mockFetchResolved({ documentRequired: true, documents: [SAMPLE_DOCUMENT] });
+
+      const { onCanCompleteChange } = renderPanel();
+
+      const link = await screen.findByRole('link', { name: SAMPLE_DOCUMENT.name });
+      expect(link).toHaveAttribute('href', SAMPLE_DOCUMENT.uri);
+      expect(onCanCompleteChange).toHaveBeenLastCalledWith(true);
+    });
+
+    it('fails open on network error and shows a fetch error alert', async () => {
+      mockFetchRejected();
+
+      const { onCanCompleteChange } = renderPanel();
+
+      await waitFor(() => {
+        expect(screen.getByText(LABELS.fetchError)).toBeInTheDocument();
+      });
+      expect(onCanCompleteChange).toHaveBeenLastCalledWith(true);
+    });
+  });
+
+  describe('uploading', () => {
+    it('uploads pending files and refreshes the list on success', async () => {
+      mockFetchResolved({ documentRequired: true, documents: [] });
+      uploadStockTransferDocument.mockResolvedValueOnce({
+        data: { data: 'Document was uploaded successfully' },
+      });
+      mockFetchResolved({ documentRequired: true, documents: [SAMPLE_DOCUMENT] });
+
+      const { container } = renderPanel();
+
+      await waitFor(() => {
+        expect(screen.getByText(LABELS.requiredWarning)).toBeInTheDocument();
+      });
+
+      const file = createFile();
+      await dropFile(container, file);
+      fireEvent.click(screen.getByRole('button', { name: LABELS.uploadButton }));
+
+      await waitFor(() => {
+        expect(uploadStockTransferDocument).toHaveBeenCalledWith(STOCK_TRANSFER_ID, file);
+      });
+      expect(await screen.findByText(SAMPLE_DOCUMENT.name)).toBeInTheDocument();
+    });
+
+    it('shows an upload error and keeps pending files when upload fails', async () => {
+      mockFetchResolved({ documentRequired: true, documents: [] });
+      uploadStockTransferDocument.mockRejectedValueOnce(new Error('boom'));
+
+      const { container } = renderPanel();
+
+      await waitFor(() => {
+        expect(screen.getByText(LABELS.requiredWarning)).toBeInTheDocument();
+      });
+
+      await dropFile(container, createFile());
+      fireEvent.click(screen.getByRole('button', { name: LABELS.uploadButton }));
+
+      await waitFor(() => {
+        expect(screen.getByText(LABELS.uploadError)).toBeInTheDocument();
+      });
+      expect(screen.getByText(SAMPLE_DOCUMENT.name)).toBeInTheDocument();
+    });
+
+    it('removes a pending file when the remove button is clicked', async () => {
+      mockFetchResolved({ documentRequired: false, documents: [] });
+
+      const { container } = renderPanel();
+
+      await waitFor(() => {
+        expect(screen.getByText(LABELS.empty)).toBeInTheDocument();
+      });
+
+      await dropFile(container, createFile());
+
+      fireEvent.click(screen.getByRole('button', { name: LABELS.removeButton }));
+      expect(screen.queryByText(SAMPLE_DOCUMENT.name)).not.toBeInTheDocument();
+    });
+  });
+});

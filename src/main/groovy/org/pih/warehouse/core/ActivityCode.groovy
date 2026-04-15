@@ -56,6 +56,9 @@ enum ActivityCode {
     // Accounting (Budget Code, GL Account)
     REQUIRE_ACCOUNTING('REQUIRE_ACCOUNTING'),
 
+    // custom
+    REQUIRE_TRANSFER_DOCUMENT('REQUIRE_TRANSFER_DOCUMENT'),
+
     // Central purchasing
     ENABLE_CENTRAL_PURCHASING('ENABLE_CENTRAL_PURCHASING'),
 
@@ -101,6 +104,7 @@ enum ActivityCode {
                 PACK_SHIPMENT,
                 PARTIAL_RECEIVING,
                 REQUIRE_ACCOUNTING,
+                REQUIRE_TRANSFER_DOCUMENT,
                 ENABLE_CENTRAL_PURCHASING,
                 HOLD_STOCK,
                 SUBMIT_REQUEST,
