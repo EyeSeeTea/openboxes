@@ -615,6 +615,9 @@ class UrlMappings {
             controller = "customStockTransferDocument"
             action = [GET: "list", POST: "upload"]
         }
+        "/custom/stockTransferDocuments/refreshFilteredBinLocations"(controller: "customStockTransferDocument") {
+            action = [GET: "refreshFilteredBinLocations"]
+        }
 
         // Requirement API
 

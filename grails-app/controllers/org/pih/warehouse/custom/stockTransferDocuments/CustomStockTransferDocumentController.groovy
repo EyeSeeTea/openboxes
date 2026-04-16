@@ -1,6 +1,8 @@
 package org.pih.warehouse.custom.stockTransferDocuments
 
 import grails.converters.JSON
+import org.pih.warehouse.core.ActivityCode
+import org.pih.warehouse.core.Location
 import org.pih.warehouse.order.Order
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.multipart.MultipartHttpServletRequest
@@ -8,6 +10,7 @@ import org.springframework.web.multipart.MultipartHttpServletRequest
 class CustomStockTransferDocumentController {
 
     def customStockTransferDocumentService
+    def locationService
 
     def list() {
         Order order = Order.get(params.id)
@@ -23,6 +26,25 @@ class CustomStockTransferDocumentController {
                 documents       : customStockTransferDocumentService.listDocuments(order),
             ],
         ] as JSON)
+    }
+
+    def refreshFilteredBinLocations() {
+        Location location = Location.get(params.id)
+        List<Location> bins = []
+        if (location?.hasBinLocationSupport()) {
+            bins = locationService.getBinLocations(location)
+                .findAll { !it.supports(ActivityCode.REQUIRE_TRANSFER_IN_DOCUMENT) }
+                .sort { it?.name?.toLowerCase() }
+        }
+
+        render g.select(
+            name: params.name ?: 'otherBinLocation.id',
+            'class': 'chzn-select-deselect',
+            noSelection: ['': g.message(code: 'default.label')],
+            from: bins,
+            optionKey: 'id',
+            optionValue: 'name',
+        )
     }
 
     def upload() {
