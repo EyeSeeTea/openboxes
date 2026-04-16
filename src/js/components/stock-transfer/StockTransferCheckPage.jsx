@@ -47,10 +47,13 @@ class StockTransferSecondPage extends Component {
     this.state = {
       stockTransfer: stockTransfer || {},
       columns,
-      customCanComplete: true,
+      customCanComplete: false,
     };
 
     this.completeStockTransfer = this.completeStockTransfer.bind(this);
+    this.handleCanCompleteChange = (canComplete) => {
+      this.setState({ customCanComplete: canComplete });
+    };
   }
 
   componentDidMount() {
@@ -309,7 +312,7 @@ class StockTransferSecondPage extends Component {
         <StockTransferDocumentsPanel
           stockTransferId={this.state.stockTransfer.id || this.props.match?.params?.stockTransferId}
           disabled={this.state.stockTransfer.status === 'COMPLETED'}
-          onCanCompleteChange={(canComplete) => this.setState({ customCanComplete: canComplete })}
+          onCanCompleteChange={this.handleCanCompleteChange}
         />
         <div className="submit-buttons">
           <button

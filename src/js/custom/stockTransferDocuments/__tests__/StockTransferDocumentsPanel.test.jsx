@@ -14,8 +14,9 @@ import '@testing-library/jest-dom';
 
 jest.mock('custom/stockTransferDocuments/utils/api');
 
-jest.mock('react-localize-redux', () => ({
-  Translate: ({ defaultMessage }) => <span>{defaultMessage}</span>,
+jest.mock('utils/Translate', () => ({
+  __esModule: true,
+  default: ({ defaultMessage }) => <span>{defaultMessage}</span>,
 }));
 
 const STOCK_TRANSFER_ID = 'st-123';
@@ -115,7 +116,7 @@ describe('StockTransferDocumentsPanel', () => {
       expect(onCanCompleteChange).toHaveBeenLastCalledWith(true);
     });
 
-    it('fails open on network error and shows a fetch error alert', async () => {
+    it('fails closed on network error and shows a fetch error alert', async () => {
       mockFetchRejected();
 
       const { onCanCompleteChange } = renderPanel();
@@ -123,7 +124,7 @@ describe('StockTransferDocumentsPanel', () => {
       await waitFor(() => {
         expect(screen.getByText(LABELS.fetchError)).toBeInTheDocument();
       });
-      expect(onCanCompleteChange).toHaveBeenLastCalledWith(true);
+      expect(onCanCompleteChange).toHaveBeenLastCalledWith(false);
     });
   });
 

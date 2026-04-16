@@ -6,14 +6,16 @@ import org.pih.warehouse.core.ActivityCode
 import org.pih.warehouse.core.Constants
 import org.pih.warehouse.core.Document
 import org.pih.warehouse.core.DocumentType
+import org.pih.warehouse.core.Location
 import org.pih.warehouse.order.Order
+import org.pih.warehouse.order.OrderItem
 import org.springframework.web.multipart.MultipartFile
 
 @Transactional
 class CustomStockTransferDocumentService {
 
     static final String NULL_ORDER_ERROR = 'Cannot validate stock transfer completion: order is null'
-    static final String DOCUMENT_REQUIRED_ERROR = 'A document is required to complete stock transfers from this location'
+    static final String DOCUMENT_REQUIRED_ERROR = 'A document is required to complete this stock transfer'
     static final String DOCUMENT_REQUIRED_CODE = 'customStockTransferDocument.required.error'
 
     List<Map> listDocuments(Order order) {
@@ -31,7 +33,29 @@ class CustomStockTransferDocumentService {
     }
 
     Boolean isDocumentRequired(Order order) {
-        return Boolean.TRUE.equals(order?.origin?.supports(ActivityCode.REQUIRE_TRANSFER_DOCUMENT))
+        return originSideRequiresOutDocument(order) || destinationSideRequiresInDocument(order)
+    }
+
+    Boolean originSideRequiresOutDocument(Order order) {
+        if (locationSupports(order?.origin, ActivityCode.REQUIRE_TRANSFER_OUT_DOCUMENT)) {
+            return true
+        }
+        return order?.orderItems?.any { OrderItem item ->
+            locationSupports(item.originBinLocation, ActivityCode.REQUIRE_TRANSFER_OUT_DOCUMENT)
+        }
+    }
+
+    Boolean destinationSideRequiresInDocument(Order order) {
+        if (locationSupports(order?.destination, ActivityCode.REQUIRE_TRANSFER_IN_DOCUMENT)) {
+            return true
+        }
+        return order?.orderItems?.any { OrderItem item ->
+            locationSupports(item.destinationBinLocation, ActivityCode.REQUIRE_TRANSFER_IN_DOCUMENT)
+        }
+    }
+
+    private static Boolean locationSupports(Location location, ActivityCode activity) {
+        return Boolean.TRUE.equals(location?.supports(activity))
     }
 
     Order uploadDocument(String orderId, MultipartFile fileContents) {
@@ -60,7 +84,10 @@ class CustomStockTransferDocumentService {
         }
 
         if (isDocumentRequired(order) && !order.documents) {
-            log.warn "custom_stock_transfer_completion_blocked orderId=${order.id} originLocationId=${order.origin?.id}"
+            log.warn "custom_stock_transfer_completion_blocked orderId=${order.id}" +
+                    " originLocationId=${order.origin?.id} destinationLocationId=${order.destination?.id}" +
+                    " originBinLocationIds=${order.orderItems*.originBinLocation*.id}" +
+                    " destinationBinLocationIds=${order.orderItems*.destinationBinLocation*.id}"
             order.errors.reject(DOCUMENT_REQUIRED_CODE, DOCUMENT_REQUIRED_ERROR)
             throw new ValidationException(DOCUMENT_REQUIRED_ERROR, order.errors)
         }

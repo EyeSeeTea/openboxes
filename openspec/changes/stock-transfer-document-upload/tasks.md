@@ -10,19 +10,45 @@
 > `components/`, `utils/`, `__tests__/` sub-folders; moved backend i18n bundle to
 > `grails-app/i18n/custom/`; promoted the `custom/*` webpack alias to a definite
 > upstream touch (verified missing in `webpack.config.js`).
+>
+> **Post-initial-commit revisions (2026-04-15)**: after a manual UI smoke test we:
+> 1. Split `REQUIRE_TRANSFER_DOCUMENT` into `REQUIRE_TRANSFER_OUT_DOCUMENT` (origin) +
+>    `REQUIRE_TRANSFER_IN_DOCUMENT` (destination). Service checks both.
+> 2. Switched the panel to `utils/Translate` (the project wrapper that falls back to
+>    `defaultMessage`); raw `react-localize-redux` was rendering raw key strings.
+> 3. Made the frontend gate **fail-closed**: `customCanComplete` defaults to `false`,
+>    panel must explicitly enable it. No new error-surfacing code in the component —
+>    `apiClient` already has a global response interceptor that pops a notification
+>    toast for every non-2xx, so a custom `Alert.error` in `.catch` would duplicate it.
+> 4. Changed post-completion redirect to `order/show/<id>` (where the upstream Documents
+>    tab already shows uploads — same `Order` entity).
+> 5. Abandoned the `grails-app/i18n/custom/` bundle approach and appended keys directly
+>    to upstream `messages.properties` (Grails 3.3 doesn't auto-load i18n sub-folders;
+>    appending is a smaller net upstream touch than registering a `messageSource`
+>    override).
 
 ---
 
-## Task 1: Add `REQUIRE_TRANSFER_DOCUMENT` ActivityCode [BE] [UPSTREAM-TOUCH] ✅
+## Task 1: Add `REQUIRE_TRANSFER_OUT_DOCUMENT` and `REQUIRE_TRANSFER_IN_DOCUMENT` ActivityCodes [BE] [UPSTREAM-TOUCH] ✅
 
-**File**: `src/main/groovy/org/pih/warehouse/core/ActivityCode.groovy` *(MODIFY — 1 line)*
+**File**: `src/main/groovy/org/pih/warehouse/core/ActivityCode.groovy` *(MODIFY — 6 lines)*
 
-Add `REQUIRE_TRANSFER_DOCUMENT` to the enum. Place it next to existing `REQUIRE_*` codes.
+Add **two** enum entries directly after `REQUIRE_ACCOUNTING`, prefixed with a `// custom`
+comment so future merges can identify them, and add the matching pair to the `static list()`
+method (so they appear in the location-edit admin checklist):
+
+- `REQUIRE_TRANSFER_OUT_DOCUMENT` — checked against the **origin** location of an outbound
+  stock transfer.
+- `REQUIRE_TRANSFER_IN_DOCUMENT` — checked against the **destination** location of an
+  inbound stock transfer.
+
 Do not reorder existing entries or touch anything else in the file.
 
 **Acceptance criteria:**
-- Enum compiles and is available for `Location.supports()` checks
-- Diff is a single enum entry; no formatting or import changes
+- Both enum entries compile and are available for `Location.supports()` checks
+- Both appear in `ActivityCode.list()` so the location-edit admin UI renders checkboxes
+- Diff is exactly two enum entries + two list entries + one `// custom` marker
+  (no formatting or import changes)
 
 ---
 
@@ -30,17 +56,40 @@ Do not reorder existing entries or touch anything else in the file.
 
 **File**: `grails-app/services/org/pih/warehouse/custom/stocktransferdocuments/CustomStockTransferDocumentService.groovy` *(NEW)*
 
-Implement three methods on a brand-new service (see design.md → *Custom Document Service*):
+Implement on a brand-new service (see design.md → *Custom Document Service*):
 
-- `listDocuments(Order order)` → list of document DTOs with download URIs
-- `isDocumentRequired(Order order)` → boolean based on `order.origin?.supports(ActivityCode.REQUIRE_TRANSFER_DOCUMENT)`
-- `validateForCompletion(Order order)` → throws `ValidationException` when enforced and no documents attached
+- `listDocuments(Order order)` → list of document DTOs with download URIs (uses
+  `Document.getLink()` from the upstream domain class).
+- `originSideRequiresOutDocument(Order order)` → returns true if
+  `order.origin.supports(REQUIRE_TRANSFER_OUT_DOCUMENT)` **OR** any
+  `orderItems[].originBinLocation.supports(REQUIRE_TRANSFER_OUT_DOCUMENT)`.
+  This is the bin-aware path: enable the activity code on a specific source
+  bin (e.g., a Quarantine bin) and any transfer item picking from that bin
+  triggers the rule, even if the parent depot does not enforce.
+- `destinationSideRequiresInDocument(Order order)` → mirror of the above,
+  checks `order.destination` and every `orderItems[].destinationBinLocation`.
+- `isDocumentRequired(Order order)` → returns
+  `originSideRequiresOutDocument(order) || destinationSideRequiresInDocument(order)`.
+- `uploadDocument(String orderId, MultipartFile fileContents)` → constructs a `Document`
+  from the multipart file and calls `order.addToDocuments(doc).save(failOnError: true)`.
+  No `flush: true` — the service is `@Transactional` and the commit handles flushing.
+- `validateForCompletion(Order order)` → throws `IllegalArgumentException` when order is
+  null; throws `ValidationException` (carrying the `customStockTransferDocument.required.error`
+  reject code) when `isDocumentRequired(order)` is true and no documents are attached.
+
+Static constants `NULL_ORDER_ERROR`, `DOCUMENT_REQUIRED_ERROR`, `DOCUMENT_REQUIRED_CODE`
+hold the message strings so unit tests can assert against them by reference.
 
 No changes to upstream `StockTransferService`.
 
 **Acceptance criteria:**
 - Service compiles and is auto-wired via Grails convention (no `@Autowired` / constructor injection)
-- Unit tests cover all three methods including the no-enforcement path (no regression)
+- Unit tests cover all four enforcement sources (parent depot OUT, parent depot IN, bin OUT, bin IN)
+  via a data-driven `@Unroll` table; both-flags-set case; neither-flag case; multi-item orders
+  where only one item's bin enforces; no-documents-vs-documents case; null-order case
+- Unit tests use `DataTest` + `mockDomains(Order, Document)` because `@Transactional` requires
+  a GORM datastore even in unit tests
+- `mockOrder` helper accepts a `List<OrderItem>` so tests can wire bin locations onto items
 
 **Depends on**: Task 1
 
@@ -165,7 +214,7 @@ and *`canComplete` initial-state contract*):
 **Acceptance criteria:**
 - All new files live under `src/js/custom/stockTransferDocuments/`
 - No imports into or edits of any file under `src/js/components/stock-transfer/` (except the mount point in Task 7)
-- Jest + RTL tests cover: empty state, loaded documents, drag-and-drop, upload success, upload error, document-required warning, **initial-load-in-flight (canComplete=true)**, **network-error (canComplete=true + alert shown)**
+- Jest + RTL tests cover: empty state, loaded documents, drag-and-drop, upload success, upload error, document-required warning, **network-error (canComplete=false, fail-closed)**
 - Asserts use concrete values (no `toBeTruthy` / `toBeDefined` for knowable results)
 - All rendered text comes from `react-intl` — no hardcoded English strings
 
@@ -173,42 +222,57 @@ and *`canComplete` initial-state contract*):
 
 ---
 
-## Task 6a: Custom i18n wiring [FE] ✅
+## Task 6a: i18n wiring [FE/BE] [UPSTREAM-TOUCH] ✅
 
 **Files**:
-- `src/js/custom/stockTransferDocuments/utils/messages.js` *(NEW)* — English default
-  strings for the keys defined in design.md → *i18n*
-  (`react.custom.stockTransferDocuments.*`)
-- `grails-app/i18n/custom/stock-transfer-documents-messages.properties` *(NEW)* —
-  backend message for the `ValidationException` thrown in Task 2 (path matches the
-  `grails-app/i18n/custom/<feature>-messages_<locale>.properties` layout from
-  `custom-package-isolation.md`)
+- `src/js/custom/stockTransferDocuments/utils/messages.js` *(NEW)* — default-exported
+  constant object holding `{ id, defaultMessage }` pairs for every panel string. The
+  panel imports it as `import M from '...'` and consumes via `<Translate id={M.X.id}
+  defaultMessage={M.X.defaultMessage}/>`. The `defaultMessage` is the in-source
+  fallback; the `id` is the lookup key in `messages.properties`.
+- `grails-app/i18n/messages.properties` *(MODIFY — ~12 lines, all appended)*:
+  - `enum.ActivityCode.REQUIRE_TRANSFER_OUT_DOCUMENT` /
+    `enum.ActivityCode.REQUIRE_TRANSFER_IN_DOCUMENT` — used by the GSP location-edit
+    page via `format:metadata`.
+  - `react.locationsConfiguration.ActivityCode.REQUIRE_TRANSFER_OUT_DOCUMENT` /
+    `react.locationsConfiguration.ActivityCode.REQUIRE_TRANSFER_IN_DOCUMENT` — used by
+    the React location-config screen.
+  - `customStockTransferDocument.required.error` — the reject code thrown by the
+    backend validator; resolved by Grails' `messageSource` for the `ValidationException`.
+  - `react.custom.stockTransferDocuments.*` — all React-side panel strings (panel
+    title, empty state, dropzone prompt, upload/remove buttons, fetch/upload errors,
+    required warning).
 
-**Pre-work**: check whether the fork already has a custom-messages merge mechanism in
-the frontend `IntlProvider` and whether Grails picks up additional `i18n` bundles
-automatically. Report the findings:
-- If both mechanisms exist: this task is pure-new-file work (no `[UPSTREAM-TOUCH]`).
-- If either is missing: add the necessary registration as a sub-task tagged
-  `[UPSTREAM-TOUCH]` with a ≤ 2-line budget, and add it to the Upstream Touch Point
-  Summary at the bottom of this file.
+**Why we abandoned the `grails-app/i18n/custom/` sub-folder approach:** Grails 3.3
+`messageSource` only auto-loads `messages*.properties` from the `i18n/` root. A
+`custom/` sub-folder bundle would require either a `messageSource` override in
+`resources.groovy` or a `BeanPostProcessor` adding basenames at runtime — both larger
+upstream touches than appending the keys directly. The keys are namespaced and grouped
+under a `# Custom: stock-transfer-document-upload` comment so future merges can spot them.
 
-The backend `CustomStockTransferDocumentService.validateForCompletion` must throw the
-`ValidationException` using a message key (not a hardcoded English string), so that
-localization works without further edits.
+**Frontend rendering:** the panel imports `Translate` from **`utils/Translate`** (the
+project wrapper that supplies `onMissingTranslation: () => defaultMessage`). The raw
+`react-localize-redux` `<Translate>` does NOT fall back to `defaultMessage` and renders
+raw key strings — that was the first-pass bug. The panel test mock now also targets
+`utils/Translate` instead of the raw library.
 
 **Acceptance criteria:**
-- All four frontend keys render correctly in English
-- The backend validation error message comes from the new properties file
-- No upstream i18n files are modified (or, if the merge/pickup mechanism is missing,
-  the registration is a budgeted `[UPSTREAM-TOUCH]` ≤ 2 lines)
+- All panel strings render as human text (not raw keys) in the browser
+- Both new activity-code labels render as human text on the GSP location-edit page
+  AND the React location-config screen
+- The backend `ValidationException` resolves the reject code to the correct English
+  string via Grails' `messageSource`
+- The `Translate` wrapper is the one from `utils/Translate`, not raw `react-localize-redux`
+- The append in `messages.properties` is grouped under a `# Custom:` comment so future
+  upstream merges can identify it
 
-**Depends on**: Task 2 (backend message key), Task 6 planning
+**Depends on**: Task 2 (backend reject code), Task 6 planning
 
 ---
 
-## Task 7: Mount the panel in StockTransferCheckPage [FE] [UPSTREAM-TOUCH] ✅
+## Task 7: Mount the panel + post-completion redirect + error surfacing [FE] [UPSTREAM-TOUCH] ✅
 
-**File**: `src/js/components/stock-transfer/StockTransferCheckPage.jsx` *(MODIFY — 1 import + 1 JSX mount + 1 disabled-prop edit)*
+**File**: `src/js/components/stock-transfer/StockTransferCheckPage.jsx` *(MODIFY — ~14 lines)*
 
 **Pre-work (verification)**:
 1. Confirm the file at this path is the actual Check Page wizard step rendered in the
@@ -219,23 +283,39 @@ localization works without further edits.
    `webpack.config.js`). This task must register it as a definite 1-line upstream
    touch — see Task 7a below.
 
-Exactly three edits to `StockTransferCheckPage.jsx`:
+Edits to `StockTransferCheckPage.jsx`:
 
 1. Add one import (uses the new `custom/*` alias added in Task 7a):
    ```javascript
    import StockTransferDocumentsPanel from 'custom/stockTransferDocuments/components/StockTransferDocumentsPanel';
    ```
-2. Add one JSX mount between the items table and the submit buttons:
+2. Add `customCanComplete: false` to the initial state object (fail-closed default —
+   see design.md → *`canComplete` initial-state contract*).
+3. Add one JSX mount between the items table and the submit buttons:
    ```jsx
    <StockTransferDocumentsPanel
-       stockTransferId={this.state.values.stockTransferId}
+       stockTransferId={this.state.stockTransfer.id || this.props.match?.params?.stockTransferId}
+       disabled={this.state.stockTransfer.status === 'COMPLETED'}
        onCanCompleteChange={(canComplete) => this.setState({ customCanComplete: canComplete })}
    />
    ```
-3. Combine `customCanComplete` into the existing Complete button's `disabled` prop:
+4. Extend the existing Complete button's `disabled` prop:
    ```jsx
-   disabled={existingDisabledExpr || this.state.customCanComplete === false}
+   disabled={this.state.stockTransfer.status === 'COMPLETED' || this.state.customCanComplete === false}
    ```
+5. **Post-completion redirect** — swap the import from `STOCK_TRANSFER_URL` to
+   `ORDER_URL` (both live in `consts/applicationUrls.js`), then change the two
+   `window.location = STOCK_TRANSFER_URL.show(...)` sites (lines ~194 and ~282) to
+   `window.location = ORDER_URL.show(this.state.stockTransfer.id)`. Stock transfers
+   and orders share the same `Order` PK, so this lands users on the upstream
+   `order/show` page where the existing Documents tab already shows their uploads.
+   Use the `ORDER_URL.show` helper rather than inlining a string literal — it
+   survives any future `CONTEXT_PATH` change.
+6. **Backend errors** — `save().catch(...)` stays as `() => this.props.hideSpinner()`.
+   The existing `apiClient` global response interceptor (`handleError` in
+   `src/js/utils/apiClient.jsx`) already pops a notification toast for every non-2xx,
+   including our backend `ValidationException`, so adding a custom `Alert.error`
+   in the component would be a duplicate popup.
 
 Do not reformat, reorder, or refactor anything else in this file. Boy Scout Rule is
 suspended for this file.
@@ -243,10 +323,16 @@ suspended for this file.
 **Acceptance criteria:**
 - Correct file confirmed (class name verified to match the mounted page)
 - `custom/*` alias verified or registered as a budgeted upstream touch
-- Diff is exactly the three edits above
-- Complete button is disabled when documents are required but none uploaded
-- Complete button is unchanged when the activity code is disabled
-- `customCanComplete` defaults to `true` so initial render matches upstream behavior
+- Diff matches the five edits above (~10 lines net)
+- Complete button is disabled by default on mount (fail-closed)
+- Complete button is enabled only after the panel reports `canComplete=true` after a
+  successful load
+- After a successful completion, the browser navigates to the URL produced by
+  `ORDER_URL.show(<id>)` (the upstream `order/show` page, where the Documents tab
+  is visible)
+- Attempting completion without an attached document (e.g. by bypassing the disabled
+  button via devtools) shows the existing `apiClient.handleError` notification toast
+  with the backend's error message — exactly one popup, not zero and not two
 
 **Depends on**: Task 6, Task 7a
 
@@ -279,26 +365,42 @@ features should not need to touch `webpack.config.js` again.
 
 ---
 
-## Task 8: Integration test for upstream+custom completion flow [BE] ✅
+## Task 8: Integration spec for upstream+custom completion flow [BE] ✅
 
-**File**: `src/integration-test/groovy/org/pih/warehouse/custom/stocktransferdocuments/StockTransferCompletionIntegrationSpec.groovy` *(NEW)*
+**File**: `src/integration-test/groovy/org/pih/warehouse/custom/stocktransferdocuments/CustomStockTransferDocumentServiceIntegrationSpec.groovy` *(NEW)*
 
-End-to-end integration test that exercises the full upstream+custom flow:
+`@Integration @Rollback` Spock spec that exercises the full upstream+custom wiring against
+a real testcontainer MySQL with full Liquibase migrations + seed data:
 
-1. Create a stock transfer with a location that has `REQUIRE_TRANSFER_DOCUMENT` enabled
-2. Call `StockTransferService.completeStockTransfer()` → assert `ValidationException`
-3. Upload a document via `CustomStockTransferDocumentService`
-4. Retry completion → assert success
-5. Create a second stock transfer with a location that does **not** have the activity
-   code → assert completion succeeds without documents (no regression)
+1. Verifies the custom service bean is present in the application context.
+2. Verifies `StockTransferService.customStockTransferDocumentService` is wired (this is
+   the assertion that protects the Task-5 upstream touch — any future merge that drops
+   the injection field fails CI).
+3. `validateForCompletion(null)` → throws `IllegalArgumentException`.
+4. Neither parent depot enforces → no exception.
+5. Parent depot enforces `REQUIRE_TRANSFER_OUT_DOCUMENT` (origin) and no documents → `ValidationException`.
+6. Parent depot enforces `REQUIRE_TRANSFER_IN_DOCUMENT` (destination) and no documents → `ValidationException`.
+7. **Origin BIN enforces `REQUIRE_TRANSFER_OUT_DOCUMENT`** (parent depot does not), order item
+   carries a transient child Location with the activity code → `ValidationException`. Verifies
+   the bin-aware path through real GORM.
+8. **Destination BIN enforces `REQUIRE_TRANSFER_IN_DOCUMENT`** — mirror of the above.
 
-This test protects Task 5's upstream touch point: any future upstream change that
-breaks the delegating call into the custom service will fail this test in CI.
+The fixture toggles `supportedActivities` on the seeded `Main Warehouse` (id=1) and uses
+it as both parent origin and parent destination (depending on the test). For the bin-level
+tests, a transient child Location is constructed (never saved — `validateForCompletion`
+only reads `supportedActivities`, so persistence is not required) and assigned to a transient
+`OrderItem`. All mutations on the parent location are reverted by the surrounding `@Rollback`
+transaction so neighbouring specs are unaffected. We chose to reuse the seeded parent location
+instead of building a fresh one because `Location` has a custom `organization` validator
+(`DEPOT`/`SUPPLIER` types require an org) that makes ad-hoc construction fragile.
 
 **Acceptance criteria:**
-- All four scenarios pass
-- Test runs via `./gradlew integrationTest`
-- Test is in a custom package (not mixed into upstream integration test suites)
+- All eight scenarios pass via `./gradlew integrationTest --tests "...custom.stocktransferdocuments.*"`
+- Spec is in a custom package (not mixed into upstream integration test suites)
+- Spec uses `@Rollback` so each feature method opens its own Hibernate session
+- Spec uses the seeded `Main Warehouse` instead of constructing a fresh parent location
+- The bin-level tests use a transient child `Location` (no DB save) — the validator's
+  reads are purely in-memory
 
 **Depends on**: Task 5
 
@@ -319,19 +421,26 @@ Backend (1–5, 8) and frontend (6a, 7a, 6, 7) can proceed in parallel after Tas
 
 ## Upstream Touch Point Summary
 
-| Task | File | Budget |
-|------|------|--------|
-| 1 | `ActivityCode.groovy` | 1 line |
-| 4 | `UrlMappings.groovy` | 1 block (3–4 lines) |
-| 5 | `StockTransferService.groovy` | ≤ 5 lines |
-| 7 | `StockTransferCheckPage.jsx` | 1 import + 1 JSX mount + 1 disabled-prop edit |
-| 7a | `webpack.config.js` (`custom` alias) | 1 line (definite — verified missing) |
-| 7a — if Jest doesn't share the webpack alias | `jest.config.js` / `package.json` `moduleNameMapper` | ≤ 2 lines |
-| 6a — if frontend i18n merge hook missing | `IntlProvider` setup | ≤ 2 lines |
-| 6a — if Grails doesn't auto-pick-up extra bundles | `application.yml` | ≤ 2 lines |
+| Task | File | Actual edit |
+|------|------|-------------|
+| 1 | `ActivityCode.groovy` | 6 lines (2 enum entries + 2 list() entries + 1 `// custom` marker + 1 blank line) |
+| 4 | `UrlMappings.groovy` | 6 lines (1 mapping block + comment + spacing) |
+| 5 | `StockTransferService.groovy` | 2 lines (1 service field + 1 delegate call) |
+| 7 | `StockTransferCheckPage.jsx` | ~10 lines (1 import swap + 1 default-state field + 1 panel mount + 1 disabled-prop edit + 2 redirect URL swaps to use `ORDER_URL.show`) |
+| 7a | `webpack.config.js` (`custom` alias) | 1 line |
+| 6a | `grails-app/i18n/messages.properties` | ~12 lines (4 enum/code keys inserted + 8 React keys appended at end of file under a `# Custom:` comment) |
 
-**Total upstream budget: ≤ 20 lines across ≤ 8 files.** Rows 1–5 are definite;
-the last three rows are conditional on verification outcomes in Tasks 6a and 7a —
-they may not be needed at all.
+**Total: ~41 lines across 6 upstream files.** All edits documented above; no
+incidental cleanups, no reordering, no reformatting. The Boy Scout Rule is
+suspended for every file in this list.
 
-If any task's diff grows beyond its budget, pause and revisit the design before committing.
+**Conditional rows that did NOT end up needed:**
+- `jest.config.js` / `package.json` `moduleNameMapper` — Jest already resolves
+  via `moduleDirectories: ["src/js"]`, so `import 'custom/...'` works automatically.
+- `IntlProvider` setup — switching the panel to `utils/Translate` (which already
+  provides `onMissingTranslation`) made this unnecessary.
+- `application.yml` — the i18n bundle move into `messages.properties` directly
+  removed the need to register a custom `messageSource` basename.
+
+If any task's diff grows beyond what's documented here, pause and revisit the
+design before committing.

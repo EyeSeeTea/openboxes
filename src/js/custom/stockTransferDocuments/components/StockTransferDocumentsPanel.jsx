@@ -9,7 +9,8 @@ import {
 import M from 'custom/stockTransferDocuments/utils/messages';
 import PropTypes from 'prop-types';
 import Dropzone from 'react-dropzone';
-import { Translate } from 'react-localize-redux';
+
+import Translate from 'utils/Translate';
 
 import 'custom/stockTransferDocuments/components/StockTransferDocumentsPanel.scss';
 
@@ -65,8 +66,7 @@ const StockTransferDocumentsPanel = ({
       .catch(() => {
         if (!isMountedRef.current) return;
         setFetchError(true);
-        // Fail-open: backend is the authoritative gate.
-        if (onCanCompleteChange) onCanCompleteChange(true);
+        if (onCanCompleteChange) onCanCompleteChange(false);
       });
   }, [stockTransferId, reportCanComplete, onCanCompleteChange]);
 
