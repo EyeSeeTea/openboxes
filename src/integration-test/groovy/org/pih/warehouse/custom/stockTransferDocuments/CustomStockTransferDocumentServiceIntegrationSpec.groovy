@@ -1,4 +1,4 @@
-package org.pih.warehouse.custom.stocktransferdocuments
+package org.pih.warehouse.custom.stockTransferDocuments
 
 import grails.gorm.transactions.Rollback
 import grails.testing.mixin.integration.Integration

@@ -1,4 +1,4 @@
-package org.pih.warehouse.custom.stocktransferdocuments
+package org.pih.warehouse.custom.stockTransferDocuments
 
 import grails.converters.JSON
 import org.pih.warehouse.order.Order

@@ -1,4 +1,4 @@
-package org.pih.warehouse.custom.stocktransferdocuments
+package org.pih.warehouse.custom.stockTransferDocuments
 
 import grails.gorm.transactions.Transactional
 import grails.validation.ValidationException

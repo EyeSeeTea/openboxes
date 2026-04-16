@@ -89,9 +89,12 @@ describe('StockTransferDocumentsPanel', () => {
       expect(screen.getByText(LABELS.panelTitle)).toBeInTheDocument();
 
       await waitFor(() => {
-        expect(screen.getByText(LABELS.empty)).toBeInTheDocument();
+        expect(onCanCompleteChange).toHaveBeenLastCalledWith(true);
       });
-      expect(onCanCompleteChange).toHaveBeenLastCalledWith(true);
+
+      // Panel is collapsed when not required — expand it to verify empty state
+      fireEvent.click(screen.getByText(LABELS.panelTitle));
+      expect(screen.getByText(LABELS.empty)).toBeInTheDocument();
       expect(screen.queryByText(LABELS.requiredWarning)).not.toBeInTheDocument();
     });
 
@@ -122,9 +125,12 @@ describe('StockTransferDocumentsPanel', () => {
       const { onCanCompleteChange } = renderPanel();
 
       await waitFor(() => {
-        expect(screen.getByText(LABELS.fetchError)).toBeInTheDocument();
+        expect(onCanCompleteChange).toHaveBeenLastCalledWith(false);
       });
-      expect(onCanCompleteChange).toHaveBeenLastCalledWith(false);
+
+      // Panel is collapsed on error — expand to verify error message
+      fireEvent.click(screen.getByText(LABELS.panelTitle));
+      expect(screen.getByText(LABELS.fetchError)).toBeInTheDocument();
     });
   });
 
@@ -172,12 +178,12 @@ describe('StockTransferDocumentsPanel', () => {
     });
 
     it('removes a pending file when the remove button is clicked', async () => {
-      mockFetchResolved({ documentRequired: false, documents: [] });
+      mockFetchResolved({ documentRequired: true, documents: [] });
 
       const { container } = renderPanel();
 
       await waitFor(() => {
-        expect(screen.getByText(LABELS.empty)).toBeInTheDocument();
+        expect(screen.getByText(LABELS.requiredWarning)).toBeInTheDocument();
       });
 
       await dropFile(container, createFile());

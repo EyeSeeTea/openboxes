@@ -9,12 +9,39 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+
+    &:hover {
+      background-color: #f0f2f4;
+    }
+  }
+
+  &__header:only-child {
+    margin-bottom: 0;
+  }
+
+  &__header:not(:only-child) {
     margin-bottom: 8px;
   }
 
   &__title {
     font-weight: 600;
     margin: 0;
+    display: flex;
+    align-items: center;
+  }
+
+  &__toggle-icon {
+    font-size: 10px;
+    margin-right: 6px;
+    color: #6c757d;
+  }
+
+  &__required-badge {
+    color: #dc3545;
+    font-weight: 700;
+    margin-left: 4px;
   }
 
   &__warning {
