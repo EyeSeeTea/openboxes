@@ -121,7 +121,7 @@ npm test                # Frontend
 - `react-reviewer` — Reviews React 16.8 / Redux / JSX changes under `src/js/**`. Enforces custom-package isolation, form-library consistency, and i18n.
 
 ### Skills (`.claude/skills/`)
-- **Project-specific**: `code-review` (Grails layer paths + OpenBoxes gotchas)
+- **Project-specific**: `code-review` (Grails layer paths + OpenBoxes gotchas), `openboxes-domain-model` (entity/service map)
 - **Supply Chain Domain**: `customs-trade-compliance`, `inventory-demand-planning`, `logistics-exception-management`, `returns-reverse-logistics`, `production-scheduling`, `quality-nonconformance`
 
 > **Intentionally excluded** (incompatible with this stack): `springboot-patterns`, `springboot-security`, `springboot-tdd`, `springboot-verification`, `jpa-patterns`, `java-coding-standards`. Those teach Spring Boot + JPA + Java 17+ patterns that contradict Grails / GORM / Java 8. Do **not** reintroduce them from upstream skill libraries.
@@ -131,6 +131,7 @@ npm test                # Frontend
 Auto-loaded via `paths:` frontmatter — Claude sees them whenever it touches matching files.
 
 - `custom-package-isolation.md` — **(CRITICAL)** all new code goes under `custom/` folders for upstream-merge safety. Auto-loads on `grails-app/**`, `src/main/**`, `src/main/groovy/**`, `src/main/java/**`, `src/main/webapp/**`, `src/test/**`, `src/integration-test/**`, `src/js/**`, `test/**`.
+- `upstream-entity-extension.md` — **(CRITICAL)** schema-level analogue of custom-package-isolation. Extend upstream domains via a side-table with a UNIQUE FK — **never** inject columns onto upstream tables or mutate upstream classes via metaclass / AST / subclassing. Auto-loads on `grails-app/domain/**`, `grails-app/migrations/**`, `src/main/groovy/**`.
 - `groovy/patterns.md` — Grails conventions, GORM query decision tree, transactional-by-default footgun, constraints/mappings, Liquibase DSL, functional Groovy idioms. Applies to `grails-app/**/*.groovy`, `src/main/groovy/**`.
 - `groovy/testing.md` — Spock + Grails test mixins, integration tests, data-driven tables. Applies to `src/test/groovy/**`, `src/integration-test/groovy/**`, `test/**/*.groovy`.
 - `java/patterns.md` / `java/coding-style.md` / `java/security.md` — for `src/main/java/**` helpers only. Java 8 floor, no JPA, no Spring stereotypes on new beans.
