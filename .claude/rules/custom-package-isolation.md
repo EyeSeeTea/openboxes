@@ -48,6 +48,8 @@ OpenBoxes is a **fork** of upstream PIH OpenBoxes. We pull upstream updates peri
 
 **The corollary:** the Boy Scout Rule from the global CLAUDE.md is **suspended** for any file outside the custom folders. Do not reformat, reorder imports, rename symbols, or "clean up" upstream files. Every incidental edit is a future merge conflict for zero functional benefit.
 
+**Schema-level analogue:** this rule is about upstream *files*. The schema version — don't inject columns onto upstream tables or extend upstream domain classes at runtime — lives in `upstream-entity-extension.md`. When you need to add data to an existing upstream entity, create a custom side-table with a UNIQUE FK rather than modifying the upstream schema.
+
 ## When You MUST Touch an Upstream File
 
 Sometimes a feature genuinely requires modifying an existing upstream file (adding a menu link, registering a new controller, hooking into an existing wizard step). The rules are:
