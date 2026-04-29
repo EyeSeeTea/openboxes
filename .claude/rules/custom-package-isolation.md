@@ -88,26 +88,30 @@ Sometimes a feature genuinely requires modifying an existing upstream file (addi
 
 ### Liquibase
 
-Add the custom changeset to the master changelog **via an include line**, not by inlining:
+**The wiring is already in place on EST** — `grails-app/migrations/changelog.groovy` already contains the include line (after the release loop, before the views rebuild), and `grails-app/migrations/custom/changelog.groovy` exists as the aggregator. **You should not edit the upstream master changelog at all.** New custom migrations only need to:
+
+1. Drop a file under `grails-app/migrations/custom/<yyyy-mm-dd>-<feature>.groovy`.
+2. Append a one-line `include file: '<yyyy-mm-dd>-<feature>.groovy'` to `grails-app/migrations/custom/changelog.groovy`.
+
+For reference, the master changelog looks like this — **don't change it**:
 
 ```groovy
-// grails-app/migrations/changelog.groovy
+// grails-app/migrations/changelog.groovy  (upstream — pre-wired, do not edit)
 databaseChangeLog = {
     // ... upstream includes unchanged ...
     for (TaggedMigrationVersion release : currentAndNewerReleases) {
         include(file: release.toString() + "/changelog.xml")
     }
 
-    include file: 'custom/changelog.groovy'  // <-- add this ONE line
-                                             //     after the release loop, before views rebuild
+    include file: 'custom/changelog.groovy'   // <-- already here
 
     include(file: 'views/changelog.xml')
 }
 ```
 
-**Placement matters.** Put the include line **after the upstream release loop** and **before the views rebuild**. That way upstream migrations apply first, ours second, and view rebuilds last (so any custom views are not dropped by the rebuild step). The release loop is the long-running part of upstream's bootstrap; everything custom rides after it.
+**Why placement matters (already correct on EST):** the include sits **after the upstream release loop** and **before the views rebuild** so upstream migrations apply first, ours second, and view rebuilds last (so any custom views aren't dropped by the rebuild step).
 
-Then `grails-app/migrations/custom/changelog.groovy` aggregates all custom migrations:
+The aggregator at `grails-app/migrations/custom/changelog.groovy` is **ours** — appending include lines to it is **never** an upstream touch:
 
 ```groovy
 databaseChangeLog = {
@@ -115,8 +119,6 @@ databaseChangeLog = {
     include file: '2026-04-15-ims-indexes.groovy'
 }
 ```
-
-This minimizes upstream-file touches to one line. **Adding new include lines to `custom/changelog.groovy` is never an upstream touch** — that file is ours.
 
 **Order changesets by FK dependency.** When one custom feature's tables reference another custom feature's tables (e.g. an approval-tier FK into a location-level table), the include order in `custom/changelog.groovy` must put the FK-target file **above** the FK-holder file. Date-prefixed filenames usually sort correctly; if same-day shipments collide, reorder the include lines explicitly. Rollback runs in reverse-application order automatically — get the apply order right and rollback follows.
 
