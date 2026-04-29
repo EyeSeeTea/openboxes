@@ -94,9 +94,18 @@ Add the custom changeset to the master changelog **via an include line**, not by
 // grails-app/migrations/changelog.groovy
 databaseChangeLog = {
     // ... upstream includes unchanged ...
+    for (TaggedMigrationVersion release : currentAndNewerReleases) {
+        include(file: release.toString() + "/changelog.xml")
+    }
+
     include file: 'custom/changelog.groovy'  // <-- add this ONE line
+                                             //     after the release loop, before views rebuild
+
+    include(file: 'views/changelog.xml')
 }
 ```
+
+**Placement matters.** Put the include line **after the upstream release loop** and **before the views rebuild**. That way upstream migrations apply first, ours second, and view rebuilds last (so any custom views are not dropped by the rebuild step). The release loop is the long-running part of upstream's bootstrap; everything custom rides after it.
 
 Then `grails-app/migrations/custom/changelog.groovy` aggregates all custom migrations:
 
@@ -107,7 +116,13 @@ databaseChangeLog = {
 }
 ```
 
-This minimizes upstream-file touches to one line.
+This minimizes upstream-file touches to one line. **Adding new include lines to `custom/changelog.groovy` is never an upstream touch** — that file is ours.
+
+**Order changesets by FK dependency.** When one custom feature's tables reference another custom feature's tables (e.g. an approval-tier FK into a location-level table), the include order in `custom/changelog.groovy` must put the FK-target file **above** the FK-holder file. Date-prefixed filenames usually sort correctly; if same-day shipments collide, reorder the include lines explicitly. Rollback runs in reverse-application order automatically — get the apply order right and rollback follows.
+
+**Every changeset MUST have an explicit `rollback {}` block.** Don't rely on Liquibase's auto-derive (it doesn't always work for tables with FKs). For `createTable` use `rollback { dropTable(tableName: '...') }`; for `insert` use `rollback { delete(tableName: '...', where: "...") }`. Drop FK-holding tables before FK-target tables — the per-changeset rollback runs in reverse-application order, so getting the apply order right gives you the correct rollback order for free.
+
+**Liquibase id collisions are protected by namespace, not by id uniqueness.** Liquibase tracks changesets by `(id, author, filename)`. Use `author = 'eyeseetea'` and put files under `custom/` so even if upstream coincidentally ships an id matching one of ours, the tuple differs and the rows are independent in `databasechangelog`. Date-prefix changeset ids (`2026-04-13-01-...`) for human readability — collisions inside our own folder are the only ones we have to avoid manually.
 
 ### Spring beans
 
