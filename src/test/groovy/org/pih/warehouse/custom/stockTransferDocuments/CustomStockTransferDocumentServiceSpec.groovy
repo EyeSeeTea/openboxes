@@ -210,4 +210,35 @@ class CustomStockTransferDocumentServiceSpec extends Specification
         UploadValidationException ex = thrown()
         ex.messageCode == UploadConstraints.INVALID_FILENAME_CODE
     }
+
+    def "uploadDocument deduplicates a re-uploaded file with the same name and size"() {
+        given:
+        service.grailsApplication = null
+        Document existing = new Document(
+                name: 'report.pdf',
+                filename: 'report.pdf',
+                fileContents: new byte[42],
+        )
+        Order spyOrder = Spy(Order, constructorArgs: []) {
+            getId() >> 'ord-dedup'
+            getDocuments() >> ([existing] as Set)
+        }
+        GroovySystem.metaClassRegistry.removeMetaClass(Order)
+        Order.metaClass.static.get = { Serializable id ->
+            id == 'ord-dedup' ? spyOrder : null
+        }
+
+        MultipartFile file = mockMultipart('report.pdf', 'application/pdf', 42L)
+
+        when:
+        Order result = service.uploadDocument('ord-dedup', file)
+
+        then:
+        result.is(spyOrder)
+        0 * spyOrder.addToDocuments(_)
+        0 * spyOrder.save(_)
+
+        cleanup:
+        GroovySystem.metaClassRegistry.removeMetaClass(Order)
+    }
 }

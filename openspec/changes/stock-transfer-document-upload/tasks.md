@@ -432,6 +432,70 @@ also be raised in env config for the full 10 MB to be reachable.
 
 ---
 
+## Task 10: Idempotent upload retry (PR review #2) [FE] ✅
+
+PR review on the initial implementation flagged that when one file in a batch
+upload fails, the *full* `pendingFiles` array stayed in state, so clicking
+Upload again re-sent every successful file and created duplicate `Document`
+rows.
+
+Changed `uploadPendingFiles` in
+`src/js/custom/stockTransferDocuments/components/StockTransferDocumentsPanel.jsx`
+to a per-file try/catch over a serial promise chain that accumulates the failed
+files and writes only those back into `pendingFiles`. Successful files
+disappear from the pending list on resolve, so a retry only sends the still-failed
+ones. `loadDocuments()` runs whenever at least one upload succeeded so the
+documents list reflects what got persisted.
+
+The existing `uploadError` boolean became a `uploadErrorMessage` slot holding
+either `null`, the generic `M.uploadError` (when every file failed), or the new
+`M.partialUploadError` (when some succeeded and some didn't). The panel renders
+either message via the existing `<Warning>` component.
+
+**Files (MODIFY — custom):**
+- `src/js/custom/stockTransferDocuments/components/StockTransferDocumentsPanel.jsx`
+  — per-file try/catch reduce, `uploadErrorMessage` state, conditional refresh.
+- `src/js/custom/stockTransferDocuments/utils/messages.js` — adds
+  `partialUploadError` key.
+- `src/js/custom/stockTransferDocuments/__tests__/StockTransferDocumentsPanel.test.jsx`
+  — new tests for partial-failure pending state, retry idempotence, and the
+  multi-file drop helper `dropFiles`.
+
+**Files (MODIFY — upstream, +1 line):**
+- `grails-app/i18n/messages.properties` — appends
+  `react.custom.stockTransferDocuments.upload.partialError` next to the
+  existing custom-feature keys.
+
+**Acceptance criteria:**
+- After A succeeds and B fails in a batch `[A, B, C]`, only `B` remains in
+  `pendingFiles`; A and C are uploaded.
+- Retrying the upload sends only the files still in `pendingFiles` (no
+  duplicates of already-persisted documents).
+- Partial failures show `M.partialUploadError`; full-batch failures show the
+  generic `M.uploadError`.
+- Documents list refreshes when ≥1 upload succeeded; skips refresh when nothing
+  changed server-side.
+
+**Backend dedup (added after manual testing):**
+Manual testing with DevTools Offline mode surfaced that the frontend fix
+alone is not enough — a network drop can cancel the request browser-side
+after the server has already persisted the file, and the client treats it as
+a failure. The retry then inserts a duplicate. Hardened
+`CustomStockTransferDocumentService.uploadDocument` to skip insertion when
+`order.documents` already contains a `Document` with the same sanitized
+filename and byte size, returning 200 without creating a new record. The
+retry becomes a server-side no-op, so duplicates are prevented regardless
+of network flakiness.
+
+- Spock test added in `CustomStockTransferDocumentServiceSpec` using a
+  metaClass-stubbed `Order.get` to simulate an order with a pre-existing
+  same-name-same-size document. Verifies no `addToDocuments` / `save` calls
+  on dedup hit.
+
+**Depends on**: Tasks 6, 6a, 9 (existing implementation + #1 hardening)
+
+---
+
 ## Task 8: Integration spec for upstream+custom completion flow [BE] ✅
 
 **File**: `src/integration-test/groovy/org/pih/warehouse/custom/stocktransferdocuments/CustomStockTransferDocumentServiceIntegrationSpec.groovy` *(NEW)*
@@ -495,9 +559,9 @@ Backend (1–5, 8) and frontend (6a, 7a, 6, 7) can proceed in parallel after Tas
 | 5 | `StockTransferService.groovy` | 2 lines (1 service field + 1 delegate call) |
 | 7 | `StockTransferCheckPage.jsx` | ~10 lines (1 import swap + 1 default-state field + 1 panel mount + 1 disabled-prop edit + 2 redirect URL swaps to use `ORDER_URL.show`) |
 | 7a | `webpack.config.js` (`custom` alias) | 1 line |
-| 6a / 9 | `grails-app/i18n/messages.properties` | ~18 lines (4 enum/code keys + 8 base React keys + 3 backend upload-validation keys + 3 React upload-validation keys, all appended under `# Custom:` comments) |
+| 6a / 9 / 10 | `grails-app/i18n/messages.properties` | ~19 lines (4 enum/code keys + 8 base React keys + 3 backend upload-validation keys + 3 React upload-validation keys + 1 partial-upload-error key, all appended under `# Custom:` comments) |
 
-**Total: ~47 lines across 6 upstream files.** All edits documented above; no
+**Total: ~48 lines across 6 upstream files.** All edits documented above; no
 incidental cleanups, no reordering, no reformatting. The Boy Scout Rule is
 suspended for every file in this list.
 

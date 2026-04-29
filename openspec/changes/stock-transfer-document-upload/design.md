@@ -78,6 +78,40 @@ small upstream touch (6 new i18n keys appended to `messages.properties`):
   `onDropRejected` handler that surfaces `'file-too-large'` /
   `'file-invalid-type'` codes as a localized inline `<Warning>`.
 
+**Post-PR-review hardening — duplicate-on-retry (2026-04-29):** PR #1 review
+also flagged that `uploadPendingFiles` aborted on the first failure, leaving
+the full `pendingFiles` array in state. Hitting Upload again re-sent
+already-persisted files and created duplicate `Document` rows. Two-layer fix:
+
+1. **Frontend — pending-list hygiene.** `uploadPendingFiles` now uses a
+   per-file `try/catch` across a serial promise chain that accumulates the
+   failed files; only those are written back to `pendingFiles`, so successful
+   uploads disappear from the pending list on resolve. The previous
+   `uploadError` boolean became a `uploadErrorMessage` slot holding either the
+   generic `M.uploadError` (every attempted file failed) or the new
+   `M.partialUploadError` (mix of success/failure). The documents list
+   refreshes only when at least one upload succeeded, so we don't issue a
+   wasted GET when nothing changed server-side.
+
+2. **Backend — idempotent uploads.** Manual testing surfaced that frontend
+   hygiene alone is not enough: a flaky network can cancel the request
+   browser-side *after* the server already persisted the file, and the
+   frontend has no way to tell the difference. Without server-side dedup,
+   the retry inserts a second copy. `CustomStockTransferDocumentService.uploadDocument`
+   now checks `order.documents` for a `Document` with the same sanitized
+   filename and same byte size before inserting; if one exists, the upload
+   is logged as a dedup and returns 200 without creating a new record. The
+   client retry becomes a no-op server-side, so duplicate `Document` rows
+   are prevented even when the network drops mid-flight.
+
+The `(filename, size)` heuristic is intentionally lighter than a content
+hash: the network-flake retry by definition re-uploads the *same bytes*, so
+the heuristic catches the real-world failure mode without paying for byte
+comparison or hashing existing documents on every upload. False positive
+(two genuinely different files with identical name and size on the same
+order) is rare and surfaced to the user — the document doesn't appear in
+the list, they can rename and retry.
+
 **Tunable cap rationale:** the 10 MB default matches upstream
 `Document.fileContents`'s `maxSize: 10485760` constraint — anything larger
 fails GORM validation on save, and lifting that cap requires modifying
@@ -479,6 +513,10 @@ live as message keys under two namespaces:
   `react.custom.stockTransferDocuments.upload.invalidFilename.error` — React-side
   inline warnings shown by `onDropRejected` when `react-dropzone` filters a
   drop client-side.
+- `react.custom.stockTransferDocuments.upload.partialError` — React-side
+  inline warning shown when at least one file in a batch upload succeeded
+  and at least one failed; signals that the remaining `pendingFiles` are the
+  ones that need retrying.
 
 **Storage:** all of the above are appended to the **upstream**
 `grails-app/i18n/messages.properties` file in a single hunk at the end (and to

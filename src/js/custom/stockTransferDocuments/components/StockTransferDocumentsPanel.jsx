@@ -54,7 +54,7 @@ const StockTransferDocumentsPanel = ({
   const [pendingFiles, setPendingFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [fetchError, setFetchError] = useState(false);
-  const [uploadError, setUploadError] = useState(false);
+  const [uploadErrorMessage, setUploadErrorMessage] = useState(null);
   const [rejectionMessage, setRejectionMessage] = useState(null);
   const [collapsed, setCollapsed] = useState(true);
 
@@ -126,23 +126,37 @@ const StockTransferDocumentsPanel = ({
 
   const uploadPendingFiles = useCallback(async () => {
     if (pendingFiles.length === 0 || !stockTransferId) return;
+    const attempted = pendingFiles;
     setUploading(true);
-    setUploadError(false);
-    try {
-      // Serial — addToDocuments mutates a single Hibernate entity, concurrent writes race.
-      await pendingFiles.reduce(
-        (chain, file) =>
-          chain.then(() => uploadStockTransferDocument(stockTransferId, file)),
-        Promise.resolve(),
-      );
-      if (!isMountedRef.current) return;
-      setPendingFiles([]);
+    setUploadErrorMessage(null);
+
+    // Serial — addToDocuments mutates a single Hibernate entity, concurrent writes race.
+    // Per-file try/catch so successful uploads aren't re-sent on retry.
+    const failed = await attempted.reduce(
+      (chain, file) => chain.then(async (acc) => {
+        try {
+          await uploadStockTransferDocument(stockTransferId, file);
+          return acc;
+        } catch {
+          return [...acc, file];
+        }
+      }),
+      Promise.resolve([]),
+    );
+
+    if (!isMountedRef.current) return;
+
+    setPendingFiles(failed);
+    if (failed.length === 0) {
+      setUploadErrorMessage(null);
+    } else if (failed.length === attempted.length) {
+      setUploadErrorMessage(M.uploadError);
+    } else {
+      setUploadErrorMessage(M.partialUploadError);
+    }
+    setUploading(false);
+    if (failed.length < attempted.length) {
       loadDocuments();
-    } catch {
-      if (!isMountedRef.current) return;
-      setUploadError(true);
-    } finally {
-      if (isMountedRef.current) setUploading(false);
     }
   }, [pendingFiles, stockTransferId, loadDocuments]);
 
@@ -199,7 +213,6 @@ const StockTransferDocumentsPanel = ({
                   <a href={document.uri} target="_blank" rel="noopener noreferrer">
                     {document.name}
                   </a>
-                  <span>{document.contentType}</span>
                 </li>
               ))}
             </ul>
@@ -270,10 +283,10 @@ const StockTransferDocumentsPanel = ({
             />
           )}
 
-          {uploadError && (
+          {uploadErrorMessage && (
             <Warning
-              messageKey={M.uploadError.id}
-              defaultMessage={M.uploadError.defaultMessage}
+              messageKey={uploadErrorMessage.id}
+              defaultMessage={uploadErrorMessage.defaultMessage}
             />
           )}
         </>

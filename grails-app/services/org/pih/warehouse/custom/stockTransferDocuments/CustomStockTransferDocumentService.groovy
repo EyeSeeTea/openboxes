@@ -97,6 +97,19 @@ class CustomStockTransferDocumentService {
                     UploadConstraints.INVALID_TYPE_DEFAULT)
         }
 
+        // Idempotency: a flaky network can cancel the request browser-side after the server
+        // already persisted the file, leaving the client to retry and create a duplicate.
+        // Treat a re-upload of the same (filename, size) for the same order as a no-op so
+        // the retry returns 200 without inserting a second copy.
+        Document existing = order.documents?.find { Document doc ->
+            doc.filename == sanitizedName && doc.size == fileContents.size as int
+        }
+        if (existing) {
+            log.info "custom_stock_transfer_document_upload_dedup orderId=${order.id} documentId=${existing.id}" +
+                    " filename=${sanitizedName} size=${fileContents.size}"
+            return order
+        }
+
         Document document = new Document()
         document.fileContents = fileContents.bytes
         document.contentType = fileContents.contentType

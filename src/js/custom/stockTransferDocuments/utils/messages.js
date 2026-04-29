@@ -27,6 +27,10 @@ const STOCK_TRANSFER_DOCUMENTS_MESSAGES = {
     id: 'react.custom.stockTransferDocuments.upload.error',
     defaultMessage: 'Document upload failed',
   },
+  partialUploadError: {
+    id: 'react.custom.stockTransferDocuments.upload.partialError',
+    defaultMessage: 'Some documents failed to upload. The remaining files above can be retried.',
+  },
   fetchError: {
     id: 'react.custom.stockTransferDocuments.fetch.error',
     defaultMessage: 'Unable to load documents',

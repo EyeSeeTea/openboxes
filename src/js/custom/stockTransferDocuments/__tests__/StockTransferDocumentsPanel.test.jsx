@@ -34,6 +34,7 @@ const LABELS = {
     'A document must be attached before this stock transfer can be completed',
   fetchError: 'Unable to load documents',
   uploadError: 'Document upload failed',
+  partialUploadError: 'Some documents failed to upload. The remaining files above can be retried.',
   invalidTypeError: 'Unsupported file type. Allowed: PDF, image, Word, Excel, CSV, ZIP.',
   tooLargeError: 'File is too large.',
   uploadButton: 'Upload',
@@ -68,20 +69,24 @@ const createFile = (name = SAMPLE_DOCUMENT.name, type = 'application/pdf', size)
   return file;
 };
 
-const dropFile = async (container, file) => {
+const dropFiles = async (container, files) => {
   const dropzone = container.querySelector('[role="presentation"]');
   const dataTransfer = {
-    files: [file],
-    items: [{
+    files,
+    items: files.map((file) => ({
       kind: 'file', type: file.type, getAsFile: () => file,
-    }],
+    })),
     types: ['Files'],
   };
   fireEvent.drop(dropzone, { dataTransfer });
   await waitFor(() => {
-    expect(screen.getByText(file.name)).toBeInTheDocument();
+    files.forEach((file) => {
+      expect(screen.getByText(file.name)).toBeInTheDocument();
+    });
   });
 };
+
+const dropFile = (container, file) => dropFiles(container, [file]);
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -163,6 +168,75 @@ describe('StockTransferDocumentsPanel', () => {
         expect(uploadStockTransferDocument).toHaveBeenCalledWith(STOCK_TRANSFER_ID, file);
       });
       expect(await screen.findByText(SAMPLE_DOCUMENT.name)).toBeInTheDocument();
+    });
+
+    it('keeps only the failed files pending and shows partialError on partial failure', async () => {
+      mockFetchResolved({ documentRequired: true, documents: [] });
+      uploadStockTransferDocument
+        .mockResolvedValueOnce({ data: { data: 'ok' } })
+        .mockRejectedValueOnce(new Error('boom'))
+        .mockResolvedValueOnce({ data: { data: 'ok' } });
+      mockFetchResolved({ documentRequired: true, documents: [SAMPLE_DOCUMENT] });
+
+      const { container } = renderPanel();
+
+      await waitFor(() => {
+        expect(screen.getByText(LABELS.requiredWarning)).toBeInTheDocument();
+      });
+
+      const fileA = createFile('a.pdf');
+      const fileB = createFile('b.pdf');
+      const fileC = createFile('c.pdf');
+      await dropFiles(container, [fileA, fileB, fileC]);
+
+      fireEvent.click(screen.getByRole('button', { name: LABELS.uploadButton }));
+
+      await waitFor(() => {
+        expect(uploadStockTransferDocument).toHaveBeenCalledTimes(3);
+      });
+
+      expect(uploadStockTransferDocument).toHaveBeenNthCalledWith(1, STOCK_TRANSFER_ID, fileA);
+      expect(uploadStockTransferDocument).toHaveBeenNthCalledWith(2, STOCK_TRANSFER_ID, fileB);
+      expect(uploadStockTransferDocument).toHaveBeenNthCalledWith(3, STOCK_TRANSFER_ID, fileC);
+
+      await waitFor(() => {
+        expect(screen.getByText(LABELS.partialUploadError)).toBeInTheDocument();
+      });
+      expect(screen.queryByText('a.pdf')).not.toBeInTheDocument();
+      expect(screen.queryByText('c.pdf')).not.toBeInTheDocument();
+      expect(screen.getByText('b.pdf')).toBeInTheDocument();
+    });
+
+    it('does not re-send already-uploaded files when the user retries after a partial failure', async () => {
+      mockFetchResolved({ documentRequired: true, documents: [] });
+      uploadStockTransferDocument
+        .mockResolvedValueOnce({ data: { data: 'ok' } }) // a.pdf
+        .mockRejectedValueOnce(new Error('boom'));        // b.pdf
+      mockFetchResolved({ documentRequired: true, documents: [] });
+      uploadStockTransferDocument
+        .mockResolvedValueOnce({ data: { data: 'ok' } }); // b.pdf retry
+      mockFetchResolved({ documentRequired: true, documents: [SAMPLE_DOCUMENT] });
+
+      const { container } = renderPanel();
+
+      await waitFor(() => {
+        expect(screen.getByText(LABELS.requiredWarning)).toBeInTheDocument();
+      });
+
+      await dropFiles(container, [createFile('a.pdf'), createFile('b.pdf')]);
+
+      fireEvent.click(screen.getByRole('button', { name: LABELS.uploadButton }));
+      await waitFor(() => {
+        expect(screen.getByText(LABELS.partialUploadError)).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: LABELS.uploadButton }));
+
+      await waitFor(() => {
+        expect(uploadStockTransferDocument).toHaveBeenCalledTimes(3);
+      });
+      const calledFiles = uploadStockTransferDocument.mock.calls.map(([, file]) => file.name);
+      expect(calledFiles).toEqual(['a.pdf', 'b.pdf', 'b.pdf']);
     });
 
     it('shows an upload error and keeps pending files when upload fails', async () => {
