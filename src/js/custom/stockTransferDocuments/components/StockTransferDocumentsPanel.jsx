@@ -94,8 +94,8 @@ const StockTransferDocumentsPanel = ({
   }, [loadDocuments]);
 
   useEffect(() => {
-    if (documentRequired) setCollapsed(false);
-  }, [documentRequired]);
+    if (documentRequired || fetchError) setCollapsed(false);
+  }, [documentRequired, fetchError]);
 
   const toggleCollapsed = useCallback(() => {
     setCollapsed((prev) => !prev);

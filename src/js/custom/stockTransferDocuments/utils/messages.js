@@ -33,7 +33,7 @@ const STOCK_TRANSFER_DOCUMENTS_MESSAGES = {
   },
   fetchError: {
     id: 'react.custom.stockTransferDocuments.fetch.error',
-    defaultMessage: 'Unable to load documents',
+    defaultMessage: 'Unable to load documents. Please refresh to try again.',
   },
   requiredWarning: {
     id: 'react.custom.stockTransferDocuments.required.warning',

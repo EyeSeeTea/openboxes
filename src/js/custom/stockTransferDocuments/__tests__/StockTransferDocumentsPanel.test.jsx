@@ -32,7 +32,7 @@ const LABELS = {
   empty: 'No documents attached yet',
   requiredWarning:
     'A document must be attached before this stock transfer can be completed',
-  fetchError: 'Unable to load documents',
+  fetchError: 'Unable to load documents. Please refresh to try again.',
   uploadError: 'Document upload failed',
   partialUploadError: 'Some documents failed to upload. The remaining files above can be retried.',
   invalidTypeError: 'Unsupported file type. Allowed: PDF, image, Word, Excel, CSV, ZIP.',
@@ -131,7 +131,7 @@ describe('StockTransferDocumentsPanel', () => {
       expect(onCanCompleteChange).toHaveBeenLastCalledWith(true);
     });
 
-    it('fails closed on network error and shows a fetch error alert', async () => {
+    it('fails closed on network error and auto-expands to show the fetch error alert', async () => {
       mockFetchRejected();
 
       const { onCanCompleteChange } = renderPanel();
@@ -140,9 +140,8 @@ describe('StockTransferDocumentsPanel', () => {
         expect(onCanCompleteChange).toHaveBeenLastCalledWith(false);
       });
 
-      // Panel is collapsed on error — expand to verify error message
-      fireEvent.click(screen.getByText(LABELS.panelTitle));
-      expect(screen.getByText(LABELS.fetchError)).toBeInTheDocument();
+      // Panel auto-expands on fetchError so the warning is visible without user interaction.
+      expect(await screen.findByText(LABELS.fetchError)).toBeInTheDocument();
     });
   });
 
