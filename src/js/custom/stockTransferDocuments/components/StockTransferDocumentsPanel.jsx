@@ -16,6 +16,23 @@ import 'custom/stockTransferDocuments/components/StockTransferDocumentsPanel.scs
 
 const BLOCK = 'custom-stock-transfer-documents';
 
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+
+const ACCEPTED_FILE_TYPES = {
+  'application/pdf': ['.pdf'],
+  'image/png': ['.png'],
+  'image/jpeg': ['.jpg', '.jpeg'],
+  'image/gif': ['.gif'],
+  'image/webp': ['.webp'],
+  'application/msword': ['.doc'],
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+  'application/vnd.ms-excel': ['.xls'],
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+  'text/csv': ['.csv'],
+  'application/zip': ['.zip'],
+  'application/x-zip-compressed': ['.zip'],
+};
+
 const Warning = ({ messageKey, defaultMessage }) => (
   <div className={`${BLOCK}__warning`} role="alert">
     <Translate id={messageKey} defaultMessage={defaultMessage} />
@@ -38,6 +55,7 @@ const StockTransferDocumentsPanel = ({
   const [uploading, setUploading] = useState(false);
   const [fetchError, setFetchError] = useState(false);
   const [uploadError, setUploadError] = useState(false);
+  const [rejectionMessage, setRejectionMessage] = useState(null);
   const [collapsed, setCollapsed] = useState(true);
 
   const isMountedRef = useRef(true);
@@ -85,7 +103,21 @@ const StockTransferDocumentsPanel = ({
 
   const onDrop = useCallback((accepted) => {
     if (!accepted || accepted.length === 0) return;
+    setRejectionMessage(null);
     setPendingFiles((current) => [...current, ...accepted]);
+  }, []);
+
+  const onDropRejected = useCallback((fileRejections) => {
+    if (!fileRejections || fileRejections.length === 0) return;
+    const codes = fileRejections.flatMap((rejection) =>
+      (rejection.errors || []).map((error) => error.code));
+    if (codes.includes('file-too-large')) {
+      setRejectionMessage(M.tooLargeError);
+    } else if (codes.includes('file-invalid-type')) {
+      setRejectionMessage(M.invalidTypeError);
+    } else {
+      setRejectionMessage(M.invalidTypeError);
+    }
   }, []);
 
   const removePendingFile = useCallback((name) => {
@@ -173,7 +205,14 @@ const StockTransferDocumentsPanel = ({
             </ul>
           )}
 
-          <Dropzone onDrop={onDrop} disabled={disabled || uploading} multiple>
+          <Dropzone
+            onDrop={onDrop}
+            onDropRejected={onDropRejected}
+            disabled={disabled || uploading}
+            accept={ACCEPTED_FILE_TYPES}
+            maxSize={MAX_UPLOAD_BYTES}
+            multiple
+          >
             {({ getRootProps, getInputProps, isDragActive }) => {
               const rootClassName = [
                 `${BLOCK}__dropzone`,
@@ -222,6 +261,13 @@ const StockTransferDocumentsPanel = ({
                 </button>
               </div>
             </div>
+          )}
+
+          {rejectionMessage && (
+            <Warning
+              messageKey={rejectionMessage.id}
+              defaultMessage={rejectionMessage.defaultMessage}
+            />
           )}
 
           {uploadError && (

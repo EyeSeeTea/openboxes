@@ -53,6 +53,41 @@ UI smoke tests surfaced bugs:
    load-bearing change for the quarantine-release workflow — it's the entire
    reason the feature was requested.
 
+**Post-PR-review hardening (2026-04-28):** PR #1 review (xurxodev) flagged the
+upload path was missing the file-upload validation required by
+`.claude/rules/web/security.md` (MIME allowlist, size cap, filename
+sanitization, both client and server side). Added in custom code with one
+small upstream touch (6 new i18n keys appended to `messages.properties`):
+
+- New helper `org.pih.warehouse.custom.stockTransferDocuments.UploadConstraints`
+  — content-type + extension allowlists (PDF, image, Word, Excel, CSV, ZIP),
+  `DEFAULT_MAX_BYTES = 10 MB` (matches upstream `Document.fileContents` GORM cap),
+  `sanitizeFilename()` (strips path components and ISO control chars, replaces
+  Windows-unsafe chars `<>:"|?*` with `_`, truncates to 255 chars).
+- New typed exception `UploadValidationException(messageCode, args)` so the
+  controller can resolve a localized error string.
+- `CustomStockTransferDocumentService.uploadDocument` now validates size, MIME,
+  extension, and filename and persists the sanitized name — and reads the cap
+  from `openboxes.custom.stockTransferDocuments.maxUploadSizeBytes` (10 MB
+  default) so operators can tune via environment config without touching
+  upstream files.
+- `CustomStockTransferDocumentController.upload` wraps the service call,
+  catches `UploadValidationException`, and renders `400 { errorMessage }` with
+  the resolved i18n string. Logs a `warn` audit line (no document bytes).
+- Frontend `<Dropzone>` gets `accept` + `maxSize: 10 MB` props and an
+  `onDropRejected` handler that surfaces `'file-too-large'` /
+  `'file-invalid-type'` codes as a localized inline `<Warning>`.
+
+**Tunable cap rationale:** the 10 MB default matches upstream
+`Document.fileContents`'s `maxSize: 10485760` constraint — anything larger
+fails GORM validation on save, and lifting that cap requires modifying
+upstream `Document.groovy` (forbidden by isolation rules). Operators wanting
+smaller caps set `openboxes.custom.stockTransferDocuments.maxUploadSizeBytes`
+in environment override config. To use the full 10 MB, operators must also
+raise the Spring multipart limit `grails.controllers.upload.maxFileSize`
+(default 2 MB in upstream `application.yml`) in env override config — the
+framework rejects oversize requests before our service runs.
+
 **Strategy:**
 - All new backend code lives under a dedicated custom package:
   `org.pih.warehouse.custom.stocktransferdocuments.*`
@@ -79,7 +114,7 @@ UI smoke tests surfaced bugs:
 | `grails-app/views/inventoryItem/_actionsCurrentStock.gsp` | Hide "Transfer Stock" action on stock card when the source bin has `REQUIRE_TRANSFER_OUT_DOCUMENT` — prevents bypassing the document gate via the stock card's direct transfer dialog. | 2 lines (`g:if` wrapper) |
 | `grails-app/views/inventoryItem/_transferStock.gsp` | Point destination bin dropdown to custom filtered endpoint that excludes bins with `REQUIRE_TRANSFER_IN_DOCUMENT`. | 1 line (data-url change) |
 | `webpack.config.js` | `custom/*` alias does not exist yet (verified: only `components`, `hooks`, `utils`, etc. are aliased). First custom feature must register it. | 1 line (`custom: path.resolve(SRC, 'custom')`) |
-| `grails-app/i18n/messages.properties` | Backend i18n keys for the two new activity codes (used by both the GSP location-edit page and the React location-config screen) and the custom-feature React keys. Grails 3.3 only auto-loads `messages*.properties` from the `i18n/` root, and adding a `messageSource` override would itself be an upstream touch — appending ~12 lines is the smallest net change. | ~14 lines (4 enum/code keys + 1 custom backend key + 9 React keys, all appended at the end of the file) |
+| `grails-app/i18n/messages.properties` | Backend i18n keys for the two new activity codes (used by both the GSP location-edit page and the React location-config screen), the custom-feature React keys, and (post-PR-review) upload-validation error keys (MIME/size/filename). Grails 3.3 only auto-loads `messages*.properties` from the `i18n/` root, and adding a `messageSource` override would itself be an upstream touch — appending ~20 lines is the smallest net change. | ~20 lines (4 enum/code keys + 1 custom backend key + 9 React keys + 3 upload-validation backend keys + 3 upload-validation React keys, all appended at the end of the file under `# Custom:` comments) |
 
 **Explicitly NOT modified (vs. the earlier plan):**
 - ~~`StockTransfer.groovy` (API model) `toJson()` reshape and new `documentRequired` field~~
@@ -433,6 +468,17 @@ live as message keys under two namespaces:
 - `react.custom.stockTransferDocuments.*` — all React-side panel strings (panel title,
   empty state, dropzone prompt, upload/remove buttons, fetch/upload errors, required
   warning).
+- `customStockTransferDocument.upload.invalidType.error` /
+  `customStockTransferDocument.upload.tooLarge.error` /
+  `customStockTransferDocument.upload.invalidFilename.error` — backend reject codes
+  resolved by `messageSource.getMessage(...)` in the controller's
+  `UploadValidationException` handler. The `tooLarge` key takes the configured
+  byte cap as `{0}`.
+- `react.custom.stockTransferDocuments.upload.invalidType.error` /
+  `react.custom.stockTransferDocuments.upload.tooLarge.error` /
+  `react.custom.stockTransferDocuments.upload.invalidFilename.error` — React-side
+  inline warnings shown by `onDropRejected` when `react-dropzone` filters a
+  drop client-side.
 
 **Storage:** all of the above are appended to the **upstream**
 `grails-app/i18n/messages.properties` file in a single hunk at the end (and to

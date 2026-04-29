@@ -18,6 +18,8 @@ class CustomStockTransferDocumentService {
     static final String DOCUMENT_REQUIRED_ERROR = 'A document is required to complete this stock transfer'
     static final String DOCUMENT_REQUIRED_CODE = 'customStockTransferDocument.required.error'
 
+    def grailsApplication
+
     List<Map> listDocuments(Order order) {
         return order.documents?.collect { Document doc ->
             [
@@ -58,17 +60,48 @@ class CustomStockTransferDocumentService {
         return Boolean.TRUE.equals(location?.supports(activity))
     }
 
+    long getMaxUploadSizeBytes() {
+        Object configured = grailsApplication?.config?.openboxes?.custom?.stockTransferDocuments?.maxUploadSizeBytes
+        if (configured instanceof Number && ((Number) configured).longValue() > 0L) {
+            return ((Number) configured).longValue()
+        }
+        return UploadConstraints.DEFAULT_MAX_BYTES
+    }
+
     Order uploadDocument(String orderId, MultipartFile fileContents) {
         Order order = getOrderOrThrow(orderId)
         if (!fileContents || fileContents.empty) {
             throw new IllegalArgumentException("File contents are required")
         }
 
+        long maxBytes = getMaxUploadSizeBytes()
+        if (fileContents.size > maxBytes) {
+            throw new UploadValidationException(
+                    UploadConstraints.TOO_LARGE_CODE,
+                    UploadConstraints.TOO_LARGE_DEFAULT,
+                    [maxBytes] as Object[])
+        }
+
+        String sanitizedName = UploadConstraints.sanitizeFilename(fileContents.originalFilename)
+        if (!sanitizedName) {
+            throw new UploadValidationException(
+                    UploadConstraints.INVALID_FILENAME_CODE,
+                    UploadConstraints.INVALID_FILENAME_DEFAULT)
+        }
+
+        boolean contentTypeOk = UploadConstraints.isContentTypeAllowed(fileContents.contentType)
+        boolean extensionOk = UploadConstraints.isExtensionAllowed(sanitizedName)
+        if (!contentTypeOk || !extensionOk) {
+            throw new UploadValidationException(
+                    UploadConstraints.INVALID_TYPE_CODE,
+                    UploadConstraints.INVALID_TYPE_DEFAULT)
+        }
+
         Document document = new Document()
         document.fileContents = fileContents.bytes
         document.contentType = fileContents.contentType
-        document.name = fileContents.originalFilename
-        document.filename = fileContents.originalFilename
+        document.name = sanitizedName
+        document.filename = sanitizedName
         document.documentType = DocumentType.get(Constants.DEFAULT_DOCUMENT_TYPE_ID)
 
         order.addToDocuments(document)

@@ -36,6 +36,14 @@ const STOCK_TRANSFER_DOCUMENTS_MESSAGES = {
     defaultMessage:
       'A document must be attached before this stock transfer can be completed',
   },
+  invalidTypeError: {
+    id: 'react.custom.stockTransferDocuments.upload.invalidType.error',
+    defaultMessage: 'Unsupported file type. Allowed: PDF, image, Word, Excel, CSV, ZIP.',
+  },
+  tooLargeError: {
+    id: 'react.custom.stockTransferDocuments.upload.tooLarge.error',
+    defaultMessage: 'File is too large.',
+  },
 };
 
 export default STOCK_TRANSFER_DOCUMENTS_MESSAGES;

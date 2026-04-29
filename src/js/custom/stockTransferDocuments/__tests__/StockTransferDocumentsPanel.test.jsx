@@ -34,6 +34,8 @@ const LABELS = {
     'A document must be attached before this stock transfer can be completed',
   fetchError: 'Unable to load documents',
   uploadError: 'Document upload failed',
+  invalidTypeError: 'Unsupported file type. Allowed: PDF, image, Word, Excel, CSV, ZIP.',
+  tooLargeError: 'File is too large.',
   uploadButton: 'Upload',
   removeButton: 'Remove',
 };
@@ -58,8 +60,13 @@ const renderPanel = (overrides = {}) => {
   return { ...utils, onCanCompleteChange };
 };
 
-const createFile = (name = SAMPLE_DOCUMENT.name) =>
-  new File(['hello'], name, { type: 'text/plain' });
+const createFile = (name = SAMPLE_DOCUMENT.name, type = 'application/pdf', size) => {
+  const file = new File(['hello'], name, { type });
+  if (size != null) {
+    Object.defineProperty(file, 'size', { value: size });
+  }
+  return file;
+};
 
 const dropFile = async (container, file) => {
   const dropzone = container.querySelector('[role="presentation"]');
@@ -175,6 +182,56 @@ describe('StockTransferDocumentsPanel', () => {
         expect(screen.getByText(LABELS.uploadError)).toBeInTheDocument();
       });
       expect(screen.getByText(SAMPLE_DOCUMENT.name)).toBeInTheDocument();
+    });
+
+    it('rejects an unsupported file type with an inline warning', async () => {
+      mockFetchResolved({ documentRequired: true, documents: [] });
+
+      const { container } = renderPanel();
+
+      await waitFor(() => {
+        expect(screen.getByText(LABELS.requiredWarning)).toBeInTheDocument();
+      });
+
+      const dropzone = container.querySelector('[role="presentation"]');
+      const file = createFile('virus.exe', 'application/x-msdownload');
+      fireEvent.drop(dropzone, {
+        dataTransfer: {
+          files: [file],
+          items: [{ kind: 'file', type: file.type, getAsFile: () => file }],
+          types: ['Files'],
+        },
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(LABELS.invalidTypeError)).toBeInTheDocument();
+      });
+      expect(uploadStockTransferDocument).not.toHaveBeenCalled();
+    });
+
+    it('rejects an oversize file with an inline warning', async () => {
+      mockFetchResolved({ documentRequired: true, documents: [] });
+
+      const { container } = renderPanel();
+
+      await waitFor(() => {
+        expect(screen.getByText(LABELS.requiredWarning)).toBeInTheDocument();
+      });
+
+      const oversize = createFile('big.pdf', 'application/pdf', 11 * 1024 * 1024);
+      const dropzone = container.querySelector('[role="presentation"]');
+      fireEvent.drop(dropzone, {
+        dataTransfer: {
+          files: [oversize],
+          items: [{ kind: 'file', type: oversize.type, getAsFile: () => oversize }],
+          types: ['Files'],
+        },
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(LABELS.tooLargeError)).toBeInTheDocument();
+      });
+      expect(uploadStockTransferDocument).not.toHaveBeenCalled();
     });
 
     it('removes a pending file when the remove button is clicked', async () => {

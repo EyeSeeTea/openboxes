@@ -4,6 +4,7 @@ import grails.converters.JSON
 import org.pih.warehouse.core.ActivityCode
 import org.pih.warehouse.core.Location
 import org.pih.warehouse.order.Order
+import org.springframework.context.i18n.LocaleContextHolder
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.multipart.MultipartHttpServletRequest
 
@@ -11,6 +12,7 @@ class CustomStockTransferDocumentController {
 
     def customStockTransferDocumentService
     def locationService
+    def messageSource
 
     def list() {
         Order order = Order.get(params.id)
@@ -57,7 +59,27 @@ class CustomStockTransferDocumentController {
             return
         }
 
-        customStockTransferDocumentService.uploadDocument(params.id, fileContents)
-        render([data: "Document was uploaded successfully"] as JSON)
+        try {
+            customStockTransferDocumentService.uploadDocument(params.id, fileContents)
+            render([data: "Document was uploaded successfully"] as JSON)
+        } catch (UploadValidationException ex) {
+            log.warn "custom_stock_transfer_document_upload_rejected orderId=${params.id}" +
+                    " code=${ex.messageCode} originalFilename=${fileContents.originalFilename}" +
+                    " contentType=${fileContents.contentType} size=${fileContents.size}"
+            response.status = 400
+            render([errorMessage: resolveMessage(ex)] as JSON)
+        }
+    }
+
+    private String resolveMessage(UploadValidationException ex) {
+        try {
+            return messageSource.getMessage(
+                    ex.messageCode,
+                    ex.messageArgs,
+                    ex.message,
+                    LocaleContextHolder.locale)
+        } catch (Exception ignore) {
+            return ex.message
+        }
     }
 }

@@ -9,6 +9,7 @@ import org.pih.warehouse.core.Location
 import org.pih.warehouse.order.Order
 import org.pih.warehouse.order.OrderItem
 import org.springframework.validation.BeanPropertyBindingResult
+import org.springframework.web.multipart.MultipartFile
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -149,5 +150,64 @@ class CustomStockTransferDocumentServiceSpec extends Specification
 
         then:
         noExceptionThrown()
+    }
+
+    private MultipartFile mockMultipart(
+            String originalFilename,
+            String contentType,
+            long size,
+            byte[] bytes = 'data'.bytes) {
+        MultipartFile file = Mock(MultipartFile)
+        file.empty >> (size == 0L)
+        file.size >> size
+        file.contentType >> contentType
+        file.originalFilename >> originalFilename
+        file.bytes >> bytes
+        return file
+    }
+
+    def "uploadDocument rejects oversize files"() {
+        given:
+        service.grailsApplication = null
+        Order order = new Order(id: 'ord-1').save(validate: false)
+        MultipartFile file = mockMultipart(
+                'big.pdf',
+                'application/pdf',
+                UploadConstraints.DEFAULT_MAX_BYTES + 1L)
+
+        when:
+        service.uploadDocument(order.id, file)
+
+        then:
+        UploadValidationException ex = thrown()
+        ex.messageCode == UploadConstraints.TOO_LARGE_CODE
+    }
+
+    def "uploadDocument rejects disallowed content types"() {
+        given:
+        service.grailsApplication = null
+        Order order = new Order(id: 'ord-2').save(validate: false)
+        MultipartFile file = mockMultipart('virus.exe', 'application/x-msdownload', 100L)
+
+        when:
+        service.uploadDocument(order.id, file)
+
+        then:
+        UploadValidationException ex = thrown()
+        ex.messageCode == UploadConstraints.INVALID_TYPE_CODE
+    }
+
+    def "uploadDocument rejects when filename has no usable basename"() {
+        given:
+        service.grailsApplication = null
+        Order order = new Order(id: 'ord-3').save(validate: false)
+        MultipartFile file = mockMultipart('../', 'application/pdf', 100L)
+
+        when:
+        service.uploadDocument(order.id, file)
+
+        then:
+        UploadValidationException ex = thrown()
+        ex.messageCode == UploadConstraints.INVALID_FILENAME_CODE
     }
 }

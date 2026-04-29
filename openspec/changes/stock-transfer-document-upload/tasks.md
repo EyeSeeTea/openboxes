@@ -365,6 +365,73 @@ features should not need to touch `webpack.config.js` again.
 
 ---
 
+## Task 9: Upload validation hardening (PR review #1) [BE/FE] ✅
+
+PR review on the initial implementation flagged the upload path had no MIME
+allowlist, no size cap, and no filename sanitization (`web/security.md` requires
+both client and server-side validation). All work is in custom files; the only
+upstream touch is appending 6 new i18n keys to `messages.properties`.
+
+**Files (NEW — custom):**
+- `src/main/groovy/org/pih/warehouse/custom/stockTransferDocuments/UploadConstraints.groovy`
+  — content-type allowlist (PDF, image, Word, Excel, CSV, ZIP), extension allowlist,
+  `DEFAULT_MAX_BYTES = 10 MB` (matches the upstream `Document.fileContents` GORM cap),
+  `sanitizeFilename()` (strips path components + ISO control chars, replaces
+  Windows-unsafe chars `<>:"|?*` with `_`, truncates to 255 chars).
+- `src/main/groovy/org/pih/warehouse/custom/stockTransferDocuments/UploadValidationException.groovy`
+  — typed exception carrying `messageCode` + `messageArgs` so the controller can
+  resolve a localized error string via `messageSource`.
+
+**Files (MODIFY — custom):**
+- `CustomStockTransferDocumentService.uploadDocument` — injects `grailsApplication`,
+  reads `openboxes.custom.stockTransferDocuments.maxUploadSizeBytes` (default 10 MB),
+  validates size + MIME + extension + filename, sanitizes the filename before
+  persisting on `Document.name` / `Document.filename`.
+- `CustomStockTransferDocumentController.upload` — wraps the service call in
+  `try/catch (UploadValidationException)`; on rejection, resolves the i18n message
+  via injected `messageSource` and returns `400 { errorMessage }`. Logs a `warn`
+  audit line with order id, code, content-type and size.
+- `src/js/custom/stockTransferDocuments/components/StockTransferDocumentsPanel.jsx`
+  — adds `accept` (matching backend allowlist) and `maxSize: 10 MB` props on
+  `<Dropzone>`, plus `onDropRejected` that surfaces `'file-too-large'` /
+  `'file-invalid-type'` codes as a localized inline `<Warning>`.
+- `src/js/custom/stockTransferDocuments/utils/messages.js` — adds `invalidTypeError`
+  and `tooLargeError` message keys.
+
+**Files (MODIFY — upstream, +6 lines):**
+- `grails-app/i18n/messages.properties` — appends 6 new keys (3 backend + 3
+  React-side) alongside the existing custom-feature block:
+  - `customStockTransferDocument.upload.invalidType.error`
+  - `customStockTransferDocument.upload.tooLarge.error`
+  - `customStockTransferDocument.upload.invalidFilename.error`
+  - `react.custom.stockTransferDocuments.upload.invalidType.error`
+  - `react.custom.stockTransferDocuments.upload.tooLarge.error`
+  - `react.custom.stockTransferDocuments.upload.invalidFilename.error`
+
+**Tunable cap:** the 10 MB default is the upstream `Document.fileContents` GORM
+constraint ceiling — raising it requires modifying upstream `Document.groovy`,
+which is forbidden by the isolation rule. Operators wanting smaller caps can set
+`openboxes.custom.stockTransferDocuments.maxUploadSizeBytes` in their environment
+override config (default `openboxes-config.properties` or `external config`),
+which leaves all upstream files untouched. The Spring multipart limit
+(`grails.controllers.upload.maxFileSize`, default 2 MB in upstream
+`application.yml`) caps the request size **before** our service runs and must
+also be raised in env config for the full 10 MB to be reachable.
+
+**Acceptance criteria:**
+- Server rejects oversize uploads with `400 { errorMessage: <localized> }`
+- Server rejects disallowed MIME or extension with `400 { errorMessage: <localized> }`
+- Server sanitizes path traversal, control chars, and Windows-unsafe chars from
+  the persisted `Document.name` / `Document.filename`
+- Client `<Dropzone>` filters the OS file picker via `accept` and rejects
+  oversize / wrong-type drops via `onDropRejected` + inline localized warning
+- Both client and server use the same allowlist (defense in depth — browsers send
+  inconsistent MIME types for `.csv`, `.zip`, and `.docx`)
+
+**Depends on**: Tasks 2, 3, 6a (existing implementation)
+
+---
+
 ## Task 8: Integration spec for upstream+custom completion flow [BE] ✅
 
 **File**: `src/integration-test/groovy/org/pih/warehouse/custom/stocktransferdocuments/CustomStockTransferDocumentServiceIntegrationSpec.groovy` *(NEW)*
@@ -428,9 +495,9 @@ Backend (1–5, 8) and frontend (6a, 7a, 6, 7) can proceed in parallel after Tas
 | 5 | `StockTransferService.groovy` | 2 lines (1 service field + 1 delegate call) |
 | 7 | `StockTransferCheckPage.jsx` | ~10 lines (1 import swap + 1 default-state field + 1 panel mount + 1 disabled-prop edit + 2 redirect URL swaps to use `ORDER_URL.show`) |
 | 7a | `webpack.config.js` (`custom` alias) | 1 line |
-| 6a | `grails-app/i18n/messages.properties` | ~12 lines (4 enum/code keys inserted + 8 React keys appended at end of file under a `# Custom:` comment) |
+| 6a / 9 | `grails-app/i18n/messages.properties` | ~18 lines (4 enum/code keys + 8 base React keys + 3 backend upload-validation keys + 3 React upload-validation keys, all appended under `# Custom:` comments) |
 
-**Total: ~41 lines across 6 upstream files.** All edits documented above; no
+**Total: ~47 lines across 6 upstream files.** All edits documented above; no
 incidental cleanups, no reordering, no reformatting. The Boy Scout Rule is
 suspended for every file in this list.
 
