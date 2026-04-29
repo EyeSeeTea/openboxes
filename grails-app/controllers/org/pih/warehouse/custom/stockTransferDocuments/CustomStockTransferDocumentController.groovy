@@ -68,6 +68,14 @@ class CustomStockTransferDocumentController {
                     " contentType=${fileContents.contentType} size=${fileContents.size}"
             response.status = 400
             render([errorMessage: resolveMessage(ex)] as JSON)
+        } catch (IllegalArgumentException ex) {
+            log.warn "custom_stock_transfer_document_upload_bad_request orderId=${params.id} message=${ex.message}"
+            response.status = 404
+            render([errorMessage: ex.message] as JSON)
+        } catch (Exception ex) {
+            log.error "custom_stock_transfer_document_upload_failed orderId=${params.id}", ex
+            response.status = 500
+            render([errorMessage: 'Document upload failed. Please try again.'] as JSON)
         }
     }
 
