@@ -59,8 +59,12 @@ class OutboundExpiryGuardInterceptorSpec extends Specification
     }
 
     private void postPicklist(String reqItemId, List<String> inventoryItemIds) {
-        def picklistItems = inventoryItemIds.collect { id ->
-            [inventoryItem: [id: id], binLocation: [id: 'bin-1'], quantityPicked: 1]
+        postPicklistWithQuantities(reqItemId, inventoryItemIds.collectEntries { [(it): 1] })
+    }
+
+    private void postPicklistWithQuantities(String reqItemId, Map<String, ?> quantitiesByInventoryItemId) {
+        def picklistItems = quantitiesByInventoryItemId.collect { id, qty ->
+            [inventoryItem: [id: id], binLocation: [id: 'bin-1'], quantityPicked: qty]
         }
         request.method = 'POST'
         request.contentType = 'application/json'
@@ -172,6 +176,47 @@ class OutboundExpiryGuardInterceptorSpec extends Specification
 
         then:
         proceed == true
+    }
+
+    def "ignores expired lots in the payload that are not actually being picked (#scenario)"() {
+        given:
+        stubParentStockMovement(StockMovementType.STOCK_MOVEMENT)
+        postPicklistWithQuantities(REQUISITION_ITEM_ID, [
+                (FRESH_LOT_ID)  : 13,
+                (EXPIRED_LOT_ID): notPickedValue,
+        ])
+
+        when:
+        boolean proceed = interceptor.before()
+
+        then:
+        proceed == true
+
+        where:
+        scenario           | notPickedValue
+        'empty string'     | ''
+        'whitespace'       | '   '
+        'zero integer'     | 0
+        'zero string'      | '0'
+        'null'             | null
+        'negative integer' | -1
+    }
+
+    def "still rejects when an expired lot is being picked alongside a fresh one"() {
+        given:
+        stubParentStockMovement(StockMovementType.STOCK_MOVEMENT)
+        postPicklistWithQuantities(REQUISITION_ITEM_ID, [
+                (FRESH_LOT_ID)  : 5,
+                (EXPIRED_LOT_ID): 3,
+        ])
+
+        when:
+        boolean proceed = interceptor.before()
+
+        then:
+        proceed == false
+        response.status == 400
+        response.json.errorCode == OutboundExpiryGuardInterceptor.ERROR_CODE
     }
 
     def "still applies the expiry check when the parent traversal returns null (no RETURN_ORDER fall-through)"() {

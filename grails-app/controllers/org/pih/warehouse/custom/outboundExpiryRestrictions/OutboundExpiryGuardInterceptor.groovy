@@ -41,7 +41,7 @@ class OutboundExpiryGuardInterceptor {
         }
 
         List<String> ids = picklistItems
-                .findAll { it?.inventoryItem?.id }
+                .findAll { it?.inventoryItem?.id && parsePickedQuantity(it.quantityPicked) > 0 }
                 .collect { it.inventoryItem.id as String }
         if (!ids) {
             return true
@@ -78,5 +78,23 @@ class OutboundExpiryGuardInterceptor {
         Object[] args = [productCode, lotNumber, formattedExpiry] as Object[]
         String defaultMessage = "Cannot pick lot ${lotNumber} of product ${productCode} — it expired on ${formattedExpiry}."
         return messageSource.getMessage(ERROR_CODE, args, defaultMessage, request.locale)
+    }
+
+    private static int parsePickedQuantity(quantityPicked) {
+        if (quantityPicked == null) {
+            return 0
+        }
+        if (quantityPicked instanceof Number) {
+            return ((Number) quantityPicked).intValue()
+        }
+        String s = quantityPicked.toString().trim()
+        if (!s) {
+            return 0
+        }
+        try {
+            return Integer.parseInt(s)
+        } catch (NumberFormatException ignored) {
+            return 0
+        }
     }
 }
