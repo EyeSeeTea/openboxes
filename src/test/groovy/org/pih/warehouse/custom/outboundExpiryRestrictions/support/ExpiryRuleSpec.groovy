@@ -16,12 +16,12 @@ class ExpiryRuleSpec extends Specification {
 
     def "isExpired returns false when expirationDate is null"() {
         expect:
-        ExpiryRule.isExpired(null) == false
+        ExpiryRule.isExpired(null, today()) == false
     }
 
     def "isExpired returns #expected for delta=#delta days from today"() {
         expect:
-        ExpiryRule.isExpired(daysFromToday(delta)) == expected
+        ExpiryRule.isExpired(daysFromToday(delta), today()) == expected
 
         where:
         delta || expected

@@ -47,7 +47,7 @@ import org.pih.warehouse.core.StockMovementItemParamsCommand
 import org.pih.warehouse.core.StockMovementItemsParamsCommand
 import org.pih.warehouse.core.User
 import org.pih.warehouse.core.UserService
-import org.pih.warehouse.custom.outboundExpiryRestrictions.service.StockMovementServiceWithExpiryFilter
+import org.pih.warehouse.custom.outboundExpiryRestrictions.support.ExpiryRule
 import org.pih.warehouse.data.DataService
 import org.pih.warehouse.forecasting.ForecastingService
 import org.pih.warehouse.importer.CSVUtils
@@ -1050,7 +1050,7 @@ class StockMovementService {
 
             def quantityAvailable = availableItems?.findAll { it.quantityAvailable > 0 }?.sum { it.quantityAvailable }
             def quantityOnHand = availableItems?.sum { it.quantityOnHand }
-            def quantityPickable = StockMovementServiceWithExpiryFilter.sumPickableQuantity(availableItems)
+            def quantityPickable = ExpiryRule.sumPickableQuantity(availableItems)
             def quantityDemandFulfilling = forecastingService.getDemand(requisition.origin, null, productsMap[it.product_id])
 
             [

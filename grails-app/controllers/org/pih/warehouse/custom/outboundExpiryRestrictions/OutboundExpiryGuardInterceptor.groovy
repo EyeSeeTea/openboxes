@@ -7,6 +7,7 @@ import org.pih.warehouse.inventory.InventoryItem
 import org.pih.warehouse.inventory.OutboundStockMovement
 import org.pih.warehouse.requisition.RequisitionItem
 
+import java.math.BigDecimal
 import java.text.DateFormat
 
 class OutboundExpiryGuardInterceptor {
@@ -31,17 +32,19 @@ class OutboundExpiryGuardInterceptor {
             return true
         }
 
-        // Reason: defence-in-depth. The SQL view at grails-app/migrations/views/stock-movement.sql
-        // hard-codes stock_movement_type='STOCK_MOVEMENT' for the requisition branch, but if upstream
-        // changes the view to introduce other types backed by requisitions, this guard auto-disables
-        // for them. Failing open on null per design.md Risks table.
+        // Parent-traversal matrix:
+        //   STOCK_MOVEMENT  → enforce expiry guard
+        //   RETURN_ORDER    → allow (legitimate flow for shipping expired stock back)
+        //   null            → enforce (fail closed; safer than silently allowing expired
+        //                     payloads when the SQL view at grails-app/migrations/views/stock-movement.sql
+        //                     can't resolve a parent — e.g., a future upstream change to view shape)
         OutboundStockMovement parentMovement = OutboundStockMovement.findByRequisition(requisitionItem.requisition)
         if (parentMovement && parentMovement.stockMovementType != StockMovementType.STOCK_MOVEMENT) {
             return true
         }
 
         List<String> ids = picklistItems
-                .findAll { it?.inventoryItem?.id && parsePickedQuantity(it.quantityPicked) > 0 }
+                .findAll { it?.inventoryItem?.id && isPositiveQuantity(it.quantityPicked) }
                 .collect { it.inventoryItem.id as String }
         if (!ids) {
             return true
@@ -85,21 +88,26 @@ class OutboundExpiryGuardInterceptor {
         return messageSource.getMessage(ERROR_CODE, args, MISSING_BUNDLE_FALLBACK, request.locale)
     }
 
-    private static int parsePickedQuantity(quantityPicked) {
+    // Reason: parses with BigDecimal to match the upstream parser at
+    // StockMovementService.updatePicklistItem:1946 (`new BigDecimal(picklistItemMap.quantityPicked)`).
+    // Using Integer.parseInt here would silently treat "1.5" as 0 and let an expired-lot row through
+    // the guard; upstream then crashes with ArithmeticException AFTER clearPicklist() runs, leaving
+    // the requisition's existing picks wiped. Treating any positive decimal as a pick closes that gap.
+    private static boolean isPositiveQuantity(quantityPicked) {
         if (quantityPicked == null) {
-            return 0
+            return false
         }
         if (quantityPicked instanceof Number) {
-            return ((Number) quantityPicked).intValue()
+            return ((Number) quantityPicked).doubleValue() > 0
         }
         String s = quantityPicked.toString().trim()
         if (!s) {
-            return 0
+            return false
         }
         try {
-            return Integer.parseInt(s)
+            return new BigDecimal(s).signum() > 0
         } catch (NumberFormatException ignored) {
-            return 0
+            return false
         }
     }
 }

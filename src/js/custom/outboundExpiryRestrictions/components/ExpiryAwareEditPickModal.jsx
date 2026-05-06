@@ -1,3 +1,12 @@
+// Forked from src/js/components/stock-movement-wizard/modals/EditPickModal.jsx.
+// Keep in sync on upstream merges. Augmentations vs. upstream:
+//   - availableItems.getDynamicRowAttr adds `expiredRowClassName` for expired rows
+//   - availableItems.fields.quantityPicked.getDynamicAttr adds `disabled: true` and
+//     a native `title` tooltip via buildExpiredTooltip when the row is expired
+//   - mapStateToProps adds `translate` and `formatLocalizedDate` so getDynamicAttr
+//     can reach them via formProps
+// Wrapping the upstream component is not feasible: its FIELDS object is module-scoped
+// and not exported. See openspec/changes/block-expired-items-on-outbound/design.md (D2).
 import React, { Component } from 'react';
 
 import {
