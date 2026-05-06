@@ -70,14 +70,19 @@ class OutboundExpiryGuardInterceptor {
         return false
     }
 
+    // Reason: the formatted user-facing string lives only in the i18n bundle
+    // (`outboundExpiryRestrictions-messages.properties`) so translators have a single
+    // source of truth. The defaultMessage is just a non-interpolated safety net for the
+    // catastrophic case where the bundle is missing — it never renders in normal operation.
+    private static final String MISSING_BUNDLE_FALLBACK = 'Expired stock cannot be picked.'
+
     private String formatMessage(row, DateFormat dateFormat) {
         String lotNumber = (row[0] ?: '') as String
         Date expirationDate = (Date) row[1]
         String productCode = (row[2] ?: '') as String
         String formattedExpiry = expirationDate ? dateFormat.format(expirationDate) : ''
         Object[] args = [productCode, lotNumber, formattedExpiry] as Object[]
-        String defaultMessage = "Cannot pick lot ${lotNumber} of product ${productCode} — it expired on ${formattedExpiry}."
-        return messageSource.getMessage(ERROR_CODE, args, defaultMessage, request.locale)
+        return messageSource.getMessage(ERROR_CODE, args, MISSING_BUNDLE_FALLBACK, request.locale)
     }
 
     private static int parsePickedQuantity(quantityPicked) {
