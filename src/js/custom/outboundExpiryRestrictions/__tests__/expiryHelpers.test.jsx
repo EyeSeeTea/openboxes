@@ -1,8 +1,14 @@
 /* eslint-env jest */
+import React from 'react';
+
+import { render } from '@testing-library/react';
 import {
   buildExpiredTooltip,
+  EXPIRED_HINT_DEFAULT,
+  EXPIRED_HINT_KEY,
   expiredRowClassName,
   isRowExpired,
+  renderAvailableCell,
   TOOLTIP_DEFAULT,
   TOOLTIP_KEY,
 } from 'custom/outboundExpiryRestrictions/utils/expiryHelpers';
@@ -78,5 +84,73 @@ describe('buildExpiredTooltip', () => {
 
   it('exposes a stable English template', () => {
     expect(TOOLTIP_DEFAULT).toBe('Cannot ship — expired on {0}.');
+  });
+});
+
+describe('renderAvailableCell', () => {
+  const renderCellHTML = (rendered) => {
+    const { container } = render(<div>{rendered}</div>);
+    return container.firstChild.innerHTML;
+  };
+
+  it('returns the row unchanged when it is null', () => {
+    expect(renderAvailableCell(null)(null)).toBe(null);
+  });
+
+  it('returns the row unchanged when it is undefined', () => {
+    expect(renderAvailableCell(null)(undefined)).toBe(undefined);
+  });
+
+  it('renders a single number when all stock is fresh', () => {
+    const cell = renderAvailableCell(null)({ quantityAvailable: 50, quantityPickable: 50 });
+    expect(cell).toBe('50');
+  });
+
+  it('renders a single number when quantityPickable is missing (backend not yet deployed)', () => {
+    const cell = renderAvailableCell(null)({ quantityAvailable: 50 });
+    expect(cell).toBe('50');
+  });
+
+  it('renders 0 when quantityAvailable is 0 and quantityPickable is 0', () => {
+    const cell = renderAvailableCell(null)({ quantityAvailable: 0, quantityPickable: 0 });
+    expect(cell).toBe(0);
+  });
+
+  it('renders pickable plus a red expired tail when some stock is expired', () => {
+    const cell = renderAvailableCell(null)({ quantityAvailable: 83, quantityPickable: 33 });
+    expect(renderCellHTML(cell))
+      .toBe('33<span class="text-danger ml-1">(50 expired)</span>');
+  });
+
+  it('renders 0 plus a red expired tail when every lot is expired', () => {
+    const cell = renderAvailableCell(null)({ quantityAvailable: 50, quantityPickable: 0 });
+    expect(renderCellHTML(cell))
+      .toBe('0<span class="text-danger ml-1">(50 expired)</span>');
+  });
+
+  it('formats expired counts with thousands separators', () => {
+    const cell = renderAvailableCell(null)({ quantityAvailable: 1500, quantityPickable: 500 });
+    expect(renderCellHTML(cell))
+      .toBe('500<span class="text-danger ml-1">(1,000 expired)</span>');
+  });
+
+  it('delegates to translate when supplied', () => {
+    const translate = jest.fn(() => '(50 vencidos)');
+    const cell = renderAvailableCell(translate)({ quantityAvailable: 83, quantityPickable: 33 });
+    expect(translate).toHaveBeenCalledWith(
+      EXPIRED_HINT_KEY,
+      EXPIRED_HINT_DEFAULT.replace('{0}', '50'),
+      { 0: '50' },
+    );
+    expect(renderCellHTML(cell))
+      .toBe('33<span class="text-danger ml-1">(50 vencidos)</span>');
+  });
+
+  it('exposes a stable i18n key', () => {
+    expect(EXPIRED_HINT_KEY).toBe('outboundExpiryRestrictions.edit.expiredHint');
+  });
+
+  it('exposes a stable English template', () => {
+    expect(EXPIRED_HINT_DEFAULT).toBe('({0} expired)');
   });
 });

@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 
+import { renderAvailableCell } from 'custom/outboundExpiryRestrictions/utils/expiryHelpers';
 import arrayMutators from 'final-form-arrays';
 import update from 'immutability-helper';
 import _ from 'lodash';
@@ -50,7 +51,7 @@ const FIELDS = {
       rowValues, subfield, showOnlyErroredItems, itemFilter,
     }) => {
       let className = rowValues.statusCode === 'SUBSTITUTED' ? 'crossed-out ' : '';
-      if (rowValues.quantityAvailable < rowValues.quantityRequested) {
+      if (rowValues.quantityPickable < rowValues.quantityRequested) {
         className += 'font-weight-bold';
       }
       const filterOutItems = itemFilter
@@ -132,20 +133,18 @@ const FIELDS = {
         defaultMessage: 'Available',
         flexWidth: '1',
         fieldKey: '',
-        getDynamicAttr: ({ fieldValue }) => {
+        getDynamicAttr: ({ fieldValue, translate }) => {
           let className = 'text-right';
-          if (fieldValue && (!fieldValue.quantityAvailable
-            || fieldValue.quantityAvailable < fieldValue.quantityRequested)) {
+          if (fieldValue && (!fieldValue.quantityPickable
+            || fieldValue.quantityPickable < fieldValue.quantityRequested)) {
             className = `${className} text-danger`;
           }
           return {
             className,
+            formatValue: renderAvailableCell(translate),
           };
         },
         headerAlign: 'right',
-        attributes: {
-          formatValue: (value) => (value.quantityAvailable ? (value.quantityAvailable.toLocaleString('en-US')) : value.quantityAvailable),
-        },
       },
       quantityDemandFulfilling: {
         type: LabelField,
@@ -412,7 +411,7 @@ class EditItemsPage extends Component {
     const errors = validateForSave(values);
 
     _.forEach(values.editPageItems, (item, key) => {
-      if (_.isNil(item.quantityRevised) && (item.quantityRequested > item.quantityAvailable) && (item.statusCode !== 'SUBSTITUTED')) {
+      if (_.isNil(item.quantityRevised) && (item.quantityRequested > item.quantityPickable) && (item.statusCode !== 'SUBSTITUTED')) {
         errors.editPageItems[key] = { quantityRevised: 'react.stockMovement.errors.lowerQty.label' };
       }
     });

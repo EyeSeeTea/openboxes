@@ -28,4 +28,12 @@ class StockMovementServiceWithExpiryFilter extends StockMovementService {
             !ExpiryRule.isExpired(item?.inventoryItem?.expirationDate, today)
         }
     }
+
+    static Integer sumPickableQuantity(List<AvailableItem> availableItems) {
+        Date today = new Date().clearTime()
+        def total = availableItems
+                ?.findAll { it.quantityAvailable > 0 && !ExpiryRule.isExpired(it?.inventoryItem?.expirationDate, today) }
+                ?.sum { it.quantityAvailable }
+        return (total && total > 0 ? total : 0) as Integer
+    }
 }
