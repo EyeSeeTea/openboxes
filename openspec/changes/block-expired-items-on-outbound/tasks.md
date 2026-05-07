@@ -14,12 +14,12 @@
 
 ## 3. Backend — i18n message
 
-- [x] 3.1 Create `grails-app/i18n/custom/outboundExpiryRestrictions-messages.properties` with keys:
+- [x] 3.1 Append the three custom keys to the upstream root bundle `grails-app/i18n/messages.properties`:
   - `outboundExpiryRestrictions.expired.cannotShip` — "Cannot pick lot {1} of product {0} — it expired on {2}." (positional args: {0}=productCode, {1}=lotNumber, {2}=expirationDate)
   - `outboundExpiryRestrictions.expired.tooltip` — "Cannot ship — expired on {0}."
-  - **Note on loading:** Grails 3.3 default `messageSource` does not recurse into `grails-app/i18n/custom/`. Server uses `messageSource.getMessage(key, args, defaultMessage, locale)` with the English defaultMessage parameter so the response always works in English. Frontend uses `<Translate defaultMessage=... />` which falls back per `Translate.jsx:30`. Wiring a messageSource bean override is a follow-up if a customer needs server-driven translations of these keys.
-- [x] 3.2 Confirm `crowdin.yml` picks the new file up. Add a glob entry if not.
-  - Result: added `/**/grails-app/i18n/custom/*-messages.properties` glob to `crowdin.yml` with `%file_name%_%two_letters_code%.properties` translation pattern.
+  - `outboundExpiryRestrictions.edit.expiredHint` — "({0} expired)"
+  - **Why the root bundle (not `grails-app/i18n/custom/`):** Grails 3.3's default `PluginAwareResourceBundleMessageSource` only globs `grails-app/i18n/messages*.properties` at the bundle root. A separate custom basename file would silently never load, so every `messageSource.getMessage(...)` call on the server side would fall back to the English `defaultMessage`. Documented as an upstream touch point in design.md.
+- [x] 3.2 Crowdin already syncs from `grails-app/i18n/messages.properties` upstream — no `crowdin.yml` edit needed for these keys.
 
 ## 4. Backend — `OutboundExpiryGuardInterceptor`
 

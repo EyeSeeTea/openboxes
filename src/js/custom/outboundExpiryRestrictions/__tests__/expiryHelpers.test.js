@@ -1,7 +1,6 @@
 /* eslint-env jest */
-import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 
-import { render } from '@testing-library/react';
 import {
   buildExpiredTooltip,
   EXPIRED_HINT_DEFAULT,
@@ -88,10 +87,7 @@ describe('buildExpiredTooltip', () => {
 });
 
 describe('renderAvailableCell', () => {
-  const renderCellHTML = (rendered) => {
-    const { container } = render(<div>{rendered}</div>);
-    return container.firstChild.innerHTML;
-  };
+  const renderCellHTML = (rendered) => renderToStaticMarkup(rendered);
 
   it('returns the row unchanged when it is null', () => {
     expect(renderAvailableCell(null)(null)).toBe(null);

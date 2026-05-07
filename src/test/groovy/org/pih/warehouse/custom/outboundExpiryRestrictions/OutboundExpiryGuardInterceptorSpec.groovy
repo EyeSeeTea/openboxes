@@ -219,6 +219,32 @@ class OutboundExpiryGuardInterceptorSpec extends Specification
         response.json.errorCode == OutboundExpiryGuardInterceptor.ERROR_CODE
     }
 
+    def "lets the request through when an inventoryItem.id is unknown to the DB (executeQuery returns fewer rows than requested)"() {
+        given:
+        stubParentStockMovement(StockMovementType.STOCK_MOVEMENT)
+        postPicklist(REQUISITION_ITEM_ID, ['lot-unknown-1', FRESH_LOT_ID])
+
+        when:
+        boolean proceed = interceptor.before()
+
+        then:
+        proceed == true
+    }
+
+    def "still rejects when the payload mixes a known-expired lot and an unknown id"() {
+        given:
+        stubParentStockMovement(StockMovementType.STOCK_MOVEMENT)
+        postPicklist(REQUISITION_ITEM_ID, ['lot-unknown-1', EXPIRED_LOT_ID])
+
+        when:
+        boolean proceed = interceptor.before()
+
+        then:
+        proceed == false
+        response.status == 400
+        response.json.errorCode == OutboundExpiryGuardInterceptor.ERROR_CODE
+    }
+
     def "still applies the expiry check when the parent traversal returns null (no RETURN_ORDER fall-through)"() {
         given:
         stubMissingStockMovement()

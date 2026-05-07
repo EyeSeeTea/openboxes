@@ -59,7 +59,7 @@ The wrapper is feasible because `EditPickModal` is consumed via the field config
 A custom Grails interceptor `OutboundExpiryGuardInterceptor` matches `controller: 'stockMovementItemApi', action: 'updatePicklist'` (verified at `StockMovementItemApiController.groovy:60` and the URL mapping at `UrlMappings.groovy:219-221`). In `before()`:
 
 1. Parse `picklistItems` from the JSON body (same shape as `updatePicklist` reads at line 67).
-2. Load the parent `StockMovementItem` via `stockMovementService.getStockMovementItem(params.id)` (the same lookup the controller does at line 64).
+2. Load the `RequisitionItem` via `RequisitionItem.get(params.id)` directly. (We originally drafted `stockMovementService.getStockMovementItem(...)` here, but the implementation uses the lighter direct GORM lookup — the interceptor does not need the full StockMovementItem mapping; it only needs the parent requisition + a single executeQuery projection over the inventoryItem ids.)
 3. Walk back to the `OutboundStockMovement` via `stockMovementItem.requisition` and check `stockMovementType == StockMovementType.STOCK_MOVEMENT`. If `RETURN_ORDER` (or no parent), return true (let the request proceed).
 4. For each `picklistItems[].inventoryItem.id`, load the `InventoryItem` and apply the canonical predicate (`expirationDate != null && expirationDate < today`). If any expired, render HTTP 400 with `{errorCode: 'outboundExpiryRestrictions.expired.cannotShip', errorMessages: [...]}` and return false.
 
@@ -72,9 +72,10 @@ A custom Grails interceptor `OutboundExpiryGuardInterceptor` matches `controller
 `ExpiryRule` (a `final` Groovy class with static methods) under `src/main/groovy/org/pih/warehouse/custom/outboundExpiryRestrictions/support/` exposes:
 
 ```groovy
-static boolean isExpired(InventoryItem item)            // null-safe; null expirationDate → false
-static boolean isExpired(Date expirationDate)           // for callers that only have the date
+static boolean isExpired(Date expirationDate, Date today) // null-safe; null expirationDate → false
 ```
+
+`today` is injected by the caller (rather than computed inside the predicate) so unit tests can pin it and so loops over many items hoist the date computation once. The interceptor and `StockMovementServiceWithExpiryFilter.filterExpired` both compute `new Date().clearTime()` once and pass it in.
 
 The interceptor and the (optional) frontend response-annotator both call this. The predicate matches upstream `ProductAvailabilityService.groovy:555` (`expirationDate < today`).
 
@@ -122,7 +123,7 @@ This section is the merge-conflict hitlist for future upstream pulls (per `.clau
 | File | Reason | Diff size |
 |---|---|---|
 | `src/js/components/stock-movement-wizard/outbound/PickPage.jsx` | Replace the `EditPickModal` import + JSX usage with custom `ExpiryAwareEditPickModal` wrapper so the lot picker disables expired rows. | Two lines (one import, one component reference). No other lines change. |
-| `crowdin.yml` | Add a glob pattern picking up `grails-app/i18n/custom/*-messages.properties` so translators can localise custom feature keys. | Two added lines (one source, one translation pattern). |
+| `grails-app/i18n/messages.properties` | Append the three `outboundExpiryRestrictions.*` keys at the bottom of the upstream root bundle. Required because Grails 3.3's `PluginAwareResourceBundleMessageSource` only globs `grails-app/i18n/messages*.properties` at the root — a custom basename under `grails-app/i18n/custom/` would never be loaded at runtime, so all three keys would silently fall back to the hardcoded English defaults. Crowdin already syncs from this file. | 4 added lines (1 comment + 3 keys). |
 | `webpack.config.js` | Add a `custom: path.resolve(SRC, 'custom')` alias so `import ... from 'custom/<feature>/...'` resolves at bundle time. Without this, bare `custom/...` imports fail because Webpack's default `resolve.modules` is `['node_modules']` only. ESLint's import resolver already finds these paths via `import/resolver.node.paths: ['src/js']`. | One added line in the alias block. |
 | `grails-app/conf/spring/resources.groovy` | Override the upstream `stockMovementService` bean with `StockMovementServiceWithExpiryFilter` (subclass of `StockMovementService`). Required to filter expired `AvailableItem`s out of `getSuggestedItems` autopick suggestions — Spring proxy AOP cannot intercept the upstream `this.getSuggestedItems(...)` self-call from `createPicklist`, so we substitute the bean instead and rely on Java/Groovy virtual dispatch. `bean.autowire = 'byName'` re-wires injected collaborators. | One bean definition block (~5 lines) inside the `beans = { ... }` closure. |
 
@@ -152,13 +153,13 @@ Each criterion below is verifiable from a concrete artifact (file:line, captured
 
 ### Code-after-implementation criteria
 
-- [x] **C1 — Custom-isolation: every new file path matches the expected pattern.** Verified: `(git ls-files --others --exclude-standard ; git diff --name-only) | sort -u` excluding the documented upstream touch points (`PickPage.jsx`, `webpack.config.js`, `crowdin.yml`) and the `openspec/` change folder leaves zero unmatched files. All other new files live under `org/pih/warehouse/custom/outboundExpiryRestrictions/`, `src/js/custom/outboundExpiryRestrictions/`, or `grails-app/i18n/custom/`.
+- [x] **C1 — Custom-isolation: every new file path matches the expected pattern.** Verified: `(git ls-files --others --exclude-standard ; git diff --name-only) | sort -u` excluding the documented upstream touch points (`PickPage.jsx`, `webpack.config.js`, `messages.properties`, `resources.groovy`) and the `openspec/` change folder leaves zero unmatched files. All other new files live under `org/pih/warehouse/custom/outboundExpiryRestrictions/` or `src/js/custom/outboundExpiryRestrictions/`.
 - [x] **C2 — `PickPage.jsx` diff is exactly two lines of net change.** Working-tree diff = exactly 2 lines (one removed import, one added import).
 - [ ] **C3 — Server-side rejection produces HTTP 400.** Manual test required (deferred to task 8.3). Run: `curl -X POST http://localhost:8080/openboxes/api/stockMovementItems/<sm-item-id>/updatePicklist -H 'Content-Type: application/json' -d '{"picklistItems": [{"inventoryItem": {"id": "<expired-lot-id>"}, "binLocation": {"id": "<bin>"}, "quantityPicked": 1}], "reasonCode": ""}'` — expect HTTP `400` with body containing `"errorCode": "outboundExpiryRestrictions.expired.cannotShip"`.
 - [ ] **C4 — Same payload accepted for RETURN_ORDER pseudo-path.** Manual test deferred. Note: the SQL view at `grails-app/migrations/views/stock-movement.sql:39` hard-codes `'STOCK_MOVEMENT'` for the requisition branch and the `RETURN_ORDER` branch sets `requisition_id = NULL`, so a RETURN_ORDER row cannot be reached via a `RequisitionItem`-keyed picklist endpoint. Defence-in-depth covered by the unit spec's `RETURN_ORDER + expired → proceed` case.
 - [ ] **C5 — Browser DevTools on the Pick step shows the expired row visibly disabled.** Manual test required (deferred to task 8.3).
 - [ ] **C6 — Disabled row cannot accept input.** Manual test deferred. Note: Jest covers the helper logic (`isRowExpired`, `expiredRowClassName`, `buildExpiredTooltip`) — the threading into the FIELDS object is verified by manual exercise.
-- [x] **C7 — i18n key defined.** `grep 'outboundExpiryRestrictions.expired.cannotShip' grails-app/i18n/custom/` → match in `outboundExpiryRestrictions-messages.properties:1`.
+- [x] **C7 — i18n key defined.** `grep 'outboundExpiryRestrictions.expired.cannotShip' grails-app/i18n/messages.properties` → match in the root bundle (appended block at the bottom of the file). Lives in the root bundle because Grails 3.3's `PluginAwareResourceBundleMessageSource` only globs `messages*.properties` at the root, not `grails-app/i18n/custom/`.
 
 ### Conformance criteria (verifiable against rules in this repo)
 

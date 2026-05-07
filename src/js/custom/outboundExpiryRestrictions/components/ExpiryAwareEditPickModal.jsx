@@ -147,11 +147,17 @@ const FIELDS = {
         getDynamicAttr: ({ fieldValue, translate, formatLocalizedDate }) => {
           const expired = isRowExpired(fieldValue);
           const noStock = fieldValue && !fieldValue.quantityAvailable && !fieldValue.quantityPicked;
+          // Reason: screen readers ignore the native `title` on disabled inputs (JAWS/NVDA).
+          // `aria-label` is announced even when disabled, so the blocked-row reason reaches AT users.
+          // Keep `title` too so sighted hover users still see the message via the browser tooltip.
+          const expiredTooltip = expired
+            ? buildExpiredTooltip(translate, formatLocalizedDate, fieldValue?.expirationDate)
+            : undefined;
           return {
             disabled: noStock || expired,
-            title: expired
-              ? buildExpiredTooltip(translate, formatLocalizedDate, fieldValue?.expirationDate)
-              : undefined,
+            title: expiredTooltip,
+            'aria-label': expiredTooltip,
+            'aria-disabled': expired || noStock || undefined,
           };
         },
       },
@@ -206,14 +212,12 @@ class ExpiryAwareEditPickModal extends Component {
     this.onSave = this.onSave.bind(this);
   }
 
-  componentWillReceiveProps(nextProps) {
+  static getDerivedStateFromProps(nextProps) {
     const {
       fieldConfig: { attributes, getDynamicAttr },
     } = nextProps;
     const dynamicAttr = getDynamicAttr ? getDynamicAttr(nextProps) : {};
-    const attr = { ...attributes, ...dynamicAttr };
-
-    this.setState({ attr });
+    return { attr: { ...attributes, ...dynamicAttr } };
   }
 
   /**

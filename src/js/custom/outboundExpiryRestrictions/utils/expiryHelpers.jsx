@@ -33,9 +33,9 @@ export const buildExpiredTooltip = (translate, formatLocalizedDate, expirationDa
 export const EXPIRED_HINT_KEY = 'outboundExpiryRestrictions.edit.expiredHint';
 export const EXPIRED_HINT_DEFAULT = '({0} expired)';
 
-const formatNumber = (value) => (value ? value.toLocaleString('en-US') : value);
+const formatNumber = (value) => (value ? value.toLocaleString() : value);
 
-export const renderAvailableCell = (translate) => (value) => {
+const formatCell = (translate, value) => {
   if (!value) {
     return value;
   }
@@ -45,8 +45,8 @@ export const renderAvailableCell = (translate) => (value) => {
   if (expired <= 0) {
     return formatNumber(available);
   }
-  const expiredStr = expired.toLocaleString('en-US');
-  const pickableStr = pickable ? pickable.toLocaleString('en-US') : '0';
+  const expiredStr = expired.toLocaleString();
+  const pickableStr = pickable ? pickable.toLocaleString() : '0';
   const fallback = EXPIRED_HINT_DEFAULT.replace('{0}', expiredStr);
   const hintText = translate
     ? translate(EXPIRED_HINT_KEY, fallback, { 0: expiredStr })
@@ -57,4 +57,24 @@ export const renderAvailableCell = (translate) => (value) => {
       <span className="text-danger ml-1">{hintText}</span>
     </>
   );
+};
+
+// Reason: getDynamicAttr is invoked per-cell render. Memoize the bound formatter by
+// translate identity so all rows share one function and LabelField memoization holds.
+const formatterCache = new WeakMap();
+let nullTranslateFormatter = null;
+
+export const renderAvailableCell = (translate) => {
+  if (translate == null) {
+    if (!nullTranslateFormatter) {
+      nullTranslateFormatter = (value) => formatCell(null, value);
+    }
+    return nullTranslateFormatter;
+  }
+  let formatter = formatterCache.get(translate);
+  if (!formatter) {
+    formatter = (value) => formatCell(translate, value);
+    formatterCache.set(translate, formatter);
+  }
+  return formatter;
 };

@@ -14,8 +14,10 @@ class StockMovementServiceWithExpiryFilterSpec extends Specification {
         )
     }
 
+    private static final Date TODAY = new Date().clearTime()
+
     private static Date daysFromToday(int days) {
-        return new Date().clearTime() + days
+        return TODAY + days
     }
 
     def "filterExpired drops items with past expirationDate"() {
@@ -24,7 +26,7 @@ class StockMovementServiceWithExpiryFilterSpec extends Specification {
         AvailableItem fresh = itemWithExpiry(daysFromToday(30))
 
         when:
-        List<AvailableItem> result = StockMovementServiceWithExpiryFilter.filterExpired([expired, fresh])
+        List<AvailableItem> result = StockMovementServiceWithExpiryFilter.filterExpired([expired, fresh], TODAY)
 
         then:
         result == [fresh]
@@ -35,7 +37,7 @@ class StockMovementServiceWithExpiryFilterSpec extends Specification {
         AvailableItem nullExpiry = itemWithExpiry(null)
 
         when:
-        List<AvailableItem> result = StockMovementServiceWithExpiryFilter.filterExpired([nullExpiry])
+        List<AvailableItem> result = StockMovementServiceWithExpiryFilter.filterExpired([nullExpiry], TODAY)
 
         then:
         result == [nullExpiry]
@@ -46,7 +48,7 @@ class StockMovementServiceWithExpiryFilterSpec extends Specification {
         AvailableItem expiringToday = itemWithExpiry(daysFromToday(0))
 
         when:
-        List<AvailableItem> result = StockMovementServiceWithExpiryFilter.filterExpired([expiringToday])
+        List<AvailableItem> result = StockMovementServiceWithExpiryFilter.filterExpired([expiringToday], TODAY)
 
         then:
         result == [expiringToday]
@@ -60,7 +62,7 @@ class StockMovementServiceWithExpiryFilterSpec extends Specification {
         ]
 
         when:
-        List<AvailableItem> result = StockMovementServiceWithExpiryFilter.filterExpired(input)
+        List<AvailableItem> result = StockMovementServiceWithExpiryFilter.filterExpired(input, TODAY)
 
         then:
         result == []
@@ -73,7 +75,7 @@ class StockMovementServiceWithExpiryFilterSpec extends Specification {
         AvailableItem fresh2 = itemWithExpiry(daysFromToday(20))
 
         when:
-        List<AvailableItem> result = StockMovementServiceWithExpiryFilter.filterExpired([fresh1, expired, fresh2])
+        List<AvailableItem> result = StockMovementServiceWithExpiryFilter.filterExpired([fresh1, expired, fresh2], TODAY)
 
         then:
         result == [fresh1, fresh2]

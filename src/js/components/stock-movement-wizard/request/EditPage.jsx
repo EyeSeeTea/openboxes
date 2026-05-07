@@ -53,7 +53,7 @@ const AD_HOCK_FIELDS = {
     rowComponent: TableRowWithSubfields,
     getDynamicRowAttr: ({ rowValues, showOnlyErroredItems, itemFilter }) => {
       let className = rowValues.statusCode === 'SUBSTITUTED' ? 'crossed-out ' : '';
-      if (rowValues.quantityPickable < rowValues.quantityRequested) {
+      if ((rowValues.quantityPickable ?? rowValues.quantityAvailable) < rowValues.quantityRequested) {
         className += 'font-weight-bold';
       }
       const filterOutItems = itemFilter && !(
@@ -365,7 +365,7 @@ const STOCKLIST_FIELDS_PUSH_TYPE = {
     rowComponent: TableRowWithSubfields,
     getDynamicRowAttr: ({ rowValues, showOnlyErroredItems, itemFilter }) => {
       let className = rowValues.statusCode === 'SUBSTITUTED' ? 'crossed-out ' : '';
-      if (rowValues.quantityPickable < rowValues.quantityRequested) {
+      if ((rowValues.quantityPickable ?? rowValues.quantityAvailable) < rowValues.quantityRequested) {
         className += 'font-weight-bold';
       }
       const filterOutItems = itemFilter && !(
@@ -665,7 +665,7 @@ const STOCKLIST_FIELDS_PULL_TYPE = {
     rowComponent: TableRowWithSubfields,
     getDynamicRowAttr: ({ rowValues, showOnlyErroredItems, itemFilter }) => {
       let className = rowValues.statusCode === 'SUBSTITUTED' ? 'crossed-out ' : '';
-      if (rowValues.quantityPickable < rowValues.quantityRequested) {
+      if ((rowValues.quantityPickable ?? rowValues.quantityAvailable) < rowValues.quantityRequested) {
         className += 'font-weight-bold';
       }
       const filterOutItems = itemFilter && !(

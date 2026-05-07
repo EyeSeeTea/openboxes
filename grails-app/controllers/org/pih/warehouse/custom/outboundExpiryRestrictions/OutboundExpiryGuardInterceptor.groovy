@@ -14,6 +14,11 @@ class OutboundExpiryGuardInterceptor {
 
     static final String ERROR_CODE = 'outboundExpiryRestrictions.expired.cannotShip'
 
+    // Reason: must run AFTER SecurityInterceptor (default order 0) so unauthenticated
+    // requests are short-circuited before this guard touches the DB or leaks ID existence.
+    // Matches the pattern used by RoleInterceptor and SentryInterceptor.
+    int order = LOWEST_PRECEDENCE
+
     def messageSource
 
     OutboundExpiryGuardInterceptor() {
