@@ -172,3 +172,9 @@ Every factual claim about external systems has a `file:line` receipt. The Unveri
 
 **Why not 10:**
 - Three upstream files are modified (one backend, two frontend), and the request wizard's three field-config blocks (ad-hoc, PULL stocklist, PUSH stocklist) need to stay aligned. The unit-test surface (Spock) covers the backend computation; the JSX field configs require manual exercise across all three variants — there's no automated regression net for the styling and validator threading.
+
+## Deploy status
+
+- **PR:** [EyeSeeTea/openboxes#3](https://github.com/EyeSeeTea/openboxes/pull/3) — bundled with `block-expired-items-on-outbound` since both ship from `feature/strict-expired-handling`. Open against `release/est/tjk/0.9.7`.
+- **Replayed onto customer branches:** none yet — pending merge of PR #3 onto `release/est/tjk/0.9.7`. TJK-only for now; promotion to `release/est/0.9.7` is a follow-up if/when SP wants the same Edit-step pickable behaviour.
+- **Submitted upstream:** no.

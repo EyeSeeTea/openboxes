@@ -183,3 +183,9 @@ Up from 6/10 after verification. Every load-bearing claim from the previous desi
 - The two remaining unverified assumptions (interceptor halt semantics, stockMovementItem→stockMovementType traversal) depend on Grails 3.3.16 runtime behaviour that we will validate during implementation via integration tests. They are not factual claims about external systems — they're about how our own custom code interacts with the Grails framework, and the tests are the receipts.
 - The change scope is now genuinely small (2 lines upstream, 4–5 new custom files), so the surface area for surprises is bounded.
 - The original design (pre-verification) chose the **wrong target step** — Add Items instead of Pick — which would have shipped a feature that did not block lot selection. Verification found and corrected that. This is exactly the failure mode the cap was designed to prevent.
+
+## Deploy status
+
+- **PR:** [EyeSeeTea/openboxes#3](https://github.com/EyeSeeTea/openboxes/pull/3) — "TJK: Block expired stock on outbound stock movements" (open, against `release/est/tjk/0.9.7`).
+- **Replayed onto customer branches:** none yet — pending merge of PR #3 onto `release/est/tjk/0.9.7`. After merge, propagate via `release/est/0.9.7` if the customer-agnostic parts are pulled up to the EST shared layer; for now this is TJK-only.
+- **Submitted upstream:** no.
