@@ -189,7 +189,7 @@ logging:
       }
   }
   ```
-- Always define error messages as i18n keys in `grails-app/i18n/messages*.properties`, never hardcoded English.
+- Always define error messages as i18n keys in the root `grails-app/i18n/messages.properties`, never hardcoded English. **Custom-feature keys also go in the root file**, not under `grails-app/i18n/custom/` — Grails 3.3's `PluginAwareResourceBundleMessageSource` only globs `messages*.properties` at the root, so anything under `i18n/custom/` is never loaded at runtime and `messageSource.getMessage(...)` silently falls back to the `defaultMessage` parameter. See `rules/custom-package-isolation.md` § "i18n exception" for the full rationale and pattern.
 
 ## Command Objects
 
