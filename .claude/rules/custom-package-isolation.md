@@ -29,7 +29,7 @@ paths:
 | Grails interceptors | `grails-app/controllers/org/pih/warehouse/custom/<feature>/` |
 | Grails commands / jobs | `grails-app/jobs/org/pih/warehouse/custom/<feature>/` |
 | Liquibase migrations | `grails-app/migrations/custom/` (filename prefixed with date + feature) |
-| i18n messages | `grails-app/i18n/custom/<feature>-messages_<locale>.properties` (if separated from upstream) |
+| i18n messages | **Append to the upstream root `grails-app/i18n/messages.properties`** under a `# <feature> (custom)` comment block. This is the one exception to the custom-folder rule — see "i18n exception" below. |
 | Java helpers | `src/main/java/org/pih/warehouse/custom/<feature>/` |
 | Groovy helpers | `src/main/groovy/org/pih/warehouse/custom/<feature>/` |
 | React components | `src/js/custom/<feature>/components/` |
@@ -133,6 +133,36 @@ If a custom class needs to be registered as a Spring bean (rare; Grails auto-sca
 ### React routes
 
 If you're adding a new React route, the route table is in `src/js/routes/` (or wherever the project has it). That's an upstream file — the edit is a single `<Route>` line, which is acceptable and should be noted in the design.md touch points.
+
+### i18n exception — keys go in the upstream root bundle, not under `i18n/custom/`
+
+**Custom i18n keys MUST be appended to the upstream `grails-app/i18n/messages.properties`**, not split into a sibling file under `grails-app/i18n/custom/`. This is the only place where the custom-folder pattern doesn't apply — and it's a runtime constraint, not a stylistic choice.
+
+**Why.** Grails 3.3 wires a single `messageSource` bean (`PluginAwareResourceBundleMessageSource`) whose default basename glob is `WEB-INF/grails-app/i18n/messages*.properties` at the root only. Files under `grails-app/i18n/custom/` are **never loaded at runtime**, so every `messageSource.getMessage(key, args, defaultMessage, locale)` call silently falls back to the hardcoded `defaultMessage` parameter. That defeats translation entirely — Crowdin would happily produce localised files no one ever reads. The `<Translate id=... defaultMessage=... />` frontend wrapper has the same issue: in production the redux-localize store is hydrated from the same root bundle, so a key that lives only under `i18n/custom/` will only ever render the English default.
+
+**The pattern.**
+
+```properties
+# grails-app/i18n/messages.properties (upstream — append at the bottom)
+# ... upstream keys ...
+
+# <feature> (custom)
+<feature>.expired.cannotShip=Cannot pick lot {1} of product {0} — it expired on {2}.
+<feature>.expired.tooltip=Cannot ship — expired on {0}.
+```
+
+A `# <feature> (custom)` comment block at the bottom of `messages.properties` keeps the custom keys visually grouped, makes them trivial to grep (`grep '^outboundExpiryRestrictions\.' grails-app/i18n/messages.properties`), and keeps the upstream merge surface to a single contiguous block at end-of-file rather than scattered insertions.
+
+**Document the touch.** Because `messages.properties` is upstream, every change that adds keys MUST list it under "Upstream touch points" in the OpenSpec change's `design.md`, with a one-line reason ("Custom i18n keys for `<feature>` — must live in the root bundle because Grails 3.3's messageSource only globs `messages*.properties` at the root"). This is exactly the merge-conflict hitlist the rule is designed to produce — accept the conflict cost in exchange for keys that actually load.
+
+**Do not.**
+
+- ❌ Create `grails-app/i18n/custom/<feature>-messages.properties` and call `messageSource.getMessage(...)` against it — it won't load.
+- ❌ Override the `messageSource` bean in `resources.groovy` to add a custom basename. Possible, but invasive (changes the bean Grails wires automatically), and one bean override carries more upstream-merge risk than three appended lines in `messages.properties`. Not worth it.
+- ❌ Hardcode English defaults in JSX as the "real" string and rely on `<Translate defaultMessage=...>`. The default is a fallback for missing keys — not a substitute for translation.
+- ❌ Add the keys to `grails-app/i18n/messages_<locale>.properties` directly. Crowdin owns those files; only the root `messages.properties` is the source of truth.
+
+**Crowdin.** The existing top entry of `crowdin.yml` (`source: /**/grails-app/i18n/messages.properties` → `translation: /**/grails-app/i18n/messages_%two_letters_code%.properties`) already covers any keys appended to the root bundle. **Do not add a second glob** for `i18n/custom/*-messages.properties` — there is nothing for it to match, and orphan globs are dead config that misleads the next person.
 
 ## Boy Scout Rule
 
