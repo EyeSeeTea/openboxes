@@ -27,7 +27,7 @@ class StockMovementServiceQuantityPickableSpec extends Specification {
         ]
 
         expect:
-        ExpiryRule.sumPickableQuantity(items) == 0
+        ExpiryRule.sumPickableQuantity(items, new Date().clearTime()) == 0
     }
 
     def "all fresh items sum normally"() {
@@ -38,7 +38,7 @@ class StockMovementServiceQuantityPickableSpec extends Specification {
         ]
 
         expect:
-        ExpiryRule.sumPickableQuantity(items) == 30
+        ExpiryRule.sumPickableQuantity(items, new Date().clearTime()) == 30
     }
 
     def "mixed items sum only the fresh ones"() {
@@ -50,7 +50,7 @@ class StockMovementServiceQuantityPickableSpec extends Specification {
         ]
 
         expect:
-        ExpiryRule.sumPickableQuantity(items) == 20
+        ExpiryRule.sumPickableQuantity(items, new Date().clearTime()) == 20
     }
 
     def "null expirationDate counts as pickable"() {
@@ -61,7 +61,7 @@ class StockMovementServiceQuantityPickableSpec extends Specification {
         ]
 
         expect:
-        ExpiryRule.sumPickableQuantity(items) == 30
+        ExpiryRule.sumPickableQuantity(items, new Date().clearTime()) == 30
     }
 
     def "today's date counts as pickable (strict-< semantics)"() {
@@ -72,7 +72,7 @@ class StockMovementServiceQuantityPickableSpec extends Specification {
         ]
 
         expect:
-        ExpiryRule.sumPickableQuantity(items) == 15
+        ExpiryRule.sumPickableQuantity(items, new Date().clearTime()) == 15
     }
 
     def "zero-quantity items are excluded even when fresh"() {
@@ -83,16 +83,16 @@ class StockMovementServiceQuantityPickableSpec extends Specification {
         ]
 
         expect:
-        ExpiryRule.sumPickableQuantity(items) == 7
+        ExpiryRule.sumPickableQuantity(items, new Date().clearTime()) == 7
     }
 
     def "empty list returns 0"() {
         expect:
-        ExpiryRule.sumPickableQuantity([]) == 0
+        ExpiryRule.sumPickableQuantity([], new Date().clearTime()) == 0
     }
 
     def "null list returns 0"() {
         expect:
-        ExpiryRule.sumPickableQuantity(null) == 0
+        ExpiryRule.sumPickableQuantity(null, new Date().clearTime()) == 0
     }
 }

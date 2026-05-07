@@ -14,8 +14,7 @@ final class ExpiryRule {
         return expirationDate != null && expirationDate < today
     }
 
-    static Integer sumPickableQuantity(List<AvailableItem> availableItems) {
-        Date today = new Date().clearTime()
+    static Integer sumPickableQuantity(List<AvailableItem> availableItems, Date today) {
         def total = availableItems
                 ?.findAll { it.quantityAvailable > 0 && !isExpired(it?.inventoryItem?.expirationDate, today) }
                 ?.sum { it.quantityAvailable }

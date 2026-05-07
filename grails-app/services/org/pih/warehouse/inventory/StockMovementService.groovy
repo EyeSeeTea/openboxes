@@ -1032,6 +1032,7 @@ class StockMovementService {
                 .getAllAvailableBinLocations(requisition.origin, productsIds)
                 .groupBy { it?.inventoryItem?.product?.id }
 
+        Date today = new Date().clearTime()
         def editPageItems = data.collect {
             def substitutionItems = substitutionItemsMap[it.id]
 
@@ -1050,7 +1051,7 @@ class StockMovementService {
 
             def quantityAvailable = availableItems?.findAll { it.quantityAvailable > 0 }?.sum { it.quantityAvailable }
             def quantityOnHand = availableItems?.sum { it.quantityOnHand }
-            def quantityPickable = ExpiryRule.sumPickableQuantity(availableItems)
+            def quantityPickable = ExpiryRule.sumPickableQuantity(availableItems, today)
             def quantityDemandFulfilling = forecastingService.getDemand(requisition.origin, null, productsMap[it.product_id])
 
             [

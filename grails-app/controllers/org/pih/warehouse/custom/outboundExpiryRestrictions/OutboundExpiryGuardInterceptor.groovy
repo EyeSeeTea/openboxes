@@ -32,12 +32,7 @@ class OutboundExpiryGuardInterceptor {
             return true
         }
 
-        // Parent-traversal matrix:
-        //   STOCK_MOVEMENT  → enforce expiry guard
-        //   RETURN_ORDER    → allow (legitimate flow for shipping expired stock back)
-        //   null            → enforce (fail closed; safer than silently allowing expired
-        //                     payloads when the SQL view at grails-app/migrations/views/stock-movement.sql
-        //                     can't resolve a parent — e.g., a future upstream change to view shape)
+        // STOCK_MOVEMENT → enforce; RETURN_ORDER → allow; null → enforce (fail closed).
         OutboundStockMovement parentMovement = OutboundStockMovement.findByRequisition(requisitionItem.requisition)
         if (parentMovement && parentMovement.stockMovementType != StockMovementType.STOCK_MOVEMENT) {
             return true
@@ -88,11 +83,9 @@ class OutboundExpiryGuardInterceptor {
         return messageSource.getMessage(ERROR_CODE, args, MISSING_BUNDLE_FALLBACK, request.locale)
     }
 
-    // Reason: parses with BigDecimal to match the upstream parser at
-    // StockMovementService.updatePicklistItem:1946 (`new BigDecimal(picklistItemMap.quantityPicked)`).
-    // Using Integer.parseInt here would silently treat "1.5" as 0 and let an expired-lot row through
-    // the guard; upstream then crashes with ArithmeticException AFTER clearPicklist() runs, leaving
-    // the requisition's existing picks wiped. Treating any positive decimal as a pick closes that gap.
+    // Reason: must parse as BigDecimal (not Integer) to match upstream's parser. Integer truncates
+    // "1.5" to 0, which would let an expired-lot row slip past the guard; upstream then crashes
+    // with ArithmeticException AFTER clearPicklist() runs, wiping the requisition's existing picks.
     private static boolean isPositiveQuantity(quantityPicked) {
         if (quantityPicked == null) {
             return false
