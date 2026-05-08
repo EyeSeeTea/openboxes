@@ -1,0 +1,3 @@
+# intentionally empty — overrides come from env vars / application.yml
+# see openboxes.client-template.yml for available keys
+---
