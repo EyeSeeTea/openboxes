@@ -5,7 +5,7 @@ services:
         file: docker-compose-base.yml
         service: app
       volumes:
-        - ./openboxes-config.properties:/app/.grails/openboxes-config.properties:ro
+        - ./openboxes.yml:/app/.grails/openboxes.yml:ro
       depends_on: 
         db:
           condition: service_healthy
