@@ -11,6 +11,8 @@ export const Locale = {
   PT: 'pt',
   FI: 'fi',
   ZH: 'zh',
+  RU: 'ru',
+  TG: 'tg',
 };
 
 // Used for mapping locales between libraries that are not supporting codes like es_MX

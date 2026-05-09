@@ -1,0 +1,34 @@
+# Per-client overrides for the TJK deployment.
+# Secrets (SMTP password, etc.) should be injected via env vars or a
+# sysadmin-managed override file at deploy time — fill in CHANGE_ME below
+# only on the deployed instance, do not commit real credentials.
+
+grails:
+    mail:
+        enabled: true
+        host: smtp.example.com
+        port: 587
+        username: noreply@example.com
+        password: CHANGE_ME
+        from: noreply@example.com
+        prefix: '[OpenBoxes - UNICEF]'
+
+openboxes:
+    locale:
+        supportedLocales: ['en', 'ru', 'tg']
+
+    mail:
+        feedback:
+            enabled: true
+            recipients:
+                - ops@example.com
+        errors:
+            enabled: true
+            recipients:
+                - errors@example.com
+
+    jobs:
+        sendStockAlertsJob:
+            enabled: true
+            daysUntilExpiry: 90
+            cronExpression: 0 0 0 * * ?
