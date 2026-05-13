@@ -2,7 +2,6 @@ package org.pih.warehouse.custom.dhis2auth
 
 import grails.converters.JSON
 import grails.core.GrailsApplication
-import grails.gorm.transactions.NotTransactional
 import org.apache.http.NameValuePair
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.http.client.methods.CloseableHttpResponse
@@ -19,6 +18,8 @@ import org.apache.http.util.EntityUtils
 
 class Dhis2OAuthService {
 
+    static transactional = false
+
     private static final String CHARSET = 'UTF-8'
     private static final String HEADER_AUTHORIZATION = 'Authorization'
     private static final String HEADER_ACCEPT = 'Accept'
@@ -27,8 +28,8 @@ class Dhis2OAuthService {
     private static final int HTTP_OK = 200
 
     GrailsApplication grailsApplication
-    private CloseableHttpClient httpClient
-    private PoolingHttpClientConnectionManager connectionManager
+    private volatile CloseableHttpClient httpClient
+    private volatile PoolingHttpClientConnectionManager connectionManager
 
     @PostConstruct
     void init() {
@@ -42,7 +43,6 @@ class Dhis2OAuthService {
         connectionManager?.close()
     }
 
-    @NotTransactional
     String buildAuthorizeUrl(String state) {
         String scopes = config.scopes ?: 'ALL'
         "${config.authorizeUrl}?response_type=code" +
@@ -52,7 +52,6 @@ class Dhis2OAuthService {
             "&state=${encode(state)}"
     }
 
-    @NotTransactional
     AccessToken exchangeCode(String code) {
         List<NameValuePair> form = [
             new BasicNameValuePair('grant_type', GRANT_TYPE_AUTH_CODE),
@@ -68,7 +67,6 @@ class Dhis2OAuthService {
         new AccessToken(accessToken: json.access_token as String)
     }
 
-    @NotTransactional
     Dhis2User fetchMe(String accessToken) {
         HttpGet get = new HttpGet(config.userUrl as String)
         get.addHeader(HEADER_AUTHORIZATION, "Bearer ${accessToken}")

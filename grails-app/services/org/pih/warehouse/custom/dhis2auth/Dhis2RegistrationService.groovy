@@ -1,10 +1,9 @@
 package org.pih.warehouse.custom.dhis2auth
 
-import grails.gorm.transactions.Transactional
 import org.pih.warehouse.core.User
 import org.pih.warehouse.custom.dhis2auth.Dhis2OAuthService.Dhis2User
 
-@Transactional
+// Transactional by default per Grails conventions — do not add @Transactional.
 class Dhis2RegistrationService {
 
     User findOrRegister(Dhis2User dhis2User) {

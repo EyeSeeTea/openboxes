@@ -70,6 +70,7 @@ class Dhis2OAuthController {
     }
 
     def pending() {
+        render(view: '/custom/dhis2auth/pending')
     }
 
     private boolean isOauthEnabled() {

@@ -32,7 +32,7 @@ class Dhis2RegistrationServiceSpec extends Specification
         then:
         result.username == expectedUsername
         result.active == expectedActive
-        Dhis2UserLink.findByDhis2Uid(dhis2User.uid) != null
+        Dhis2UserLink.findByDhis2Uid(dhis2User.uid)?.user?.id == result.id
 
         where:
         scenario                  | dhis2User                                                       | existingUser                                    | existingLink                                                                             | expectedUsername | expectedActive
@@ -73,7 +73,9 @@ class Dhis2RegistrationServiceSpec extends Specification
         User result = service.findOrRegister(new Dhis2User(uid: 'ROLETST123F', username: 'eve', displayName: 'Eve Updated', email: 'e@e.com'))
 
         then:
-        result.active
+        result.active == true
+        result.firstName == 'Eve'
+        result.lastName == 'Updated'
     }
 
     private User savedUser(String username, String first, String last, String email) {

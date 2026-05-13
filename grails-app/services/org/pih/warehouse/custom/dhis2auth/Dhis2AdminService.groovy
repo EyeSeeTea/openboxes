@@ -1,10 +1,12 @@
 package org.pih.warehouse.custom.dhis2auth
 
-import org.hibernate.FetchMode
 import org.pih.warehouse.core.User
 
 class Dhis2AdminService {
 
+    // Pending users are a small set (manual approvals), so we keep the default
+    // lazy fetch on `roles` rather than fetchMode 'roles', FetchMode.JOIN — the
+    // latter breaks pagination (LIMIT applied before deduplication on the join).
     def findPendingDhis2Users(Map params) {
         String q = params.q ? "%${params.q}%" : null
         User.createCriteria().list(params) {
@@ -18,7 +20,6 @@ class Dhis2AdminService {
                     ilike('email', q)
                 }
             }
-            fetchMode 'roles', FetchMode.JOIN
         }
     }
 }

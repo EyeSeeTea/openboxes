@@ -110,9 +110,9 @@ Side-table schema (Liquibase changeset under
 
 ```
 custom_dhis2_user_link
-├── id              BIGINT PK
+├── id              CHAR(38) PK                 -- UUID, matches User.id generator
 ├── version         BIGINT NOT NULL DEFAULT 0   -- GORM optimistic-lock
-├── user_id         BIGINT NOT NULL UNIQUE FK → user.id
+├── user_id         CHAR(38) NOT NULL UNIQUE FK → user.id
 ├── dhis2_uid       VARCHAR(11) NOT NULL UNIQUE
 ├── dhis2_username  VARCHAR(255)
 ├── last_login_at   TIMESTAMP
@@ -153,7 +153,7 @@ to register.
 ### D4: Login-page button is a single conditional GSP edit
 
 The "Sign in with DHIS2" button is rendered conditionally based on
-`grailsApplication.config.dhis2.oauth.enabled`. Single Groovy expression in
+`grailsApplication.config.openboxes.dhis2.oauth.enabled`. Single Groovy expression in
 the existing login GSP at the path confirmed by spike task 1.6.
 
 ## Risks / Trade-offs
@@ -187,18 +187,32 @@ the existing login GSP at the path confirmed by spike task 1.6.
 These upstream files will be edited; merge conflicts on future upstream pulls
 should be expected here:
 
-- `grails-app/conf/application.yml` — add `dhis2.oauth.*` keys with safe
-  defaults (feature disabled).
+- `grails-app/controllers/org/pih/warehouse/UrlMappings.groovy` — three new
+  route entries (`/oauth/dhis2/initiate`, `/oauth/dhis2/callback`,
+  `/oauth/dhis2/pending`) mapped to the custom `Dhis2OAuthController`. A
+  per-package `UrlMappings` is not viable in Grails 3.3, so the upstream
+  mapper is touched directly.
 - `grails-app/controllers/org/pih/warehouse/SecurityInterceptor.groovy` — add
   the pending-access redirect branch (smallest possible block; whitelist the
   pending page, logout, and static assets). No new Spring Security wiring —
   this is the existing interceptor's gate.
-- `grails-app/controllers/org/pih/warehouse/user/AuthController.groovy` —
-  *only if* `Dhis2SessionService` cannot mirror its session-setup code from
-  the outside (per D1.1). Smallest possible extract to a callable method.
-- The login GSP — path confirmed by `dhis2-oauth-spike` task 1.6 — gains a
-  single conditional `<g:if>` block rendering the DHIS2 button.
-- User-admin list controller/view — surgical addition of one filter option.
+- `grails-app/controllers/org/pih/warehouse/user/UserController.groovy` —
+  surgical addition of the pending-users filter mode that delegates to
+  `Dhis2AdminService.findPendingDhis2Users`.
+- `grails-app/views/auth/login.gsp` — single conditional `<g:if>` block
+  rendering the "Sign in with DHIS2" button when
+  `openboxes.dhis2.oauth.enabled` is true.
+- `grails-app/views/user/list.gsp` — single filter-link addition for the
+  pending-users view.
+- `grails-app/i18n/messages.properties` — appended `dhis2auth.*` keys (must
+  live in the root bundle; Grails 3.3 only globs `messages*.properties` at
+  the root).
+
+Config: `dhis2.oauth.*` is supplied via the per-deployment external config
+file `docker/openboxes.yml` (see `docker/openboxes.client-template.yml` for
+the canonical key list). No touch to `grails-app/conf/application.yml` — the
+external file is loaded by the existing config loader, so no upstream edit
+is required.
 
 Everything else lives under `org.pih.warehouse.custom.dhis2auth` and
 `grails-app/migrations/custom/`.

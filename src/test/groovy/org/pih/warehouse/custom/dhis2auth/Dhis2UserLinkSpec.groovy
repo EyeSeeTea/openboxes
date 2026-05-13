@@ -3,15 +3,17 @@ package org.pih.warehouse.custom.dhis2auth
 import grails.testing.gorm.DomainUnitTest
 import org.pih.warehouse.core.User
 import spock.lang.Specification
+import spock.lang.Unroll
 
 class Dhis2UserLinkSpec extends Specification implements DomainUnitTest<Dhis2UserLink> {
 
-    void "dhis2Uid must be exactly 11 characters"() {
+    @Unroll
+    void "dhis2Uid '#uid' validation produces hasErrors=#expectErrors"() {
         given:
         User user = mockUser()
 
         when:
-        Dhis2UserLink link = new Dhis2UserLink(user: user, dhis2Uid: uid, createdAt: new Date(), updatedAt: new Date())
+        Dhis2UserLink link = new Dhis2UserLink(user: user, dhis2Uid: uid)
         link.validate()
 
         then:
@@ -26,52 +28,54 @@ class Dhis2UserLinkSpec extends Specification implements DomainUnitTest<Dhis2Use
         ''             | true
     }
 
-    void "user must be unique across Dhis2UserLink records"() {
-        expect:
-        domainClass.metaClass.getMetaMethod('findByUser', Object) != null ||
-            Dhis2UserLink.constraints.user.unique
+    void "two Dhis2UserLink records cannot share the same user"() {
+        given:
+        User user = mockUser()
+        new Dhis2UserLink(user: user, dhis2Uid: 'AAAAAAAAAAA').save(failOnError: true)
+
+        when:
+        Dhis2UserLink duplicate = new Dhis2UserLink(user: user, dhis2Uid: 'BBBBBBBBBBB')
+        duplicate.validate()
+
+        then:
+        duplicate.hasErrors()
+        duplicate.errors.getFieldError('user').code == 'unique'
     }
 
-    void "dhis2Uid must be unique"() {
-        expect:
-        Dhis2UserLink.constraints.dhis2Uid.unique
+    void "two Dhis2UserLink records cannot share the same dhis2Uid"() {
+        given:
+        new Dhis2UserLink(user: mockUser(), dhis2Uid: 'AAAAAAAAAAA').save(failOnError: true)
+
+        when:
+        Dhis2UserLink duplicate = new Dhis2UserLink(user: mockUser(), dhis2Uid: 'AAAAAAAAAAA')
+        duplicate.validate()
+
+        then:
+        duplicate.hasErrors()
+        duplicate.errors.getFieldError('dhis2Uid').code == 'unique'
     }
 
     void "dhis2Username is nullable"() {
         given:
-        User user = mockUser()
+        Dhis2UserLink link = new Dhis2UserLink(user: mockUser(), dhis2Uid: 'ABCDE12345X', dhis2Username: null)
 
         when:
-        Dhis2UserLink link = new Dhis2UserLink(user: user, dhis2Uid: 'ABCDE12345X',
-            dhis2Username: null, createdAt: new Date(), updatedAt: new Date())
         link.validate()
 
         then:
         !link.hasErrors()
     }
 
-    void "beforeInsert sets createdAt and updatedAt"() {
+    void "GORM auto-timestamps dateCreated and lastUpdated are populated on save"() {
         given:
-        Dhis2UserLink link = new Dhis2UserLink()
+        Dhis2UserLink link = new Dhis2UserLink(user: mockUser(), dhis2Uid: 'ABCDE12345X')
 
         when:
-        link.beforeInsert()
+        link.save(failOnError: true)
 
         then:
-        link.createdAt != null
-        link.updatedAt != null
-    }
-
-    void "beforeUpdate refreshes updatedAt"() {
-        given:
-        Date past = new Date(System.currentTimeMillis() - 5000)
-        Dhis2UserLink link = new Dhis2UserLink(createdAt: past, updatedAt: past)
-
-        when:
-        link.beforeUpdate()
-
-        then:
-        link.updatedAt >= past
+        link.dateCreated != null
+        link.lastUpdated != null
     }
 
     private User mockUser() {

@@ -1,13 +1,13 @@
 package org.pih.warehouse.custom.dhis2auth
 
-import grails.gorm.transactions.NotTransactional
 import org.pih.warehouse.core.User
 
 // Mirrors the session-setup AuthController.handleLogin performs on success.
 // If handleLogin changes upstream, mirror it here.
 class Dhis2SessionService {
 
-    @NotTransactional
+    static transactional = false
+
     void establishSession(User user, session) {
         session.user = user
         session.userName = user.username
@@ -17,12 +17,10 @@ class Dhis2SessionService {
         }
     }
 
-    @NotTransactional
     void setPendingSession(User user, session) {
         session.pendingDhis2UserId = user.id
     }
 
-    @NotTransactional
     void clearPendingSession(session) {
         session.pendingDhis2UserId = null
     }
