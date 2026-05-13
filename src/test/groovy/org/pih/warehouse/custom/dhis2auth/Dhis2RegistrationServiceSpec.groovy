@@ -4,7 +4,7 @@ import grails.testing.gorm.DataTest
 import grails.testing.services.ServiceUnitTest
 import org.pih.warehouse.core.Person
 import org.pih.warehouse.core.User
-import org.pih.warehouse.custom.dhis2auth.Dhis2OAuthClient.Dhis2User
+import org.pih.warehouse.custom.dhis2auth.Dhis2OAuthService.Dhis2User
 import spock.lang.Specification
 import spock.lang.Unroll
 

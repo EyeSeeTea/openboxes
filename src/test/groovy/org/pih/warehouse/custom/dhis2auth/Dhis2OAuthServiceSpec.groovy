@@ -3,7 +3,7 @@ package org.pih.warehouse.custom.dhis2auth
 import grails.testing.services.ServiceUnitTest
 import spock.lang.Specification
 
-class Dhis2OAuthClientSpec extends Specification implements ServiceUnitTest<Dhis2OAuthClient> {
+class Dhis2OAuthServiceSpec extends Specification implements ServiceUnitTest<Dhis2OAuthService> {
 
     void "buildAuthorizeUrl encodes all query parameters"() {
         given:

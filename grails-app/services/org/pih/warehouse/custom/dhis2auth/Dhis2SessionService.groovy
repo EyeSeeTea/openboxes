@@ -3,10 +3,8 @@ package org.pih.warehouse.custom.dhis2auth
 import grails.gorm.transactions.NotTransactional
 import org.pih.warehouse.core.User
 
-/**
- * Mirrors the session-setup steps AuthController.handleLogin performs on success
- * (D1.1). Called for active DHIS2 users after OAuth callback.
- */
+// Mirrors the session-setup AuthController.handleLogin performs on success.
+// If handleLogin changes upstream, mirror it here.
 class Dhis2SessionService {
 
     @NotTransactional

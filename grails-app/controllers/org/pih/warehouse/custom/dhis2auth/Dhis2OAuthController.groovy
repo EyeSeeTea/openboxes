@@ -2,16 +2,16 @@ package org.pih.warehouse.custom.dhis2auth
 
 import grails.core.GrailsApplication
 import org.pih.warehouse.core.User
-import org.pih.warehouse.custom.dhis2auth.Dhis2OAuthClient.AccessToken
-import org.pih.warehouse.custom.dhis2auth.Dhis2OAuthClient.Dhis2OAuthException
-import org.pih.warehouse.custom.dhis2auth.Dhis2OAuthClient.Dhis2User
+import org.pih.warehouse.custom.dhis2auth.Dhis2OAuthService.AccessToken
+import org.pih.warehouse.custom.dhis2auth.Dhis2OAuthService.Dhis2OAuthException
+import org.pih.warehouse.custom.dhis2auth.Dhis2OAuthService.Dhis2User
 
 class Dhis2OAuthController {
 
     static allowedMethods = [initiate: 'GET', callback: 'GET', pending: 'GET']
 
     GrailsApplication grailsApplication
-    Dhis2OAuthClient dhis2OAuthClient
+    Dhis2OAuthService dhis2OAuthService
     Dhis2RegistrationService dhis2RegistrationService
     Dhis2SessionService dhis2SessionService
 
@@ -25,8 +25,7 @@ class Dhis2OAuthController {
         String state = UUID.randomUUID().toString()
         session.dhis2OAuthState = state
 
-        String authorizeUrl = dhis2OAuthClient.buildAuthorizeUrl(state)
-        redirect(url: authorizeUrl)
+        redirect(url: dhis2OAuthService.buildAuthorizeUrl(state))
     }
 
     def callback() {
@@ -44,13 +43,10 @@ class Dhis2OAuthController {
             return
         }
         session.dhis2OAuthState = null
-        // Clear any stale pending marker from a previous callback; will be re-set
-        // below if the user is still inactive.
-        session.pendingDhis2UserId = null
 
         try {
-            AccessToken token = dhis2OAuthClient.exchangeCode(code)
-            Dhis2User dhis2User = dhis2OAuthClient.fetchMe(token.accessToken)
+            AccessToken token = dhis2OAuthService.exchangeCode(code)
+            Dhis2User dhis2User = dhis2OAuthService.fetchMe(token.accessToken)
             User user = dhis2RegistrationService.findOrRegister(dhis2User)
 
             if (user.active) {
