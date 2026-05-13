@@ -40,6 +40,11 @@ class UrlMappings {
             }
         }
 
+        // DHIS2 OAuth2 SSO (custom — EST fork)
+        "/oauth/dhis2/initiate"(controller: "dhis2OAuth", action: "initiate")
+        "/oauth/dhis2/callback"(controller: "dhis2OAuth", action: "callback")
+        "/oauth/dhis2/pending"(controller: "dhis2OAuth", action: "pending")
+
         // REST APIs with complex resource names or subresources
 
         "/api/categories"(parseRequest: true) {

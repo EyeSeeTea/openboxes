@@ -109,7 +109,7 @@ Side-table schema (Liquibase changeset under
 `grails-app/migrations/custom/0001-dhis2-user-link.groovy`):
 
 ```
-dhis2_user_link
+custom_dhis2_user_link
 ├── id              BIGINT PK
 ├── version         BIGINT NOT NULL DEFAULT 0   -- GORM optimistic-lock
 ├── user_id         BIGINT NOT NULL UNIQUE FK → user.id
@@ -174,7 +174,7 @@ the existing login GSP at the path confirmed by spike task 1.6.
 
 1. Land code with `dhis2.oauth.enabled = false` defaults — zero behavior
    change for existing deployments.
-2. Run Liquibase changeset (creates empty `dhis2_user_link` table) — no
+2. Run Liquibase changeset (creates empty `custom_dhis2_user_link` table) — no
    impact on existing data.
 3. Per-deployment opt-in: set DHIS2 client id/secret/URLs in env-specific
    config.

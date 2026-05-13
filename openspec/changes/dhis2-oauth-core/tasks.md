@@ -5,11 +5,11 @@ referenced below.
 
 ## Phase 1 — Domain & schema
 
-- [ ] **1.1** Create `org.pih.warehouse.custom.dhis2auth.Dhis2UserLink` domain
+- [x] **1.1** Create `org.pih.warehouse.custom.dhis2auth.Dhis2UserLink` domain
       class under `grails-app/domain/org/pih/warehouse/custom/dhis2auth/`.
       Fields per design D2; constraints: `dhis2Uid` unique + 11 chars,
       `user` unique. `static mapping` to set table name `dhis2_user_link`.
-- [ ] **1.2** Create Liquibase changeset
+- [x] **1.2** Create Liquibase changeset
       `grails-app/migrations/custom/0001-dhis2-user-link.groovy` matching
       the design's schema. Include in the custom aggregator
       (`grails-app/migrations/custom/changelog.groovy`) — verify the
@@ -17,7 +17,7 @@ referenced below.
 - [ ] **1.3** Run `./gradlew bootRun` locally; confirm the table is created
       against a fresh DB, and against an existing dev DB the migration
       applies cleanly.
-- [ ] **1.4** Add a Spock unit test for the domain class
+- [x] **1.4** Add a Spock unit test for the domain class
       (`src/test/groovy/.../Dhis2UserLinkSpec.groovy`) covering the unique
       constraints and FK validation.
 
@@ -27,15 +27,14 @@ All under `src/main/groovy/org/pih/warehouse/custom/dhis2auth/`,
 `grails-app/services/org/pih/warehouse/custom/dhis2auth/`, and
 `grails-app/controllers/org/pih/warehouse/custom/dhis2auth/`.
 
-- [ ] **2.1** Config keys in `application.yml`:
-      `dhis2.oauth.enabled`, `dhis2.oauth.clientId`, `dhis2.oauth.clientSecret`,
-      `dhis2.oauth.authorizeUrl`, `dhis2.oauth.tokenUrl`, `dhis2.oauth.userUrl`,
-      `dhis2.oauth.redirectUri`, `dhis2.oauth.scopes`. All defaults safe
-      (feature disabled).
-- [ ] **2.2** `Dhis2OAuthClient` Groovy service: `buildAuthorizeUrl(state)`,
+- [x] **2.1** Config keys documented in `docker/openboxes.client-template.yml`
+      under `openboxes.dhis2.oauth.*` (`enabled`, `baseUrl`, `clientId`,
+      `clientSecret`, `redirectUri`). No touch to `application.yml` — feature
+      is disabled by default (missing config evaluates to falsy in Groovy).
+- [x] **2.2** `Dhis2OAuthClient` Groovy service: `buildAuthorizeUrl(state)`,
       `exchangeCode(code) → AccessToken`, `fetchMe(accessToken) → Dhis2User`.
       Use the HTTP client confirmed in `dhis2-oauth-spike` task 1.9.
-- [ ] **2.3** `Dhis2OAuthController`:
+- [x] **2.3** `Dhis2OAuthController`:
       `initiate()` — generate state nonce, store in session, redirect to authorize URL.
       `callback(code, state)` — verify state, exchange code, fetch user,
       delegate to `Dhis2RegistrationService`, then hand off to the
@@ -44,15 +43,15 @@ All under `src/main/groovy/org/pih/warehouse/custom/dhis2auth/`,
       call an extracted `AuthController` method or a new
       `Dhis2SessionService`). Redirect to landing page or pending-access page.
       Reject malformed callbacks with HTTP 400.
-- [ ] **2.4** `Dhis2RegistrationService.findOrRegister(dhis2User) → User`:
+- [x] **2.4** `Dhis2RegistrationService.findOrRegister(dhis2User) → User`:
       lookup by `Dhis2UserLink.dhis2Uid` → if found, refresh non-auth fields,
       return; if not, create OB `User(active=false)`, create `Dhis2UserLink`,
       handle username collision per spec (suffix + warning log).
-- [ ] **2.5** Spock unit tests:
+- [x] **2.5** Spock unit tests:
       `Dhis2OAuthClientSpec` (mock the HTTP layer),
       `Dhis2RegistrationServiceSpec` (data-driven table: new user, returning
       user, returning user with renamed email, username collision).
-- [ ] **2.6** Wire the controller URL mappings under `/oauth/dhis2/initiate`
+- [x] **2.6** Wire the controller URL mappings under `/oauth/dhis2/initiate`
       and `/oauth/dhis2/callback`. Place mappings under
       `grails-app/controllers/org/pih/warehouse/custom/dhis2auth/UrlMappings.groovy`
       if Grails supports a per-package URL mappings file; otherwise add the
@@ -65,23 +64,23 @@ OB has no Spring Security plugin; integration is into the hand-rolled
 `AuthController` / `AuthService` / `SecurityInterceptor` path. See design
 Context and D1.1.
 
-- [ ] **3.1** Hand off to OB's existing session-setup logic. Per the spike
+- [x] **3.1** Hand off to OB's existing session-setup logic. Per the spike
       `validation/active-flag-behavior.md`, either: (a) call an extracted
       `AuthController` method (one-line `AuthController` edit to make it
       callable), or (b) create `Dhis2SessionService` that sets the session
       `User` and calls `AuthService.setCurrentUser` directly. Pick the
       smaller of the two upstream edits and record the choice in design
       touch points.
-- [ ] **3.2** Pending-access GSP at `grails-app/views/dhis2auth/pending.gsp`
+- [x] **3.2** Pending-access GSP at `grails-app/views/dhis2auth/pending.gsp`
       — explains the user is awaiting access from an admin and provides a
       logout link.
-- [ ] **3.3** Edit `SecurityInterceptor` to redirect to the pending-access
+- [x] **3.3** Edit `SecurityInterceptor` to redirect to the pending-access
       page when the session-stored `User` has `active = false` AND a
       `Dhis2UserLink` (whitelist: pending page itself, logout, static
       assets). Smallest possible block. Per spike's branch decision in
       design D3, this may need to happen earlier (in the OAuth callback) if
       `AuthController` blocks login outright for inactive users.
-- [ ] **3.4** Login GSP edit: conditional "Sign in with DHIS2" button block.
+- [x] **3.4** Login GSP edit: conditional "Sign in with DHIS2" button block.
       Smallest possible diff at the path confirmed by spike task 1.6. Record
       in design touch points.
 - [ ] **3.5** Spock integration tests for the OAuth callback end-to-end —
@@ -92,7 +91,7 @@ Context and D1.1.
 
 ## Phase 4 — Admin UX
 
-- [ ] **4.1** Add a "Pending DHIS2 access" filter option to the existing user
+- [x] **4.1** Add a "Pending DHIS2 access" filter option to the existing user
       admin list controller/view. Surgical edit; record in touch points.
 - [ ] **4.2** Manual smoke test against a real (non-iframed) DHIS2: register
       a fresh DHIS2 user, log in via OB, see them in pending list, grant

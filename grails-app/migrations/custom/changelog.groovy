@@ -12,5 +12,5 @@
  * See .claude/rules/custom-package-isolation.md for the full rules.
  */
 databaseChangeLog = {
-    // No custom migrations yet — append `include file:` lines here as they ship.
+    include file: 'custom/0001-dhis2-user-link.groovy'
 }

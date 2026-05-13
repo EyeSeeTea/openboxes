@@ -1,5 +1,6 @@
 package spring
 
+import org.pih.warehouse.custom.dhis2auth.Dhis2OAuthClient
 import org.pih.warehouse.product.ProductValidator
 import org.springframework.boot.web.servlet.FilterRegistrationBean
 import org.springframework.core.Ordered
@@ -19,4 +20,9 @@ beans = {
         order = Ordered.HIGHEST_PRECEDENCE + 1
     }
     productValidator(ProductValidator)
+
+    // Dhis2OAuthClient doesn't end in "Service" so Grails won't auto-register it as a bean
+    dhis2OAuthClient(Dhis2OAuthClient) { bean ->
+        bean.autowire = 'byName'
+    }
 }

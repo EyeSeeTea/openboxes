@@ -196,16 +196,20 @@ openboxes:
 
     # -------------------------------------------------------------------------
     # DHIS2 OAuth2 SSO (dhis2-oauth-core)
-    # Enable per deployment that runs alongside DHIS2.
-    # secret: inject via env var — do NOT commit the real value.
-    # redirectUri: must match the client registered in DHIS2's OAuth2 Clients.
+    # Enable per deployment that runs alongside DHIS2. Set enabled: true and
+    # fill in the values below. clientSecret must be a 36-char UUID (DHIS2 req).
+    # Register the redirectUri exactly as shown in DHIS2 → System Settings →
+    # OAuth2 Clients. Inject clientSecret via env var — never commit the value.
+    # Standard DHIS2 endpoint paths are shown; adjust only for non-default installs.
     # -------------------------------------------------------------------------
     # dhis2:
     #     oauth:
     #         enabled: false
-    #         baseUrl: https://dhis2.example.com
     #         clientId: openboxes
     #         clientSecret: CHANGE_ME   # 36-char UUID required by DHIS2
+    #         authorizeUrl: https://dhis2.example.com/uaa/oauth/authorize
+    #         tokenUrl: https://dhis2.example.com/uaa/oauth/token
+    #         userUrl: https://dhis2.example.com/api/me
     #         redirectUri: https://openboxes.example.com/oauth/dhis2/callback
 
     # -------------------------------------------------------------------------
