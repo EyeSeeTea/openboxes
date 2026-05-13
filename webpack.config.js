@@ -218,6 +218,7 @@ module.exports = {
       css: path.resolve(ROOT, 'css'),
       api: path.resolve(SRC, 'api'),
       wrappers: path.resolve(SRC, 'wrappers'),
+      custom: path.resolve(SRC, 'custom'),
     },
     extensions: ['.js', '.jsx'],
   },

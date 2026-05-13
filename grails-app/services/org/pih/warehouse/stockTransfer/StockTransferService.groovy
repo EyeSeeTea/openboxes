@@ -43,6 +43,7 @@ class StockTransferService {
     GrailsApplication grailsApplication
     def orderService
     def authService
+    def customStockTransferDocumentService
 
     /**
      * Gets paginated list of stock transfers (Orders with TRANSFER_ORDER type)
@@ -341,6 +342,7 @@ class StockTransferService {
     }
 
     Order completeStockTransfer(StockTransfer stockTransfer) {
+        customStockTransferDocumentService.validateForCompletion(Order.get(stockTransfer.id))
         validateStockTransfer(stockTransfer)
 
         // Save the stockTransfer as an order

@@ -99,9 +99,13 @@
                 <div class="tabs tabs-ui">
                     <ul>
                         <li><a href="#tabs-summary"><warehouse:message code="default.summary.label" default="Summary"/></a></li>
+                        <li><a href="#tabs-documents"><warehouse:message code="document.documents.label" default="Documents"/></a></li>
                     </ul>
                     <div id="tabs-summary" class="ui-tabs-hide">
                         <g:render template="orderSummary"/>
+                    </div>
+                    <div id="tabs-documents" class="ui-tabs-hide">
+                        <g:render template="/custom/stockTransferDocuments/documentsList" model="[orderInstance: orderInstance]"/>
                     </div>
                 </div>
             </div>
