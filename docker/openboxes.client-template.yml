@@ -195,6 +195,28 @@ openboxes:
     #             secretKey: CHANGE_ME
 
     # -------------------------------------------------------------------------
+    # DHIS2 OAuth2 SSO (dhis2-oauth-core)
+    # Enable per deployment that runs alongside DHIS2.
+    # secret: inject via env var — do NOT commit the real value.
+    # redirectUri: must match the client registered in DHIS2's OAuth2 Clients.
+    # -------------------------------------------------------------------------
+    # dhis2:
+    #     oauth:
+    #         enabled: false
+    #         baseUrl: https://dhis2.example.com
+    #         clientId: openboxes
+    #         clientSecret: CHANGE_ME   # 36-char UUID required by DHIS2
+    #         redirectUri: https://openboxes.example.com/oauth/dhis2/callback
+
+    # -------------------------------------------------------------------------
+    # Iframe embedding / CSP frame-ancestors (dhis2-iframe-embedding)
+    # Set frameAncestors to the DHIS2 origin(s) that will embed OB.
+    # Also enable server.use-forward-headers if behind a TLS-terminating proxy.
+    # -------------------------------------------------------------------------
+    # iframe:
+    #     frameAncestors: []           # e.g. ['https://dhis2.example.com']
+
+    # -------------------------------------------------------------------------
     # LDAP (optional — enable only for clients using corporate auth)
     # -------------------------------------------------------------------------
     # ldap:

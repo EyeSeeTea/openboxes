@@ -1,0 +1,13 @@
+--- dig +short dhis2.localtest.me ---
+127.0.0.1
+
+--- dig +short openboxes.localtest.me ---
+127.0.0.1
+
+VERDICT: *.localtest.me resolves to 127.0.0.1 on this machine. No /etc/hosts
+edits are required for the dev stack.
+
+Note: some corporate DNS resolvers block or override *.localtest.me. If dig
+returns empty or an unexpected IP, add the following to /etc/hosts:
+  127.0.0.1  dhis2.localtest.me
+  127.0.0.1  openboxes.localtest.me
