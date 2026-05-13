@@ -11,21 +11,14 @@ grails:
         username: noreply@example.com
         password: CHANGE_ME
         from: noreply@example.com
-        prefix: '[OpenBoxes - UNICEF]'
+        prefix: '[UNICEF TJK Openboxes]'
 
 openboxes:
     locale:
         supportedLocales: ['en', 'ru', 'tg']
 
-    mail:
-        feedback:
-            enabled: true
-            recipients:
-                - ops@example.com
-        errors:
-            enabled: true
-            recipients:
-                - errors@example.com
+    expirationDate:
+      minValue: "01/01/2026"
 
     jobs:
         sendStockAlertsJob:
