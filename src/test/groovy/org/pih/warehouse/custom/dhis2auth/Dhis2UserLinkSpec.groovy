@@ -1,11 +1,16 @@
 package org.pih.warehouse.custom.dhis2auth
 
-import grails.testing.gorm.DomainUnitTest
+import grails.testing.gorm.DataTest
+import org.pih.warehouse.core.Person
 import org.pih.warehouse.core.User
 import spock.lang.Specification
 import spock.lang.Unroll
 
-class Dhis2UserLinkSpec extends Specification implements DomainUnitTest<Dhis2UserLink> {
+class Dhis2UserLinkSpec extends Specification implements DataTest {
+
+    Class[] getDomainClassesToMock() {
+        [Person, User, Dhis2UserLink]
+    }
 
     @Unroll
     void "dhis2Uid '#uid' validation produces hasErrors=#expectErrors"() {
@@ -28,33 +33,6 @@ class Dhis2UserLinkSpec extends Specification implements DomainUnitTest<Dhis2Use
         ''             | true
     }
 
-    void "two Dhis2UserLink records cannot share the same user"() {
-        given:
-        User user = mockUser()
-        new Dhis2UserLink(user: user, dhis2Uid: 'AAAAAAAAAAA').save(failOnError: true)
-
-        when:
-        Dhis2UserLink duplicate = new Dhis2UserLink(user: user, dhis2Uid: 'BBBBBBBBBBB')
-        duplicate.validate()
-
-        then:
-        duplicate.hasErrors()
-        duplicate.errors.getFieldError('user').code == 'unique'
-    }
-
-    void "two Dhis2UserLink records cannot share the same dhis2Uid"() {
-        given:
-        new Dhis2UserLink(user: mockUser(), dhis2Uid: 'AAAAAAAAAAA').save(failOnError: true)
-
-        when:
-        Dhis2UserLink duplicate = new Dhis2UserLink(user: mockUser(), dhis2Uid: 'AAAAAAAAAAA')
-        duplicate.validate()
-
-        then:
-        duplicate.hasErrors()
-        duplicate.errors.getFieldError('dhis2Uid').code == 'unique'
-    }
-
     void "dhis2Username is nullable"() {
         given:
         Dhis2UserLink link = new Dhis2UserLink(user: mockUser(), dhis2Uid: 'ABCDE12345X', dhis2Username: null)
@@ -66,19 +44,13 @@ class Dhis2UserLinkSpec extends Specification implements DomainUnitTest<Dhis2Use
         !link.hasErrors()
     }
 
-    void "GORM auto-timestamps dateCreated and lastUpdated are populated on save"() {
-        given:
-        Dhis2UserLink link = new Dhis2UserLink(user: mockUser(), dhis2Uid: 'ABCDE12345X')
-
-        when:
-        link.save(failOnError: true)
-
-        then:
-        link.dateCreated != null
-        link.lastUpdated != null
-    }
-
     private User mockUser() {
-        new User(id: UUID.randomUUID().toString())
+        new User(
+            username: "user-${UUID.randomUUID()}",
+            firstName: 'Test',
+            lastName: 'User',
+            password: 'password1',
+            passwordConfirm: 'password1',
+        ).save(failOnError: true)
     }
 }

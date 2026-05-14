@@ -25,7 +25,7 @@ class Dhis2UserLink implements Serializable {
 
     static constraints = {
         user unique: true
-        dhis2Uid unique: true, size: 11..11
+        dhis2Uid unique: true, blank: false, size: 11..11
         dhis2Username nullable: true, maxSize: 255
         lastLoginAt nullable: true
     }
