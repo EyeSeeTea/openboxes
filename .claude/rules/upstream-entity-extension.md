@@ -69,6 +69,9 @@ Still zero edits to upstream `Container.groovy`.
 | Adding a Liquibase migration that does `addColumn(tableName: 'container', ...)` | Modifies the upstream schema directly. Merge risk if upstream adds a same-named column later. |
 | Groovy trait applied to upstream domain class via AST | Changes the upstream class's bytecode shape at runtime. |
 | Subclassing upstream domain class (`class CustomContainer extends Container`) | Creates an STI/table-per-hierarchy coupling that changes the upstream table's semantics. |
+| Adding new values to upstream enums (`RequisitionStatus`, `ShipmentStatusCode`, `LotStatusCode`, etc.) | Every consumer of the enum (frontend filters, status badges, switch statements, reports) must be aware of the new value. Upstream merges where they add their own values to the same enum cause guaranteed conflicts. **Express new state in a custom side-table** (e.g. `custom_approval_decision.status` enum), and have the chain *terminate* in an existing upstream status — never widen the upstream domain. |
+| Adding new values to `RoleType` enum | Same reason. Acceptable *only* when the value is genuinely needed for `findUsersByRoleTypes` recipient lookups (e.g. `ROLE_*_NOTIFICATION`); document the touch point in the OpenSpec `design.md` and accept the merge cost. Default answer: reuse an existing `Role`. |
+| Adding new values to `ActivityCode` for feature toggles | Same reason. Prefer external config (`openboxes-config.properties` keys) for boolean feature flags. Add to `ActivityCode` *only* when the toggle is genuinely per-location and the existing per-location infrastructure (admin UI, `Location.supports()`, location-type seeding) buys you something material. |
 
 ## When the rule does NOT apply
 
@@ -85,3 +88,13 @@ Still zero edits to upstream `Container.groovy`.
 ## Quick self-check before writing a migration
 
 If your custom Liquibase changeset contains `addColumn(tableName: '<upstream-table>', ...)`, stop. Replace it with `createTable(tableName: 'custom_<feature>', ...)` that has a `FOREIGN KEY ... REFERENCES <upstream-table>(id)` and a `UNIQUE` constraint on that FK column (for 1-to-1) or an index (for 1-to-many).
+
+## Quick self-check before naming a new domain concept
+
+Before introducing a new field, table column, or `Location.<something>` semantic, **grep upstream for the term you're about to use** and confirm it isn't already taken with different semantics. Real cases that have bitten this fork:
+
+- `Location.parentLocation` already exists upstream — but it expresses **physical containment** (bin → zone → warehouse), not **organizational hierarchy** (district → region → national). A custom feature that wanted "parent" for org hierarchy needed a separate side-table (`custom_location_admin_hierarchy.admin_parent_id`) to avoid colliding with upstream's `LocationService.findInternalLocation`, `getZones`, `getBinLocations`, and the picklist resolver, all of which read `parentLocation` as bin/zone.
+- `LotStatusCode` includes `ON_HOLD`, `QUARANTINED`, `EXPIRED`, etc. — **only `RECALLED` is referenced anywhere in the codebase**; the others are dead enum values. The actual "hold" mechanism is `ActivityCode.HOLD_STOCK` on a bin `Location`, not the lot status. A custom feature reaching for `LotStatusCode.ON_HOLD` would build on dead code.
+- `requisition.approvers` is a `Person` collection, not `User`. Custom approval logic that resolves users by role and compares against the approvers list needs a `User → Person` hop.
+
+**The check is simple: `grep -rn '<term>' grails-app/ src/main/`** before committing to a name. If the term shows up with surprising semantics, pick a different name (or build a side-table that owns the new semantic cleanly).

@@ -20,6 +20,7 @@
                 </a>
             </div>
 	    </g:supports>
+        <g:if test="${!binLocation?.supports(org.pih.warehouse.core.ActivityCode.REQUIRE_TRANSFER_OUT_DOCUMENT)}">
         <div class="action-menu-item">
             <a href="javascript:void(0);" class="btn-show-dialog" data-title="${g.message(code:'inventory.transferStock.label')}"
                data-url="${request.contextPath}/inventoryItem/showDialog?id=${itemInstance?.id}&binLocation=${binLocation?.id}&template=transferStock">
@@ -27,6 +28,7 @@
             <g:message code="inventory.transferStock.label" default="Issue stock"/>
             </a>
         </div>
+        </g:if>
         <div class="action-menu-item">
             <a href="javascript:void(0);" class="btn-show-dialog" data-title="${g.message(code:'inventory.returnStock.label')}"
                 data-url="${request.contextPath}/inventoryItem/showDialog?id=${itemInstance?.id}&binLocation=${binLocation?.id}&template=returnStock">

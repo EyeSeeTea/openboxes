@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 
+import StockTransferDocumentsPanel from 'custom/stockTransferDocuments/components/StockTransferDocumentsPanel';
 import _ from 'lodash';
 import PropTypes from 'prop-types';
 import { confirmAlert } from 'react-confirm-alert';
@@ -46,9 +47,13 @@ class StockTransferSecondPage extends Component {
     this.state = {
       stockTransfer: stockTransfer || {},
       columns,
+      customCanComplete: false,
     };
 
     this.completeStockTransfer = this.completeStockTransfer.bind(this);
+    this.handleCanCompleteChange = (canComplete) => {
+      this.setState({ customCanComplete: canComplete });
+    };
   }
 
   componentDidMount() {
@@ -304,6 +309,11 @@ class StockTransferSecondPage extends Component {
             )
             : null
         }
+        <StockTransferDocumentsPanel
+          stockTransferId={this.state.stockTransfer.id || this.props.match?.params?.stockTransferId}
+          disabled={this.state.stockTransfer.status === 'COMPLETED'}
+          onCanCompleteChange={this.handleCanCompleteChange}
+        />
         <div className="submit-buttons">
           <button
             type="button"
@@ -317,7 +327,7 @@ class StockTransferSecondPage extends Component {
             type="button"
             onClick={() => this.completeStockTransfer()}
             className="btn btn-outline-success float-right btn-xs mr-3"
-            disabled={this.state.stockTransfer.status === 'COMPLETED'}
+            disabled={this.state.stockTransfer.status === 'COMPLETED' || this.state.customCanComplete === false}
           >
             <Translate id="react.stockTransfer.completeStockTransfer.label" defaultMessage="Complete Stock Transfer" />
           </button>
