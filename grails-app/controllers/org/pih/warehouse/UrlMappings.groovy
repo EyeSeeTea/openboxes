@@ -619,6 +619,12 @@ class UrlMappings {
             action = [GET: "refreshFilteredBinLocations"]
         }
 
+        // Custom: putaway-document-upload
+        "/api/custom/putaways/$id/documents"(parseRequest: true) {
+            controller = "customPutawayDocument"
+            action = [GET: "list", POST: "upload"]
+        }
+
         // Requirement API
 
         "/api/requirements"(parseRequest: true) {

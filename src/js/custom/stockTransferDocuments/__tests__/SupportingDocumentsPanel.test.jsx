@@ -4,10 +4,10 @@ import React from 'react';
 import {
   fireEvent, render, screen, waitFor,
 } from '@testing-library/react';
-import StockTransferDocumentsPanel from 'custom/stockTransferDocuments/components/StockTransferDocumentsPanel';
+import SupportingDocumentsPanel from 'custom/stockTransferDocuments/components/SupportingDocumentsPanel';
 import {
-  fetchStockTransferDocuments,
-  uploadStockTransferDocument,
+  fetchDocuments,
+  uploadDocument,
 } from 'custom/stockTransferDocuments/utils/api';
 
 import '@testing-library/jest-dom';
@@ -19,6 +19,7 @@ jest.mock('utils/Translate', () => ({
   default: ({ defaultMessage }) => <span>{defaultMessage}</span>,
 }));
 
+const STOCK_TRANSFER_API_BASE = '/api/custom/stockTransfers';
 const STOCK_TRANSFER_ID = 'st-123';
 const SAMPLE_DOCUMENT = {
   id: 'doc-1',
@@ -42,18 +43,19 @@ const LABELS = {
 };
 
 const mockFetchResolved = (payload) => {
-  fetchStockTransferDocuments.mockResolvedValueOnce({ data: { data: payload } });
+  fetchDocuments.mockResolvedValueOnce({ data: { data: payload } });
 };
 
 const mockFetchRejected = () => {
-  fetchStockTransferDocuments.mockRejectedValueOnce(new Error('network'));
+  fetchDocuments.mockRejectedValueOnce(new Error('network'));
 };
 
 const renderPanel = (overrides = {}) => {
   const onCanCompleteChange = jest.fn();
   const utils = render(
-    <StockTransferDocumentsPanel
-      stockTransferId={STOCK_TRANSFER_ID}
+    <SupportingDocumentsPanel
+      entityId={STOCK_TRANSFER_ID}
+      apiBasePath={STOCK_TRANSFER_API_BASE}
       onCanCompleteChange={onCanCompleteChange}
       {...overrides}
     />,
@@ -92,7 +94,7 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-describe('StockTransferDocumentsPanel', () => {
+describe('SupportingDocumentsPanel', () => {
   describe('initial load', () => {
     it('shows the empty state and reports canComplete=true when not required', async () => {
       mockFetchResolved({ documentRequired: false, documents: [] });
@@ -110,7 +112,7 @@ describe('StockTransferDocumentsPanel', () => {
       expect(screen.queryByText(LABELS.requiredWarning)).not.toBeInTheDocument();
     });
 
-    it('shows the required warning and reports canComplete=false when required with no documents', async () => {
+    it('shows the default required warning when no override is provided', async () => {
       mockFetchResolved({ documentRequired: true, documents: [] });
 
       const { onCanCompleteChange } = renderPanel();
@@ -119,6 +121,21 @@ describe('StockTransferDocumentsPanel', () => {
         expect(screen.getByText(LABELS.requiredWarning)).toBeInTheDocument();
       });
       expect(onCanCompleteChange).toHaveBeenLastCalledWith(false);
+    });
+
+    it('shows the requiredWarning prop override when provided', async () => {
+      const customWarning = {
+        id: 'react.custom.putawayDocuments.required.warning',
+        defaultMessage: 'A document must be attached before this putaway can be completed',
+      };
+      mockFetchResolved({ documentRequired: true, documents: [] });
+
+      renderPanel({ requiredWarning: customWarning });
+
+      await waitFor(() => {
+        expect(screen.getByText(customWarning.defaultMessage)).toBeInTheDocument();
+      });
+      expect(screen.queryByText(LABELS.requiredWarning)).not.toBeInTheDocument();
     });
 
     it('lists loaded documents and reports canComplete=true when required with documents', async () => {
@@ -148,7 +165,7 @@ describe('StockTransferDocumentsPanel', () => {
   describe('uploading', () => {
     it('uploads pending files and refreshes the list on success', async () => {
       mockFetchResolved({ documentRequired: true, documents: [] });
-      uploadStockTransferDocument.mockResolvedValueOnce({
+      uploadDocument.mockResolvedValueOnce({
         data: { data: 'Document was uploaded successfully' },
       });
       mockFetchResolved({ documentRequired: true, documents: [SAMPLE_DOCUMENT] });
@@ -164,14 +181,18 @@ describe('StockTransferDocumentsPanel', () => {
       fireEvent.click(screen.getByRole('button', { name: LABELS.uploadButton }));
 
       await waitFor(() => {
-        expect(uploadStockTransferDocument).toHaveBeenCalledWith(STOCK_TRANSFER_ID, file);
+        expect(uploadDocument).toHaveBeenCalledWith(
+          STOCK_TRANSFER_API_BASE,
+          STOCK_TRANSFER_ID,
+          file,
+        );
       });
       expect(await screen.findByText(SAMPLE_DOCUMENT.name)).toBeInTheDocument();
     });
 
     it('keeps only the failed files pending and shows partialError on partial failure', async () => {
       mockFetchResolved({ documentRequired: true, documents: [] });
-      uploadStockTransferDocument
+      uploadDocument
         .mockResolvedValueOnce({ data: { data: 'ok' } })
         .mockRejectedValueOnce(new Error('boom'))
         .mockResolvedValueOnce({ data: { data: 'ok' } });
@@ -191,12 +212,15 @@ describe('StockTransferDocumentsPanel', () => {
       fireEvent.click(screen.getByRole('button', { name: LABELS.uploadButton }));
 
       await waitFor(() => {
-        expect(uploadStockTransferDocument).toHaveBeenCalledTimes(3);
+        expect(uploadDocument).toHaveBeenCalledTimes(3);
       });
 
-      expect(uploadStockTransferDocument).toHaveBeenNthCalledWith(1, STOCK_TRANSFER_ID, fileA);
-      expect(uploadStockTransferDocument).toHaveBeenNthCalledWith(2, STOCK_TRANSFER_ID, fileB);
-      expect(uploadStockTransferDocument).toHaveBeenNthCalledWith(3, STOCK_TRANSFER_ID, fileC);
+      expect(uploadDocument)
+        .toHaveBeenNthCalledWith(1, STOCK_TRANSFER_API_BASE, STOCK_TRANSFER_ID, fileA);
+      expect(uploadDocument)
+        .toHaveBeenNthCalledWith(2, STOCK_TRANSFER_API_BASE, STOCK_TRANSFER_ID, fileB);
+      expect(uploadDocument)
+        .toHaveBeenNthCalledWith(3, STOCK_TRANSFER_API_BASE, STOCK_TRANSFER_ID, fileC);
 
       await waitFor(() => {
         expect(screen.getByText(LABELS.partialUploadError)).toBeInTheDocument();
@@ -208,11 +232,11 @@ describe('StockTransferDocumentsPanel', () => {
 
     it('does not re-send already-uploaded files when the user retries after a partial failure', async () => {
       mockFetchResolved({ documentRequired: true, documents: [] });
-      uploadStockTransferDocument
+      uploadDocument
         .mockResolvedValueOnce({ data: { data: 'ok' } }) // a.pdf
-        .mockRejectedValueOnce(new Error('boom'));        // b.pdf
+        .mockRejectedValueOnce(new Error('boom')); // b.pdf
       mockFetchResolved({ documentRequired: true, documents: [] });
-      uploadStockTransferDocument
+      uploadDocument
         .mockResolvedValueOnce({ data: { data: 'ok' } }); // b.pdf retry
       mockFetchResolved({ documentRequired: true, documents: [SAMPLE_DOCUMENT] });
 
@@ -232,15 +256,15 @@ describe('StockTransferDocumentsPanel', () => {
       fireEvent.click(screen.getByRole('button', { name: LABELS.uploadButton }));
 
       await waitFor(() => {
-        expect(uploadStockTransferDocument).toHaveBeenCalledTimes(3);
+        expect(uploadDocument).toHaveBeenCalledTimes(3);
       });
-      const calledFiles = uploadStockTransferDocument.mock.calls.map(([, file]) => file.name);
+      const calledFiles = uploadDocument.mock.calls.map(([, , file]) => file.name);
       expect(calledFiles).toEqual(['a.pdf', 'b.pdf', 'b.pdf']);
     });
 
     it('shows an upload error and keeps pending files when upload fails', async () => {
       mockFetchResolved({ documentRequired: true, documents: [] });
-      uploadStockTransferDocument.mockRejectedValueOnce(new Error('boom'));
+      uploadDocument.mockRejectedValueOnce(new Error('boom'));
 
       const { container } = renderPanel();
 
@@ -279,7 +303,7 @@ describe('StockTransferDocumentsPanel', () => {
       await waitFor(() => {
         expect(screen.getByText(LABELS.invalidTypeError)).toBeInTheDocument();
       });
-      expect(uploadStockTransferDocument).not.toHaveBeenCalled();
+      expect(uploadDocument).not.toHaveBeenCalled();
     });
 
     it('rejects an oversize file with an inline warning', async () => {
@@ -304,7 +328,7 @@ describe('StockTransferDocumentsPanel', () => {
       await waitFor(() => {
         expect(screen.getByText(LABELS.tooLargeError)).toBeInTheDocument();
       });
-      expect(uploadStockTransferDocument).not.toHaveBeenCalled();
+      expect(uploadDocument).not.toHaveBeenCalled();
     });
 
     it('removes a pending file when the remove button is clicked', async () => {

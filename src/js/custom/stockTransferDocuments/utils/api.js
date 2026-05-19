@@ -1,15 +1,15 @@
 import apiClient from 'utils/apiClient';
 
-export const stockTransferDocumentsUrl = (stockTransferId) =>
-  `/api/custom/stockTransfers/${stockTransferId}/documents`;
+export const buildDocumentsUrl = (apiBasePath, entityId) =>
+  `${apiBasePath}/${entityId}/documents`;
 
-export const fetchStockTransferDocuments = (stockTransferId) =>
-  apiClient.get(stockTransferDocumentsUrl(stockTransferId));
+export const fetchDocuments = (apiBasePath, entityId) =>
+  apiClient.get(buildDocumentsUrl(apiBasePath, entityId));
 
-export const uploadStockTransferDocument = (stockTransferId, file) => {
+export const uploadDocument = (apiBasePath, entityId, file) => {
   const formData = new FormData();
   formData.append('fileContents', file);
-  return apiClient.post(stockTransferDocumentsUrl(stockTransferId), formData, {
+  return apiClient.post(buildDocumentsUrl(apiBasePath, entityId), formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 };
