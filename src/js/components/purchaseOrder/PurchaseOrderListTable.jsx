@@ -32,6 +32,7 @@ import 'react-confirm-alert/src/react-confirm-alert.css';
 const PurchaseOrderListTable = ({
   supportedActivities,
   highestRole,
+  hasFacilityStorekeeperPolicy,
   translate,
   currencyCode,
   allStatuses,
@@ -81,6 +82,7 @@ const PurchaseOrderListTable = ({
       label: 'react.purchaseOrder.edit.label',
       defaultLabel: 'Edit order',
       leftIcon: <RiPencilLine />,
+      hiddenForFacilityStorekeeper: true,
       statuses: ['PENDING'],
       activityCode: ['PLACE_ORDER'],
       href: PURCHASE_ORDER_URL.edit,
@@ -89,6 +91,7 @@ const PurchaseOrderListTable = ({
       label: 'react.purchaseOrder.editLineItems.label',
       defaultLabel: 'Edit line items',
       leftIcon: <RiListUnordered />,
+      hiddenForFacilityStorekeeper: true,
       statuses: ['PENDING'],
       activityCode: ['PLACE_ORDER'],
       href: PURCHASE_ORDER_URL.addItems,
@@ -97,6 +100,7 @@ const PurchaseOrderListTable = ({
       label: 'react.purchaseOrder.placeOrder.label',
       defaultLabel: 'Place order',
       leftIcon: <RiShoppingCartLine />,
+      hiddenForFacilityStorekeeper: true,
       statuses: ['PENDING'],
       activityCode: ['PLACE_ORDER'],
       href: ORDER_URL.placeOrder,
@@ -112,6 +116,7 @@ const PurchaseOrderListTable = ({
       label: 'react.purchaseOrder.cancelOrder.label',
       defaultLabel: 'Cancel order',
       leftIcon: <RiCloseLine />,
+      hiddenForFacilityStorekeeper: true,
       activityCode: ['PLACE_ORDER'],
       onClick: () => cancelOrder(),
     },
@@ -119,6 +124,7 @@ const PurchaseOrderListTable = ({
       label: 'react.purchaseOrder.rollbackOrder.label',
       defaultLabel: 'Rollback Order',
       leftIcon: <RiArrowGoBackLine />,
+      hiddenForFacilityStorekeeper: true,
       minimumRequiredRole: 'Superuser',
       activityCode: ['PLACE_ORDER'],
       // Display for statuses > PENDING
@@ -130,6 +136,7 @@ const PurchaseOrderListTable = ({
       label: 'react.purchaseOrder.delete.label',
       defaultLabel: 'Delete',
       leftIcon: <RiDeleteBinLine />,
+      hiddenForFacilityStorekeeper: true,
       minimumRequiredRole: 'Assistant',
       variant: 'danger',
       onClick: (id) => deleteHandler(id),
@@ -154,6 +161,8 @@ const PurchaseOrderListTable = ({
           actions={findActions(actions, row, {
             supportedActivities,
             highestRole,
+            customFilter: (action) =>
+              !(hasFacilityStorekeeperPolicy && action.hiddenForFacilityStorekeeper),
           })}
           id={row.original.id}
         />
@@ -303,7 +312,7 @@ const PurchaseOrderListTable = ({
       sortable: false,
       minWidth: 260,
     },
-  ], [supportedActivities, highestRole, actions]);
+  ], [supportedActivities, highestRole, actions, hasFacilityStorekeeperPolicy]);
 
   const totalAmount = () => `${translate('react.purchaseOrder.totalAmount.label', 'Total amount')}: ${tableData.totalPrice.toLocaleString([locale, 'en'])} ${currencyCode}`;
 
@@ -375,6 +384,7 @@ const PurchaseOrderListTable = ({
 const mapStateToProps = (state) => ({
   supportedActivities: state.session.supportedActivities,
   highestRole: state.session.highestRole,
+  hasFacilityStorekeeperPolicy: state.session.hasFacilityStorekeeperPolicy,
   translate: translateWithDefaultMessage(getTranslate(state.localize)),
   currencyCode: state.session.currencyCode,
   allStatuses: state.purchaseOrder.statuses,
@@ -387,6 +397,7 @@ PurchaseOrderListTable.propTypes = {
   filterParams: PropTypes.shape({}).isRequired,
   supportedActivities: PropTypes.arrayOf(PropTypes.string).isRequired,
   highestRole: PropTypes.string.isRequired,
+  hasFacilityStorekeeperPolicy: PropTypes.bool,
   translate: PropTypes.func.isRequired,
   currencyCode: PropTypes.string.isRequired,
   allStatuses: PropTypes.arrayOf(PropTypes.shape({
@@ -396,4 +407,8 @@ PurchaseOrderListTable.propTypes = {
     variant: PropTypes.string,
   })).isRequired,
   locale: PropTypes.string.isRequired,
+};
+
+PurchaseOrderListTable.defaultProps = {
+  hasFacilityStorekeeperPolicy: false,
 };

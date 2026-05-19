@@ -23,16 +23,18 @@
 			</g:if>
 
 			<div class="buttonBar">
-				<g:supports activityCode="${ActivityCode.PLACE_ORDER}">
-					<g:link data-testid="create-shipment-button" controller="order" action="create" class="button">
+				<g:isUserInRole roles="[org.pih.warehouse.core.RoleType.ROLE_ASSISTANT]">
+					<g:supports activityCode="${ActivityCode.PLACE_ORDER}">
+						<g:link data-testid="create-shipment-button" controller="order" action="create" class="button">
+							<img src="${resource(dir: 'images/icons/silk', file: 'add.png')}" />&nbsp;
+							<warehouse:message code="default.create.label" args="[g.message(code: 'order.label')]" default="Create purchase order" />
+						</g:link>
+					</g:supports>
+					<g:link data-testid="create-shipment-button" controller="stockMovement" action="createCombinedShipments" class="button" params="[direction:'INBOUND']">
 						<img src="${resource(dir: 'images/icons/silk', file: 'add.png')}" />&nbsp;
-						<warehouse:message code="default.create.label" args="[g.message(code: 'order.label')]" default="Create purchase order" />
+						<warehouse:message code="default.create.label" args="[warehouse.message(code: 'shipmentFromPO.label')]"/>
 					</g:link>
-				</g:supports>
-				<g:link data-testid="create-shipment-button" controller="stockMovement" action="createCombinedShipments" class="button" params="[direction:'INBOUND']">
-					<img src="${resource(dir: 'images/icons/silk', file: 'add.png')}" />&nbsp;
-					<warehouse:message code="default.create.label" args="[warehouse.message(code: 'shipmentFromPO.label')]"/>
-				</g:link>
+				</g:isUserInRole>
 			</div>
 
 			<div class="yui-gf">

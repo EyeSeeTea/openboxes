@@ -20,6 +20,14 @@ class MegamenuService {
     GrailsApplication grailsApplication
     def grailsLinkGenerator
 
+    private static final List<String> STOREKEEPER_HIDDEN_SECTIONS = [
+            "purchasing",
+            "outbound",
+            "requisitionTemplate",
+    ]
+
+    private static final String STOREKEEPER_INBOUND_CREATE_HREF = "/stockMovement/createInbound"
+
     private getMessageTagLib() {
         return grailsApplication.mainContext.getBean('org.pih.warehouse.MessageTagLib')
     }
@@ -150,6 +158,30 @@ class MegamenuService {
                 }
             }
         }
+        if (userService.hasFacilityStorekeeperPolicy(user, location?.id)) {
+            parsedMenuConfig = applyFacilityStorekeeperMenuPolicy(parsedMenuConfig)
+        }
         return parsedMenuConfig
+    }
+
+    private ArrayList applyFacilityStorekeeperMenuPolicy(ArrayList menuConfig) {
+        ArrayList filteredMenu = (menuConfig ?: []).findAll { section ->
+            !STOREKEEPER_HIDDEN_SECTIONS.contains(section?.id)
+        } as ArrayList
+
+        filteredMenu.each { section ->
+            if (section?.id == "inbound" && section?.subsections) {
+                section.subsections = section.subsections.findAll { it != null }.collect { subsection ->
+                    subsection.menuItems = (subsection?.menuItems ?: []).findAll { menuItem ->
+                        String href = menuItem?.href ?: ""
+                        !href.contains(STOREKEEPER_INBOUND_CREATE_HREF)
+                    } ?: []
+                    return subsection
+                }
+                section.subsections = section.subsections.findAll { it?.menuItems }
+            }
+        }
+
+        return filteredMenu
     }
 }

@@ -162,6 +162,7 @@ class ApiController {
         // TODO: investigate why in isUserManager method in userService there is Assistant role included
         ArrayList<RoleType> managerRoles = [RoleType.ROLE_SUPERUSER, RoleType.ROLE_ADMIN, RoleType.ROLE_MANAGER]
         boolean isUserManager = userService.getEffectiveRoles(user).any { managerRoles.contains(it.roleType) }
+        boolean hasFacilityStorekeeperPolicy = userService.hasFacilityStorekeeperPolicy(session?.user, session.warehouse?.id)
         def supportedActivities = location.supportedActivities ?: location.locationType.supportedActivities
         boolean isImpersonated = session.impersonateUserId ? true : false
         def buildNumber = gitProperties.shortCommitId
@@ -207,6 +208,7 @@ class ApiController {
                 isUserApprover                : isUserApprover,
                 isUserRequestApprover         : isUserRequestApprover,
                 isUserManager                 : isUserManager,
+                hasFacilityStorekeeperPolicy  : hasFacilityStorekeeperPolicy,
                 supportedActivities           : supportedActivities,
                 isImpersonated                : isImpersonated,
                 grailsVersion                 : grailsVersion,

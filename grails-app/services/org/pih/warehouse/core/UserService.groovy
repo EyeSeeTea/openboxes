@@ -149,8 +149,8 @@ class UserService {
     Boolean isSuperuser(User u) {
         if (u) {
             def user = User.get(u.id)
-            def roles = [RoleType.ROLE_SUPERUSER]
-            return getEffectiveRoles(user).any { roles.contains(it.roleType) }
+            Set<String> roleNames = [RoleType.ROLE_SUPERUSER.name()] as Set<String>
+            return getEffectiveRoles(user).any { Role role -> roleNames.contains(role.roleType?.name()) }
         }
         return false
     }
@@ -158,8 +158,8 @@ class UserService {
     Boolean isUserAdmin(User u) {
         if (u) {
             def user = User.get(u.id)
-            def roles = [RoleType.ROLE_SUPERUSER, RoleType.ROLE_ADMIN]
-            return getEffectiveRoles(user).any { roles.contains(it.roleType) }
+            Set<String> roleNames = [RoleType.ROLE_SUPERUSER.name(), RoleType.ROLE_ADMIN.name()] as Set<String>
+            return getEffectiveRoles(user).any { Role role -> roleNames.contains(role.roleType?.name()) }
         }
         return false
     }
@@ -167,8 +167,13 @@ class UserService {
     Boolean isUserManager(User u) {
         if (u) {
             def user = User.get(u.id)
-            def roles = [RoleType.ROLE_SUPERUSER, RoleType.ROLE_ADMIN, RoleType.ROLE_MANAGER, RoleType.ROLE_ASSISTANT]
-            return getEffectiveRoles(user).any { roles.contains(it.roleType) }
+            Set<String> roleNames = [
+                    RoleType.ROLE_SUPERUSER.name(),
+                    RoleType.ROLE_ADMIN.name(),
+                    RoleType.ROLE_MANAGER.name(),
+                    RoleType.ROLE_ASSISTANT.name()
+            ] as Set<String>
+            return getEffectiveRoles(user).any { Role role -> roleNames.contains(role.roleType?.name()) }
         }
         return false
     }
@@ -195,8 +200,15 @@ class UserService {
     Boolean canUserBrowse(User u) {
         if (u) {
             def user = User.get(u.id)
-            def roles = [RoleType.ROLE_SUPERUSER, RoleType.ROLE_ADMIN, RoleType.ROLE_MANAGER, RoleType.ROLE_BROWSER, RoleType.ROLE_ASSISTANT]
-            return getEffectiveRoles(user).any { roles.contains(it.roleType) }
+            Set<String> roleNames = [
+                    RoleType.ROLE_SUPERUSER.name(),
+                    RoleType.ROLE_ADMIN.name(),
+                    RoleType.ROLE_MANAGER.name(),
+                    RoleType.ROLE_BROWSER.name(),
+                    RoleType.ROLE_ASSISTANT.name(),
+                    RoleType.ROLE_FACILITY_STOREKEEPER.name()
+            ] as Set<String>
+            return getEffectiveRoles(user).any { Role role -> roleNames.contains(role.roleType?.name()) }
         }
         return false
     }
@@ -256,6 +268,31 @@ class UserService {
         return false
     }
 
+    Boolean hasRoleFacilityStorekeeper(User u) {
+        if (u) {
+            def user = User.get(u.id)
+            return getEffectiveRoles(user).any { Role role -> role.roleType?.name() == RoleType.ROLE_FACILITY_STOREKEEPER.name() }
+        }
+        return false
+    }
+
+    Boolean hasFacilityStorekeeperPolicy(User u, String locationId) {
+        if (u) {
+            def user = User.get(u.id)
+            Location location = Location.get(locationId)
+            Set<String> effectiveRoleNames = (getEffectiveRoles(user, location)*.roleType*.name()).findAll { it } as Set<String>
+            Set<String> higherCoreRoleNames = [
+                    RoleType.ROLE_SUPERUSER.name(),
+                    RoleType.ROLE_ADMIN.name(),
+                    RoleType.ROLE_MANAGER.name(),
+                    RoleType.ROLE_ASSISTANT.name()
+            ]
+            return effectiveRoleNames.contains(RoleType.ROLE_FACILITY_STOREKEEPER.name()) &&
+                    !effectiveRoleNames.any { higherCoreRoleNames.contains(it) }
+        }
+        return false
+    }
+
     // Checks if requestor role exist for any location - for location chooser purposes
     Boolean hasRoleRequestorInAnyLocations(User u) {
         if (u) {
@@ -287,11 +324,12 @@ class UserService {
     }
 
     Boolean isUserInRole(String userId, Collection roleTypes) {
-        Collection acceptedRoleTypes = RoleType.expand(roleTypes)
+        Set<String> acceptedRoleTypeNames = (RoleType.expand(roleTypes)*.name()) as Set<String>
         User user = getUser(userId)
         return getEffectiveRoles(user).any { Role role ->
-            boolean acceptedRoleType = acceptedRoleTypes.contains(role.roleType)
-            log.debug "Is role ${role.roleType} in ${acceptedRoleTypes} = ${acceptedRoleType}"
+            String roleName = role.roleType?.name()
+            boolean acceptedRoleType = acceptedRoleTypeNames.contains(roleName)
+            log.debug "Is role ${roleName} in ${acceptedRoleTypeNames} = ${acceptedRoleType}"
             return acceptedRoleType
         }
     }
