@@ -28,11 +28,16 @@ const SAMPLE_DOCUMENT = {
   uri: '/openboxes/document/download/doc-1',
 };
 
+const REQUIRED_WARNING = {
+  id: 'react.custom.stockTransferDocuments.required.warning',
+  defaultMessage:
+    'A document must be attached before this stock transfer can be completed',
+};
+
 const LABELS = {
   panelTitle: 'Supporting documents',
   empty: 'No documents attached yet',
-  requiredWarning:
-    'A document must be attached before this stock transfer can be completed',
+  requiredWarning: REQUIRED_WARNING.defaultMessage,
   fetchError: 'Unable to load documents. Please refresh to try again.',
   uploadError: 'Document upload failed',
   partialUploadError: 'Some documents failed to upload. The remaining files above can be retried.',
@@ -56,6 +61,7 @@ const renderPanel = (overrides = {}) => {
     <SupportingDocumentsPanel
       entityId={STOCK_TRANSFER_ID}
       apiBasePath={STOCK_TRANSFER_API_BASE}
+      requiredWarning={REQUIRED_WARNING}
       onCanCompleteChange={onCanCompleteChange}
       {...overrides}
     />,
@@ -112,7 +118,7 @@ describe('SupportingDocumentsPanel', () => {
       expect(screen.queryByText(LABELS.requiredWarning)).not.toBeInTheDocument();
     });
 
-    it('shows the default required warning when no override is provided', async () => {
+    it('shows the requiredWarning passed via props and reports canComplete=false', async () => {
       mockFetchResolved({ documentRequired: true, documents: [] });
 
       const { onCanCompleteChange } = renderPanel();
@@ -123,7 +129,7 @@ describe('SupportingDocumentsPanel', () => {
       expect(onCanCompleteChange).toHaveBeenLastCalledWith(false);
     });
 
-    it('shows the requiredWarning prop override when provided', async () => {
+    it('renders a different requiredWarning when the caller supplies one', async () => {
       const customWarning = {
         id: 'react.custom.putawayDocuments.required.warning',
         defaultMessage: 'A document must be attached before this putaway can be completed',

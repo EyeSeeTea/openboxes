@@ -312,6 +312,11 @@ class StockTransferSecondPage extends Component {
         <SupportingDocumentsPanel
           entityId={this.state.stockTransfer.id || this.props.match?.params?.stockTransferId}
           apiBasePath="/api/custom/stockTransfers"
+          requiredWarning={{
+            id: 'react.custom.stockTransferDocuments.required.warning',
+            defaultMessage:
+              'A document must be attached before this stock transfer can be completed',
+          }}
           disabled={this.state.stockTransfer.status === 'COMPLETED'}
           onCanCompleteChange={this.handleCanCompleteChange}
         />

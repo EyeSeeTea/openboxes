@@ -1,5 +1,5 @@
 import React, {
-  useCallback, useEffect, useMemo, useRef, useState,
+  useCallback, useEffect, useRef, useState,
 } from 'react';
 
 import {
@@ -65,11 +65,6 @@ const SupportingDocumentsPanel = ({
   useEffect(() => () => {
     isMountedRef.current = false;
   }, []);
-
-  const effectiveRequiredWarning = useMemo(
-    () => requiredWarning || M.requiredWarning,
-    [requiredWarning],
-  );
 
   const reportCanComplete = useCallback((required, docs) => {
     if (onCanCompleteChange) {
@@ -198,8 +193,8 @@ const SupportingDocumentsPanel = ({
         <>
           {showRequiredWarning && (
             <Warning
-              messageKey={effectiveRequiredWarning.id}
-              defaultMessage={effectiveRequiredWarning.defaultMessage}
+              messageKey={requiredWarning.id}
+              defaultMessage={requiredWarning.defaultMessage}
             />
           )}
 
@@ -309,14 +304,13 @@ SupportingDocumentsPanel.propTypes = {
   requiredWarning: PropTypes.shape({
     id: PropTypes.string.isRequired,
     defaultMessage: PropTypes.string.isRequired,
-  }),
+  }).isRequired,
   disabled: PropTypes.bool,
   onCanCompleteChange: PropTypes.func,
 };
 
 SupportingDocumentsPanel.defaultProps = {
   entityId: null,
-  requiredWarning: null,
   disabled: false,
   onCanCompleteChange: null,
 };
