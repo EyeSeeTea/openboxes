@@ -63,6 +63,7 @@ enum RoleType {
     ROLE_RECEIVER('Receiver', 50),
     ROLE_SHIPMENT_CLERK('Shipment Clerk', 50),
     ROLE_STOCKER('Stocker', 50),
+    ROLE_FACILITY_STOREKEEPER('Facility Storekeeper', 4),
     ROLE_WORKER('Worker', 50),
 
     // Pharmacy roles
@@ -114,6 +115,7 @@ enum RoleType {
         [
                 ROLE_AUTHENTICATED,
                 ROLE_BROWSER,
+                ROLE_FACILITY_STOREKEEPER,
                 ROLE_ASSISTANT,
                 ROLE_MANAGER,
                 ROLE_ADMIN,
@@ -161,6 +163,7 @@ enum RoleType {
         [
                 ROLE_AUTHENTICATED,
                 ROLE_BROWSER,
+                ROLE_FACILITY_STOREKEEPER,
                 ROLE_ASSISTANT,
                 ROLE_MANAGER,
                 ROLE_ADMIN,
@@ -188,6 +191,7 @@ enum RoleType {
     static listRoleTypesForLocationChooser() {
         return [
                 ROLE_ASSISTANT,
+                ROLE_FACILITY_STOREKEEPER,
                 ROLE_MANAGER,
                 ROLE_ADMIN,
                 ROLE_SUPERUSER,

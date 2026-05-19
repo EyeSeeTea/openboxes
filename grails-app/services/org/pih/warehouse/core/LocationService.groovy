@@ -262,6 +262,7 @@ class LocationService {
         def isRequestor = userService.isUserRequestor(user)
         def requestorInAnyLocation = userService.hasRoleRequestorInAnyLocations(user)
         def inRoleBrowser = user.hasDefaultRole(RoleType.ROLE_BROWSER)
+        def inRoleFacilityStorekeeper = user.hasDefaultRole(RoleType.ROLE_FACILITY_STOREKEEPER)
         def inRoleAssistant = user.hasDefaultRole(RoleType.ROLE_ASSISTANT)
         def inRoleManager = user.hasDefaultRole(RoleType.ROLE_MANAGER)
         def inRoleAdmin = user.hasDefaultRole(RoleType.ROLE_ADMIN)
@@ -280,7 +281,7 @@ class LocationService {
                 locations += getRequestorLocations(user)
             }
             // If a user doesn't have at least one of the requiredRoles by default, get locations where the user HAS any of those roles
-            if (!inRoleBrowser && !inRoleAssistant && !inRoleManager && !inRoleAdmin && !inRoleSuperuser) {
+            if (!inRoleBrowser && !inRoleFacilityStorekeeper && !inRoleAssistant && !inRoleManager && !inRoleAdmin && !inRoleSuperuser) {
                 user.locationRoles.each { LocationRole locationRole ->
                     if (requiredRoles.contains(locationRole.role.roleType)) {
                         locations += locationRole.location

@@ -68,6 +68,13 @@ class RoleInterceptor {
         'jobs'                      : ['*']
     ]
 
+    def static facilityStorekeeperActions = [
+        'inventory'    : ['createInboundTransfer', 'createConsumed', 'editTransaction', 'deleteTransaction', 'saveTransaction'],
+        'inventoryItem': ['showRecordInventory', 'adjustStock', 'transferStock'],
+        'stockTransfer': ['create', 'edit', 'createInboundReturn'],
+        'stockTransferApi': ['list', 'read', 'create', 'update', 'stockTransferCandidates', 'returnCandidates']
+    ]
+
     def static invoiceActions = [
         'invoice': ['*']
     ]
@@ -105,6 +112,18 @@ class RoleInterceptor {
     }
 
     boolean before() {
+        // Apply custom location-scoped role policy only after a warehouse context exists.
+        Boolean hasWarehouseContext = session?.warehouse?.id
+        Boolean hasFacilityStorekeeperPolicy = hasWarehouseContext &&
+                userService.hasFacilityStorekeeperPolicy(session.user, session?.warehouse?.id)
+        Boolean isStorekeeperAllowedAction = hasFacilityStorekeeperPolicy && needFacilityStorekeeper(controllerName, actionName, params, request)
+        Boolean isStorekeeperRestrictedAction = hasFacilityStorekeeperPolicy && needStorekeeperDeniedAction(controllerName, actionName, params, request)
+
+        if (isStorekeeperRestrictedAction) {
+            log.info("User ${session?.user?.username} does not have access to ${controllerName}/${actionName} in location ${session?.warehouse?.name}")
+            redirect(controller: "errors", action: "handleForbidden")
+            return false
+        }
 
         def rules = grailsApplication.config.openboxes.security.rbac.rules
         def rule = rules.find { it.controller == controllerName && it.actions.contains(actionName) ||
@@ -148,9 +167,11 @@ class RoleInterceptor {
         // Authorized users
         def isNotAuthenticated = !userService.isUserInRole(session.user, RoleType.ROLE_AUTHENTICATED)
         def isNotBrowser = !userService.canUserBrowse(session.user) && !needRequestorOrManager(controllerName, actionName)
-        def isNotManager = needManager(controllerName, actionName) && (needRequestorOrManager(controllerName, actionName) ? !userService.isUserManager(session.user) && !userService.isUserRequestor(session.user) : !userService.isUserManager(session.user))
+        def isNotManager = needManager(controllerName, actionName) &&
+            !isStorekeeperAllowedAction &&
+            (needRequestorOrManager(controllerName, actionName) ? !userService.isUserManager(session.user) && !userService.isUserRequestor(session.user) : !userService.isUserManager(session.user))
         def isNotAdmin = needAdmin(controllerName, actionName) && !userService.isUserAdmin(session.user)
-        def isNotSuperuser = needSuperuser(controllerName, actionName) && !userService.isSuperuser(session.user)
+        def isNotSuperuser = needSuperuser(controllerName, actionName) && !isStorekeeperAllowedAction && !userService.isSuperuser(session.user)
         def hasNoRoleInvoice = needInvoice(controllerName, actionName) && !userService.hasRoleInvoice(session.user)
         def isNotRequestor = needRequestorOrManager(controllerName, actionName) && !userService.isUserRequestor(session.user)
         def isNotRequestorOrManager = needRequestorOrManager(controllerName, actionName) ? !userService.isUserManager(session.user) && !userService.isUserRequestor(session.user) : false
@@ -201,5 +222,91 @@ class RoleInterceptor {
 
     static Boolean needAuthenticatedActions(controllerName, actionName) {
         authenticatedActions[controllerName]?.contains(actionName)
+    }
+
+    static Boolean needFacilityStorekeeper(controllerName, actionName, params = null, request = null) {
+        if (needStorekeeperDeniedAction(controllerName, actionName, params, request)) {
+            return false
+        }
+        return facilityStorekeeperActions[controllerName]?.contains("*") ||
+            facilityStorekeeperActions[controllerName]?.contains(actionName)
+    }
+
+    static Boolean needStorekeeperDeniedAction(controllerName, actionName, params, request = null) {
+        // Purchasing: no access
+        if (controllerName in ['purchaseOrder', 'purchaseOrderApi']) {
+            return true
+        }
+        if (controllerName == 'supplier') {
+            return true
+        }
+
+        // Outbound: no access
+        if (controllerName == 'stockMovement') {
+            if (actionName in ['createOutbound', 'importOutboundStockMovement', 'verifyRequest']) {
+                return true
+            }
+            if (actionName == 'list' && params.direction?.toUpperCase() == "OUTBOUND") {
+                return true
+            }
+        }
+        if (controllerName == 'stockMovementApi') {
+            String direction = params.direction ?: request?.JSON?.direction
+            if (actionName == 'list' && direction?.toUpperCase() == "OUTBOUND") {
+                return true
+            }
+            if (actionName == 'create' && direction?.toUpperCase() == "OUTBOUND") {
+                return true
+            }
+        }
+        if (controllerName == 'stockTransfer' && actionName == 'createOutboundReturn') {
+            return true
+        }
+
+        // Stocklists: no access
+        if (controllerName in ['requisitionTemplate', 'stocklist', 'stocklistApi', 'stocklistItemApi', 'stocklistManagement']) {
+            return true
+        }
+
+        // Products: read-only
+        if (controllerName == 'product' && actionName in [
+            'batchEdit',
+            'batchEditProperties',
+            'create',
+            'save',
+            'edit',
+            'update',
+            'delete',
+            'deleteProducts',
+            'importAsCsv',
+            'savePackage',
+            'deleteDocument',
+            'deleteProductComponent',
+            'deleteProductGroup',
+            'editProductSynonym',
+            'editProductSynonymDialog',
+            'deleteSynonym',
+        ]) {
+            return true
+        }
+        if (controllerName == 'productApi' && actionName in ['create', 'update', 'delete']) {
+            return true
+        }
+
+        // Inbound: no access to "Create Inbound Movement" only
+        if (controllerName == 'stockMovement' && actionName == 'createInbound') {
+            return !params.id
+        }
+        if (controllerName == 'stockMovementApi' && actionName == 'create') {
+            String direction = params.direction ?: request?.JSON?.direction
+            return direction?.toUpperCase() == "INBOUND"
+        }
+
+        // Legacy inbound shipment creation should remain blocked for storekeeper
+        if (controllerName == 'createShipmentWorkflow' && actionName == 'createShipment') {
+            return !params.id && params.type?.toUpperCase() == "INCOMING"
+        }
+
+        return false
     }
 }

@@ -56,6 +56,9 @@ const useUserHasPermissions = ({ minRequiredRole, supplementalRoles = [] }) => {
         return isSuperuser;
       case RoleType.ROLE_ADMIN:
         return isAdmin;
+      case RoleType.ROLE_MANAGER:
+        return isSuperuser || isAdmin
+          || hasEveryRole([RoleType.ROLE_MANAGER]);
       case RoleType.ROLE_PURCHASE_APPROVER:
         return isApprover;
       case RoleType.ROLE_REQUISITION_APPROVER:

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog/1.9"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog/1.9 http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-1.9.xsd">
+
+    <changeSet author="codex" id="202605151200-0">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">select count(*) from role where role_type = 'ROLE_FACILITY_STOREKEEPER'</sqlCheck>
+        </preConditions>
+        <insert tableName="role">
+            <column name="id" value="ROLE_FACILITY_STOREKEEPER"/>
+            <column name="version" valueNumeric="0"/>
+            <column name="description" value="Role for facility storekeepers with inventory-change access and restricted purchasing/shipment creation access"/>
+            <column name="role_type" value="ROLE_FACILITY_STOREKEEPER"/>
+            <column name="name" value="Facility Storekeeper"/>
+        </insert>
+    </changeSet>
+</databaseChangeLog>
