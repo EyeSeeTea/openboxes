@@ -7,7 +7,7 @@ import Button from 'components/form-elements/Button';
 import { STOCK_MOVEMENT_URL } from 'consts/applicationUrls';
 import Translate from 'utils/Translate';
 
-const StockMovementInboundHeader = ({ showMyStockMovements }) => (
+const StockMovementInboundHeader = ({ showMyStockMovements, hasReportingUserPolicy }) => (
   <div className="d-flex list-page-header">
     <span className="d-flex align-self-center title">
       <Translate id="react.stockMovement.inbound.list.label" defaultMessage="Inbound Movement List" />
@@ -19,30 +19,39 @@ const StockMovementInboundHeader = ({ showMyStockMovements }) => (
         label="react.stockMovement.myStockMovement.label"
         onClick={showMyStockMovements}
       />
-      <Link
-        className="primary-button"
-        to={{ pathname: STOCK_MOVEMENT_URL.createCombinedShipments(), search: 'direction=INBOUND' }}
-      >
-        <Translate
-          id="react.stockMovement.createShipmentFromPO.label"
-          defaultMessage="Create Shipment from PO"
-        />
-      </Link>
-      <Link
-        className="primary-button"
-        to={STOCK_MOVEMENT_URL.createInbound()}
-      >
-        <Translate
-          id="react.stockMovement.createStockMovement.label"
-          defaultMessage="Create Stock Movement"
-        />
-      </Link>
+      {!hasReportingUserPolicy && (
+        <Link
+          className="primary-button"
+          to={{ pathname: STOCK_MOVEMENT_URL.createCombinedShipments(), search: 'direction=INBOUND' }}
+        >
+          <Translate
+            id="react.stockMovement.createShipmentFromPO.label"
+            defaultMessage="Create Shipment from PO"
+          />
+        </Link>
+      )}
+      {!hasReportingUserPolicy && (
+        <Link
+          className="primary-button"
+          to={STOCK_MOVEMENT_URL.createInbound()}
+        >
+          <Translate
+            id="react.stockMovement.createStockMovement.label"
+            defaultMessage="Create Stock Movement"
+          />
+        </Link>
+      )}
     </div>
   </div>
 );
 
 StockMovementInboundHeader.propTypes = {
   showMyStockMovements: PropTypes.func.isRequired,
+  hasReportingUserPolicy: PropTypes.bool,
+};
+
+StockMovementInboundHeader.defaultProps = {
+  hasReportingUserPolicy: false,
 };
 
 export default StockMovementInboundHeader;

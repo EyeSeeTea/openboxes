@@ -29,8 +29,25 @@ class MegamenuService {
     private static final List<String> REGIONAL_WAREHOUSE_HIDDEN_SECTIONS = [
             "purchasing",
     ]
+    private static final List<String> REPORTING_USER_HIDDEN_SECTIONS = [
+            "purchasing",
+    ]
 
     private static final String STOREKEEPER_INBOUND_CREATE_HREF = "/stockMovement/createInbound"
+    private static final List<String> REPORTING_USER_HIDDEN_HREF_FRAGMENTS = [
+            "/create",
+            "/edit",
+            "/delete",
+            "/import",
+            "/upload",
+            "/batch",
+            "/replenishment/create",
+            "/stockMovement/importOutboundStockMovement",
+            "/product/mergeProducts",
+            "/product/add",
+            "/inventoryItem/adjustStock",
+            "/inventoryItem/transferStock",
+    ]
     private static final Set<String> RPC_SUPERUSER_MENU_SECTIONS = ["purchasing", "products", "requisitionTemplate"] as Set<String>
     private static final Set<RoleType> RPC_SUPERUSER_MENU_MIN_ROLES = [
             RoleType.ROLE_ASSISTANT,
@@ -193,8 +210,12 @@ class MegamenuService {
         }
         boolean hasRegionalWarehousePolicy = userService.hasRegionalWarehousePolicy(user, location?.id)
         boolean hasRpcSuperuserPolicy = userService.hasRpcSuperuserPolicy(user, location?.id)
+        boolean hasReportingUserPolicy = !hasRegionalWarehousePolicy &&
+                !hasRpcSuperuserPolicy &&
+                userService.hasReportingUserPolicy(user, location?.id)
         boolean hasFacilityStorekeeperPolicy = !hasRegionalWarehousePolicy &&
                 !hasRpcSuperuserPolicy &&
+                !hasReportingUserPolicy &&
                 userService.hasFacilityStorekeeperPolicy(user, location?.id)
 
         if (hasFacilityStorekeeperPolicy) {
@@ -202,6 +223,9 @@ class MegamenuService {
         }
         if (hasRegionalWarehousePolicy && !hasRpcSuperuserPolicy) {
             parsedMenuConfig = applyRegionalWarehouseMenuPolicy(parsedMenuConfig)
+        }
+        if (hasReportingUserPolicy) {
+            parsedMenuConfig = applyReportingUserMenuPolicy(parsedMenuConfig)
         }
         return parsedMenuConfig
     }
@@ -238,6 +262,33 @@ class MegamenuService {
                     subsection.menuItems = (subsection?.menuItems ?: []).findAll { menuItem ->
                         String href = menuItem?.href ?: ""
                         !href.contains(STOREKEEPER_INBOUND_CREATE_HREF)
+                    } ?: []
+                    return subsection
+                }
+                section.subsections = section.subsections.findAll { it?.menuItems }
+            }
+        }
+
+        return filteredMenu
+    }
+
+    private ArrayList applyReportingUserMenuPolicy(ArrayList menuConfig) {
+        ArrayList filteredMenu = (menuConfig ?: []).findAll { section ->
+            !REPORTING_USER_HIDDEN_SECTIONS.contains(section?.id)
+        } as ArrayList
+
+        filteredMenu.each { section ->
+            if (section?.menuItems) {
+                section.menuItems = (section.menuItems ?: []).findAll { menuItem ->
+                    String href = menuItem?.href ?: ""
+                    !REPORTING_USER_HIDDEN_HREF_FRAGMENTS.any { href.contains(it) }
+                } ?: []
+            }
+            if (section?.subsections) {
+                section.subsections = (section.subsections ?: []).findAll { it != null }.collect { subsection ->
+                    subsection.menuItems = (subsection?.menuItems ?: []).findAll { menuItem ->
+                        String href = menuItem?.href ?: ""
+                        !REPORTING_USER_HIDDEN_HREF_FRAGMENTS.any { href.contains(it) }
                     } ?: []
                     return subsection
                 }
