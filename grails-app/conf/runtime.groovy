@@ -397,7 +397,7 @@ openboxes {
             defaultLabel = "Stock Lists"
             menuItems = [
                 [label: "requisitionTemplates.list.label", defaultLabel: "List stock lists", href: "/requisitionTemplate/list"],
-                [label: "requisitionTemplates.create.label", defaultLabel: "Create stock list", href: "/requisitionTemplate/create", minimumRequiredRole: RoleType.ROLE_ADMIN],
+                [label: "requisitionTemplates.create.label", defaultLabel: "Create stock list", href: "/requisitionTemplate/create", supplementalRoles: [RoleType.ROLE_SUPERUSER, RoleType.ROLE_ADMIN, RoleType.ROLE_REGIONAL_WAREHOUSE]],
             ]
         }
         configuration {

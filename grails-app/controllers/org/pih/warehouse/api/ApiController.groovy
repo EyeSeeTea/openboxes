@@ -91,7 +91,11 @@ class ApiController {
         Map menuSectionsUrlParts = grailsApplication.config.openboxes.menuSectionsUrlParts
         User user = User.get(session?.user?.id)
 
-        if (userService.hasHighestRole(user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED)) {
+        boolean hasFacilityStorekeeperPolicy = userService.hasFacilityStorekeeperPolicy(user, session?.warehouse?.id)
+        boolean hasRegionalWarehousePolicy = userService.hasRegionalWarehousePolicy(user, session?.warehouse?.id)
+        if (userService.hasHighestRole(user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED) &&
+                !hasFacilityStorekeeperPolicy &&
+                !hasRegionalWarehousePolicy) {
             menuConfig = grailsApplication.config.openboxes.requestorMegamenu;
         }
         List translatedMenu = megamenuService.buildAndTranslateMenu(menuConfig, user, location)
@@ -163,6 +167,7 @@ class ApiController {
         ArrayList<RoleType> managerRoles = [RoleType.ROLE_SUPERUSER, RoleType.ROLE_ADMIN, RoleType.ROLE_MANAGER]
         boolean isUserManager = userService.getEffectiveRoles(user).any { managerRoles.contains(it.roleType) }
         boolean hasFacilityStorekeeperPolicy = userService.hasFacilityStorekeeperPolicy(session?.user, session.warehouse?.id)
+        boolean hasRegionalWarehousePolicy = userService.hasRegionalWarehousePolicy(session?.user, session.warehouse?.id)
         def supportedActivities = location.supportedActivities ?: location.locationType.supportedActivities
         boolean isImpersonated = session.impersonateUserId ? true : false
         def buildNumber = gitProperties.shortCommitId
@@ -209,6 +214,7 @@ class ApiController {
                 isUserRequestApprover         : isUserRequestApprover,
                 isUserManager                 : isUserManager,
                 hasFacilityStorekeeperPolicy  : hasFacilityStorekeeperPolicy,
+                hasRegionalWarehousePolicy    : hasRegionalWarehousePolicy,
                 supportedActivities           : supportedActivities,
                 isImpersonated                : isImpersonated,
                 grailsVersion                 : grailsVersion,

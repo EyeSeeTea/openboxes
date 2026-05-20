@@ -3,11 +3,11 @@
 		<table>
 			<tbody>
 				<tr>
-					<g:isUserAdmin>
+					<g:canManageStocklists>
 						<td class="middle" width="1%">
 							<g:render template="actions" model="[requisition:requisition]" />
 						</td>
-					</g:isUserAdmin>
+					</g:canManageStocklists>
 					<td class="left">
 						<div class="title" id="description">
                             ${requisition.name}
@@ -69,17 +69,17 @@
 		<img src="${resource(dir:'images/icons/silk',file:'application_view_list.png')}" />&nbsp;
 		<warehouse:message code="default.list.label" args="[warehouse.message(code:'requisitionTemplates.label').toLowerCase()]"/>
 	</g:link>
-	<g:isUserAdmin>
+	<g:canManageStocklists>
 		<g:link class="button" controller="requisitionTemplate" action="create" params="[type:'STOCK']">
 			<img src="${resource(dir:'images/icons/silk',file:'add.png')}" />&nbsp;
 			<warehouse:message code="default.create.label" args="[warehouse.message(code:'requisitionTemplate.label').toLowerCase()]"/>
 		</g:link>
-	</g:isUserAdmin>
+	</g:canManageStocklists>
 
 	<div class="right">
 		<div class="button-container">
 			<div class="button-group">
-				<g:isUserAdmin>
+				<g:canManageStocklists>
 					<g:link controller="requisitionTemplate" action="show" id="${requisition?.id}" class="button">
 						<img src="${resource(dir:'images/icons/silk',file:'zoom.png')}" />&nbsp;
 						${warehouse.message(code: 'default.button.show.label')}
@@ -113,7 +113,7 @@
 							&nbsp;${warehouse.message(code: 'default.button.unpublish.label')}
 						</g:link>
 					</g:else>
-				</g:isUserAdmin>
+				</g:canManageStocklists>
 				<g:link controller="requisitionTemplate" action="sendMail" id="${requisition?.id}" class="button">
 					<img src="${resource(dir:'images/icons/silk',file:'email.png')}" />
 					${warehouse.message(code: 'default.button.email.label')}

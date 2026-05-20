@@ -113,7 +113,11 @@ class DashboardController {
             redirect(controller: "mobile")
             return
         }
-        if (userService.hasHighestRole(session?.user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED)) {
+        boolean hasFacilityStorekeeperPolicy = userService.hasFacilityStorekeeperPolicy(session?.user, session?.warehouse?.id)
+        boolean hasRegionalWarehousePolicy = userService.hasRegionalWarehousePolicy(session?.user, session?.warehouse?.id)
+        if (userService.hasHighestRole(session?.user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED) &&
+                !hasFacilityStorekeeperPolicy &&
+                !hasRegionalWarehousePolicy) {
             redirect(controller: "stockMovement", action: "list", params: [direction: 'INBOUND'] )
             return
         }
@@ -170,7 +174,11 @@ class DashboardController {
         Map menuConfig = grailsApplication.config.openboxes.megamenu;
         User user = User.get(session?.user?.id)
 
-        if (userService.hasHighestRole(user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED)) {
+        boolean hasFacilityStorekeeperPolicy = userService.hasFacilityStorekeeperPolicy(user, session?.warehouse?.id)
+        boolean hasRegionalWarehousePolicy = userService.hasRegionalWarehousePolicy(user, session?.warehouse?.id)
+        if (userService.hasHighestRole(user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED) &&
+                !hasFacilityStorekeeperPolicy &&
+                !hasRegionalWarehousePolicy) {
             menuConfig = grailsApplication.config.openboxes.requestorMegamenu;
         }
         List translatedMenu = megamenuService.buildAndTranslateMenu(menuConfig, user, location)
@@ -227,7 +235,11 @@ class DashboardController {
                 session.user = user
             }
 
-            if (userService.hasHighestRole(session?.user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED)) {
+            boolean hasFacilityStorekeeperPolicy = userService.hasFacilityStorekeeperPolicy(session?.user, session?.warehouse?.id)
+            boolean hasRegionalWarehousePolicy = userService.hasRegionalWarehousePolicy(session?.user, session?.warehouse?.id)
+            if (userService.hasHighestRole(session?.user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED) &&
+                    !hasFacilityStorekeeperPolicy &&
+                    !hasRegionalWarehousePolicy) {
                 redirect(controller: 'stockMovement', action: 'list' , params: [direction: 'INBOUND'])
                 return
             }

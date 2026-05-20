@@ -67,6 +67,12 @@ class AuthTagLib {
         if (userService.isUserAdmin(session?.user))
             out << body()
     }
+    def canManageStocklists = { attrs, body ->
+        boolean hasRegionalWarehousePolicy = userService.hasRegionalWarehousePolicy(session?.user, session?.warehouse?.id)
+        if (userService.isUserAdmin(session?.user) || hasRegionalWarehousePolicy) {
+            out << body()
+        }
+    }
     def isUserManager = { attrs, body ->
         if (userService.isUserManager(session?.user))
             out << body()
@@ -120,12 +126,20 @@ class AuthTagLib {
     }
 
     def hasHighestRoleAuthenticated = { attrs, body ->
-        if (userService.hasHighestRole(session?.user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED))
+        boolean hasFacilityStorekeeperPolicy = userService.hasFacilityStorekeeperPolicy(session?.user, session?.warehouse?.id)
+        boolean hasRegionalWarehousePolicy = userService.hasRegionalWarehousePolicy(session?.user, session?.warehouse?.id)
+        if (userService.hasHighestRole(session?.user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED) &&
+                !hasFacilityStorekeeperPolicy &&
+                !hasRegionalWarehousePolicy)
             out << body()
     }
 
     def hasHigherRoleThanAuthenticated = { attrs, body ->
-        if (!userService.hasHighestRole(session?.user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED))
+        boolean hasFacilityStorekeeperPolicy = userService.hasFacilityStorekeeperPolicy(session?.user, session?.warehouse?.id)
+        boolean hasRegionalWarehousePolicy = userService.hasRegionalWarehousePolicy(session?.user, session?.warehouse?.id)
+        if (!userService.hasHighestRole(session?.user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED) ||
+                hasFacilityStorekeeperPolicy ||
+                hasRegionalWarehousePolicy)
             out << body()
     }
 }

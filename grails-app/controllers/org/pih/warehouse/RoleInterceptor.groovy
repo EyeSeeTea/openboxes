@@ -74,6 +74,38 @@ class RoleInterceptor {
         'stockTransfer': ['create', 'edit', 'createInboundReturn'],
         'stockTransferApi': ['list', 'read', 'create', 'update', 'stockTransferCandidates', 'returnCandidates']
     ]
+    def static regionalWarehouseActions = [
+        'inventory'        : ['createInboundTransfer', 'createConsumed', 'editTransaction', 'deleteTransaction', 'saveTransaction'],
+        'inventoryItem'    : ['showRecordInventory', 'adjustStock', 'transferStock'],
+        'stockTransfer'    : ['create', 'edit', 'createInboundReturn', 'createOutboundReturn'],
+        'stockTransferApi' : ['list', 'read', 'create', 'update', 'stockTransferCandidates', 'returnCandidates'],
+        'stockMovement'    : ['createOutbound', 'importOutboundStockMovement', 'verifyRequest'],
+        'stockMovementApi' : ['list', 'create'],
+        'stocklistApi'     : ['list', 'read', 'create', 'update', 'delete', 'sendMail', 'clear', 'clone', 'publish', 'unpublish', 'export'],
+        'stocklistItemApi' : ['list', 'read', 'create', 'update', 'remove', 'availableStocklists'],
+        'requisitionTemplate': [
+                'create',
+                'save',
+                'edit',
+                'editHeader',
+                'update',
+                'delete',
+                'clear',
+                'clone',
+                'publish',
+                'unpublish',
+                'export',
+                'batch',
+                'importData',
+                'doImport',
+                'sendMail',
+                'addToRequisitionItems',
+                'removeFromRequisitionItems',
+                'changeSortOrderAlpha',
+                'changeSortOrderChrono',
+        ],
+        'json'               : ['addToRequisitionItems', 'updateRequisitionItems', 'removeRequisitionItem', 'sortRequisitionItems']
+    ]
 
     def static invoiceActions = [
         'invoice': ['*']
@@ -114,15 +146,23 @@ class RoleInterceptor {
     boolean before() {
         // Apply custom location-scoped role policy only after a warehouse context exists.
         Boolean hasWarehouseContext = session?.warehouse?.id
+        Boolean hasRegionalWarehousePolicy = hasWarehouseContext &&
+                userService.hasRegionalWarehousePolicy(session.user, session?.warehouse?.id)
         Boolean hasFacilityStorekeeperPolicy = hasWarehouseContext &&
+                !hasRegionalWarehousePolicy &&
                 userService.hasFacilityStorekeeperPolicy(session.user, session?.warehouse?.id)
         Boolean isStorekeeperAllowedAction = hasFacilityStorekeeperPolicy && needFacilityStorekeeper(controllerName, actionName, params, request)
         Boolean isStorekeeperRestrictedAction = hasFacilityStorekeeperPolicy && needStorekeeperDeniedAction(controllerName, actionName, params, request)
+        Boolean isRegionalWarehouseAllowedAction = hasRegionalWarehousePolicy && needRegionalWarehouse(controllerName, actionName, params, request)
+        Boolean isRegionalWarehouseRestrictedAction = hasRegionalWarehousePolicy && needRegionalWarehouseDeniedAction(controllerName, actionName, params, request)
 
-        if (isStorekeeperRestrictedAction) {
+        if (isStorekeeperRestrictedAction || isRegionalWarehouseRestrictedAction) {
             log.info("User ${session?.user?.username} does not have access to ${controllerName}/${actionName} in location ${session?.warehouse?.name}")
             redirect(controller: "errors", action: "handleForbidden")
             return false
+        }
+        if (isStorekeeperAllowedAction || isRegionalWarehouseAllowedAction) {
+            return true
         }
 
         def rules = grailsApplication.config.openboxes.security.rbac.rules
@@ -147,7 +187,7 @@ class RoleInterceptor {
 
             Boolean isUserInRole = true
             if (session.user && supplementalRoles.size() > 0) {
-                isUserInRole = userService.isUserInRole(session.user, supplementalRoles)
+                isUserInRole = userService.hasAnyRoles(session.user, supplementalRoles)
             }
 
             if (isAnonymous || (session.user && isMinimumRequiredRole && isUserInRole)) {
@@ -168,10 +208,9 @@ class RoleInterceptor {
         def isNotAuthenticated = !userService.isUserInRole(session.user, RoleType.ROLE_AUTHENTICATED)
         def isNotBrowser = !userService.canUserBrowse(session.user) && !needRequestorOrManager(controllerName, actionName)
         def isNotManager = needManager(controllerName, actionName) &&
-            !isStorekeeperAllowedAction &&
             (needRequestorOrManager(controllerName, actionName) ? !userService.isUserManager(session.user) && !userService.isUserRequestor(session.user) : !userService.isUserManager(session.user))
         def isNotAdmin = needAdmin(controllerName, actionName) && !userService.isUserAdmin(session.user)
-        def isNotSuperuser = needSuperuser(controllerName, actionName) && !isStorekeeperAllowedAction && !userService.isSuperuser(session.user)
+        def isNotSuperuser = needSuperuser(controllerName, actionName) && !userService.isSuperuser(session.user)
         def hasNoRoleInvoice = needInvoice(controllerName, actionName) && !userService.hasRoleInvoice(session.user)
         def isNotRequestor = needRequestorOrManager(controllerName, actionName) && !userService.isUserRequestor(session.user)
         def isNotRequestorOrManager = needRequestorOrManager(controllerName, actionName) ? !userService.isUserManager(session.user) && !userService.isUserRequestor(session.user) : false
@@ -305,6 +344,63 @@ class RoleInterceptor {
         // Legacy inbound shipment creation should remain blocked for storekeeper
         if (controllerName == 'createShipmentWorkflow' && actionName == 'createShipment') {
             return !params.id && params.type?.toUpperCase() == "INCOMING"
+        }
+
+        return false
+    }
+
+    static Boolean needRegionalWarehouse(controllerName, actionName, params = null, request = null) {
+        if (needRegionalWarehouseDeniedAction(controllerName, actionName, params, request)) {
+            return false
+        }
+        return regionalWarehouseActions[controllerName]?.contains("*") ||
+                regionalWarehouseActions[controllerName]?.contains(actionName)
+    }
+
+    static Boolean needRegionalWarehouseDeniedAction(controllerName, actionName, params, request = null) {
+        // Purchasing: no access (including suppliers)
+        if (controllerName in ['purchaseOrder', 'purchaseOrderApi', 'supplier']) {
+            return true
+        }
+        if (controllerName == 'dashboard' && actionName == 'supplier') {
+            return true
+        }
+
+        // Inbound: no access to "Create Inbound Movement" only
+        if (controllerName == 'stockMovement' && actionName == 'createInbound') {
+            return !params.id
+        }
+        if (controllerName == 'stockMovementApi' && actionName == 'create') {
+            String direction = params.direction ?: request?.JSON?.direction
+            return direction?.toUpperCase() == "INBOUND"
+        }
+        if (controllerName == 'createShipmentWorkflow' && actionName == 'createShipment') {
+            return !params.id && params.type?.toUpperCase() == "INCOMING"
+        }
+
+        // Products: read-only
+        if (controllerName == 'product' && actionName in [
+                'batchEdit',
+                'batchEditProperties',
+                'create',
+                'save',
+                'edit',
+                'update',
+                'delete',
+                'deleteProducts',
+                'importAsCsv',
+                'savePackage',
+                'deleteDocument',
+                'deleteProductComponent',
+                'deleteProductGroup',
+                'editProductSynonym',
+                'editProductSynonymDialog',
+                'deleteSynonym',
+        ]) {
+            return true
+        }
+        if (controllerName == 'productApi' && actionName in ['create', 'update', 'delete']) {
+            return true
         }
 
         return false

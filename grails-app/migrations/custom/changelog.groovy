@@ -13,4 +13,5 @@
  */
 databaseChangeLog = {
     include file: '2026-05-15-add-facility-storekeeper-role.groovy'
+    include file: '2026-05-19-add-regional-warehouse-role.groovy'
 }

@@ -62,6 +62,7 @@ class LocationApiController extends BaseDomainApiController {
         def requestorInAnyLocation = userService.hasRoleRequestorInAnyLocations(currentUser)
         def inRoleBrowser = currentUser.hasDefaultRole(RoleType.ROLE_BROWSER)
         def inRoleFacilityStorekeeper = currentUser.hasDefaultRole(RoleType.ROLE_FACILITY_STOREKEEPER)
+        def inRoleRegionalWarehouse = currentUser.hasDefaultRole(RoleType.ROLE_REGIONAL_WAREHOUSE)
         def inRoleAssistant = currentUser.hasDefaultRole(RoleType.ROLE_ASSISTANT)
         def inRoleManager = currentUser.hasDefaultRole(RoleType.ROLE_MANAGER)
         def inRoleAdmin = currentUser.hasDefaultRole(RoleType.ROLE_ADMIN)
@@ -82,7 +83,7 @@ class LocationApiController extends BaseDomainApiController {
                 locations += locationService.getRequestorLocations(currentUser)
             }
             // If a user doesn't have at least one of the requiredRoles by default, get locations where the user HAS any of those roles
-            if (params.locationChooser && !inRoleBrowser && !inRoleFacilityStorekeeper && !inRoleAssistant && !inRoleManager && !inRoleAdmin && !inRoleSuperuser) {
+            if (params.locationChooser && !inRoleBrowser && !inRoleFacilityStorekeeper && !inRoleRegionalWarehouse && !inRoleAssistant && !inRoleManager && !inRoleAdmin && !inRoleSuperuser) {
                 currentUser.locationRoles.each { LocationRole locationRole ->
                     if (requiredRoles.contains(locationRole.role.roleType)) {
                         locations += locationRole.location

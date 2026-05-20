@@ -6,14 +6,14 @@ import { connect } from 'react-redux';
 import { REQUISITION_TEMPLATE_URL } from 'consts/applicationUrls';
 import Translate from 'utils/Translate';
 
-const StockListHeader = ({ isUserAdmin }) => (
+const StockListHeader = ({ isUserAdmin, hasRegionalWarehousePolicy }) => (
   <div className="d-flex list-page-header">
     <span className="d-flex align-self-center title">
       <Translate id="react.stocklists.header.label" defaultMessage="Stock List" />
     </span>
     <div className="d-flex justify-content-end buttons align-items-center">
       {
-        isUserAdmin && (
+        (isUserAdmin || hasRegionalWarehousePolicy) && (
           <a className="primary-button" href={`${REQUISITION_TEMPLATE_URL.create()}?type=STOCK`}>
             <Translate id="react.stocklists.addStockList.label" defaultMessage="Add stocklist" />
           </a>
@@ -25,10 +25,12 @@ const StockListHeader = ({ isUserAdmin }) => (
 
 const mapStateToProps = (state) => ({
   isUserAdmin: state.session.isUserAdmin,
+  hasRegionalWarehousePolicy: state.session.hasRegionalWarehousePolicy,
 });
 
 export default connect(mapStateToProps)(StockListHeader);
 
 StockListHeader.propTypes = {
   isUserAdmin: PropTypes.bool.isRequired,
+  hasRegionalWarehousePolicy: PropTypes.bool.isRequired,
 };
