@@ -7,12 +7,12 @@ import Button from 'components/form-elements/Button';
 import { PRODUCT_URL } from 'consts/applicationUrls';
 import Translate from 'utils/Translate';
 
-const ProductsListHeader = ({ isUserAdmin }) => (
+const ProductsListHeader = ({ isUserAdmin, hasRpcSuperuserPolicy }) => (
   <div className="d-flex list-page-header">
     <span className="d-flex align-self-center title">
       <Translate id="react.productsList.header.label" defaultMessage="Product List" />
     </span>
-    {isUserAdmin
+    {(isUserAdmin || hasRpcSuperuserPolicy)
       && (
       <div className="d-flex justify-content-end buttons align-items-center">
         <a href={PRODUCT_URL.importCSV()}>
@@ -35,10 +35,12 @@ const ProductsListHeader = ({ isUserAdmin }) => (
 
 const mapStateToProps = (state) => ({
   isUserAdmin: state.session.isUserAdmin,
+  hasRpcSuperuserPolicy: state.session.hasRpcSuperuserPolicy,
 });
 
 export default connect(mapStateToProps)(ProductsListHeader);
 
 ProductsListHeader.propTypes = {
   isUserAdmin: PropTypes.bool.isRequired,
+  hasRpcSuperuserPolicy: PropTypes.bool.isRequired,
 };

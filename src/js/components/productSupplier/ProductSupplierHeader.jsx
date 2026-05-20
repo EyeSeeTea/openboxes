@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { useSelector } from 'react-redux';
+
 import Button from 'components/form-elements/Button';
 import ListTitle from 'components/listPagesUtils/ListTitle';
 import { PRODUCT_SUPPLIER_URL } from 'consts/applicationUrls';
@@ -9,10 +11,12 @@ import HeaderButtonsWrapper from 'wrappers/HeaderButtonsWrapper';
 import HeaderWrapper from 'wrappers/HeaderWrapper';
 
 const ProductSupplierHeader = () => {
-  const canManageProducts = useUserHasPermissions({
+  const hasRpcSuperuserPolicy = useSelector((state) => state.session.hasRpcSuperuserPolicy);
+  const hasProductManagerPermissions = useUserHasPermissions({
     minRequiredRole: RoleType.ROLE_ADMIN,
     supplementalRoles: [RoleType.ROLE_PRODUCT_MANAGER],
   });
+  const canManageProducts = hasProductManagerPermissions || hasRpcSuperuserPolicy;
 
   return (
     <HeaderWrapper>

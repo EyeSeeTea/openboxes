@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 
 import PropTypes from 'prop-types';
 import { RiDownload2Line } from 'react-icons/ri';
+import { useSelector } from 'react-redux';
 
 import DataTable, { TableCell } from 'components/DataTable';
 import DateCell from 'components/DataTable/DateCell';
@@ -31,10 +32,12 @@ const ProductSupplierListTable = ({ filterParams }) => {
     exportProductSuppliers,
   } = useProductSupplierActions({ fireFetchData, filterParams });
 
-  const canManageProducts = useUserHasPermissions({
+  const hasRpcSuperuserPolicy = useSelector((state) => state.session.hasRpcSuperuserPolicy);
+  const hasProductManagerPermissions = useUserHasPermissions({
     minRequiredRole: RoleType.ROLE_ADMIN,
     supplementalRoles: [RoleType.ROLE_PRODUCT_MANAGER],
   });
+  const canManageProducts = hasProductManagerPermissions || hasRpcSuperuserPolicy;
 
   const columns = useMemo(() => [
     {

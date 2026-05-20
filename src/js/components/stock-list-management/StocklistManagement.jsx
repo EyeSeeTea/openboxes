@@ -222,6 +222,9 @@ class StocklistManagement extends Component {
 
   render() {
     const { data } = this.state;
+    const canWriteStocklists = this.props.isUserAdmin
+      || this.props.hasRegionalWarehousePolicy
+      || this.props.hasRpcSuperuserPolicy;
     return (
       <div className="main-container">
         { this.state.productInfo
@@ -529,13 +532,13 @@ class StocklistManagement extends Component {
 
                 return (
                   <div className="d-flex flex-wrap">
-                    {this.props.isUserAdmin
+                    {canWriteStocklists
                       ? (
                         <div>
                           <button
                             type="button"
                             className="btn btn-outline-primary btn-xs mr-1"
-                            disabled={original.edit || original.new || !this.props.isUserAdmin}
+                            disabled={original.edit || original.new || !canWriteStocklists}
                             onClick={() => this.editItem(index)}
                           >
                             <Translate id="react.default.button.edit.label" defaultMessage="Edit" />
@@ -544,7 +547,7 @@ class StocklistManagement extends Component {
                             type="button"
                             className="btn btn-outline-primary btn-xs mr-1"
                             disabled={(!original.edit && !original.new) || !original.stocklistId
-                          || _.isNil(original.maxQuantity) || original.maxQuantity === '' || !this.props.isUserAdmin}
+                          || _.isNil(original.maxQuantity) || original.maxQuantity === '' || !canWriteStocklists}
                             onClick={() => this.saveItem(index, original)}
                           >
                             <Translate id="react.default.button.save.label" defaultMessage="Save" />
@@ -552,7 +555,7 @@ class StocklistManagement extends Component {
                           <button
                             type="button"
                             className="btn btn-outline-danger btn-xs mr-1"
-                            disabled={!this.props.isUserAdmin}
+                            disabled={!canWriteStocklists}
                             onClick={() => this.deleteItem(index)}
                           >
                             <Translate id="react.default.button.delete.label" defaultMessage="Delete" />
@@ -596,7 +599,7 @@ class StocklistManagement extends Component {
             },
           ]}
         />
-        {this.props.isUserAdmin
+        {canWriteStocklists
           ? (
             <div className="d-flex flex-row my-1">
               <Select
@@ -632,6 +635,8 @@ const mapStateToProps = (state) => ({
   locale: state.session.activeLanguage,
   stockListManagementTranslationsFetched: state.session.fetchedTranslations.stockListManagement,
   isUserAdmin: state.session.isUserAdmin,
+  hasRegionalWarehousePolicy: state.session.hasRegionalWarehousePolicy,
+  hasRpcSuperuserPolicy: state.session.hasRpcSuperuserPolicy,
 });
 
 export default connect(mapStateToProps, {
@@ -652,4 +657,6 @@ StocklistManagement.propTypes = {
   stockListManagementTranslationsFetched: PropTypes.bool.isRequired,
   fetchTranslations: PropTypes.func.isRequired,
   isUserAdmin: PropTypes.bool.isRequired,
+  hasRegionalWarehousePolicy: PropTypes.bool.isRequired,
+  hasRpcSuperuserPolicy: PropTypes.bool.isRequired,
 };
