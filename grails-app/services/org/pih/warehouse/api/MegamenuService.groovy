@@ -12,6 +12,7 @@ package org.pih.warehouse.api
 import grails.core.GrailsApplication
 import org.pih.warehouse.core.ActivityCode
 import org.pih.warehouse.core.Location
+import org.pih.warehouse.core.RoleType
 import org.pih.warehouse.core.User
 
 class MegamenuService {
@@ -25,11 +26,26 @@ class MegamenuService {
             "outbound",
             "requisitionTemplate",
     ]
+    private static final List<String> REGIONAL_WAREHOUSE_HIDDEN_SECTIONS = [
+            "purchasing",
+    ]
 
     private static final String STOREKEEPER_INBOUND_CREATE_HREF = "/stockMovement/createInbound"
 
     private getMessageTagLib() {
         return grailsApplication.mainContext.getBean('org.pih.warehouse.MessageTagLib')
+    }
+
+    private boolean userHasMinimumMenuRole(User user, Location location, Collection roleTypes) {
+        Set<String> acceptedRoleTypeNames = (RoleType.expand(roleTypes)*.name()) as Set<String>
+        Set<String> effectiveRoleNames = (userService.getEffectiveRoles(user, location)*.roleType*.name()).findAll { it } as Set<String>
+        return effectiveRoleNames.any { acceptedRoleTypeNames.contains(it) }
+    }
+
+    private boolean userHasSupplementalMenuRole(User user, Location location, Collection roleTypes) {
+        Set<String> acceptedRoleTypeNames = (roleTypes*.name()) as Set<String>
+        Set<String> effectiveRoleNames = (userService.getEffectiveRoles(user, location)*.roleType*.name()).findAll { it } as Set<String>
+        return effectiveRoleNames.any { acceptedRoleTypeNames.contains(it) }
     }
 
     Map buildAndTranslateSections(section, String key, User user, Location location) {
@@ -67,11 +83,11 @@ class MegamenuService {
             if (it.enabled == false) {
                 return
             }
-            if (minRole && !userService.isUserInRole(user, minRole)) {
+            if (minRole && !userHasMinimumMenuRole(user, location, [minRole])) {
                 return
             }
             def roles = it.supplementalRoles
-            if (roles && !userService.hasAnyRoles(user, roles)) {
+            if (roles && !userHasSupplementalMenuRole(user, location, roles)) {
                 return
             }
             ActivityCode[] activitiesAny = it.requiredActivitiesAny ?: []
@@ -99,11 +115,11 @@ class MegamenuService {
                 return
             }
             def minRole = it.minimumRequiredRole
-            if (minRole && !userService.isUserInRole(user, minRole)) {
+            if (minRole && !userHasMinimumMenuRole(user, location, [minRole])) {
                 return
             }
             def roles = it.supplementalRoles
-            if (roles && !userService.hasAnyRoles(user, roles)) {
+            if (roles && !userHasSupplementalMenuRole(user, location, roles)) {
                 return
             }
             ActivityCode[] activitiesAny = it.requiredActivitiesAny ?: []
@@ -135,11 +151,11 @@ class MegamenuService {
         def parsedMenuConfig = []
         menuConfig.each { key, value ->
             def minRole = value.minimumRequiredRole
-            if (minRole && !userService.isUserInRole(user, minRole)) {
+            if (minRole && !userHasMinimumMenuRole(user, location, [minRole])) {
                 return
             }
             def roles = value.supplementalRoles
-            if (roles && !userService.hasAnyRoles(user, roles)) {
+            if (roles && !userHasSupplementalMenuRole(user, location, roles)) {
                 return
             }
             ActivityCode[] activitiesAny = value.requiredActivitiesAny ?: []
@@ -158,8 +174,15 @@ class MegamenuService {
                 }
             }
         }
-        if (userService.hasFacilityStorekeeperPolicy(user, location?.id)) {
+        boolean hasRegionalWarehousePolicy = userService.hasRegionalWarehousePolicy(user, location?.id)
+        boolean hasFacilityStorekeeperPolicy = !hasRegionalWarehousePolicy &&
+                userService.hasFacilityStorekeeperPolicy(user, location?.id)
+
+        if (hasFacilityStorekeeperPolicy) {
             parsedMenuConfig = applyFacilityStorekeeperMenuPolicy(parsedMenuConfig)
+        }
+        if (hasRegionalWarehousePolicy) {
+            parsedMenuConfig = applyRegionalWarehouseMenuPolicy(parsedMenuConfig)
         }
         return parsedMenuConfig
     }
@@ -167,6 +190,27 @@ class MegamenuService {
     private ArrayList applyFacilityStorekeeperMenuPolicy(ArrayList menuConfig) {
         ArrayList filteredMenu = (menuConfig ?: []).findAll { section ->
             !STOREKEEPER_HIDDEN_SECTIONS.contains(section?.id)
+        } as ArrayList
+
+        filteredMenu.each { section ->
+            if (section?.id == "inbound" && section?.subsections) {
+                section.subsections = section.subsections.findAll { it != null }.collect { subsection ->
+                    subsection.menuItems = (subsection?.menuItems ?: []).findAll { menuItem ->
+                        String href = menuItem?.href ?: ""
+                        !href.contains(STOREKEEPER_INBOUND_CREATE_HREF)
+                    } ?: []
+                    return subsection
+                }
+                section.subsections = section.subsections.findAll { it?.menuItems }
+            }
+        }
+
+        return filteredMenu
+    }
+
+    private ArrayList applyRegionalWarehouseMenuPolicy(ArrayList menuConfig) {
+        ArrayList filteredMenu = (menuConfig ?: []).findAll { section ->
+            !REGIONAL_WAREHOUSE_HIDDEN_SECTIONS.contains(section?.id)
         } as ArrayList
 
         filteredMenu.each { section ->

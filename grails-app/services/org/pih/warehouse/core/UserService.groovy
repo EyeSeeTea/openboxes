@@ -206,7 +206,8 @@ class UserService {
                     RoleType.ROLE_MANAGER.name(),
                     RoleType.ROLE_BROWSER.name(),
                     RoleType.ROLE_ASSISTANT.name(),
-                    RoleType.ROLE_FACILITY_STOREKEEPER.name()
+                    RoleType.ROLE_FACILITY_STOREKEEPER.name(),
+                    RoleType.ROLE_REGIONAL_WAREHOUSE.name()
             ] as Set<String>
             return getEffectiveRoles(user).any { Role role -> roleNames.contains(role.roleType?.name()) }
         }
@@ -276,6 +277,14 @@ class UserService {
         return false
     }
 
+    Boolean hasRoleRegionalWarehouse(User u) {
+        if (u) {
+            def user = User.get(u.id)
+            return getEffectiveRoles(user).any { Role role -> role.roleType?.name() == RoleType.ROLE_REGIONAL_WAREHOUSE.name() }
+        }
+        return false
+    }
+
     Boolean hasFacilityStorekeeperPolicy(User u, String locationId) {
         if (u) {
             def user = User.get(u.id)
@@ -288,6 +297,23 @@ class UserService {
                     RoleType.ROLE_ASSISTANT.name()
             ]
             return effectiveRoleNames.contains(RoleType.ROLE_FACILITY_STOREKEEPER.name()) &&
+                    !effectiveRoleNames.any { higherCoreRoleNames.contains(it) }
+        }
+        return false
+    }
+
+    Boolean hasRegionalWarehousePolicy(User u, String locationId) {
+        if (u) {
+            def user = User.get(u.id)
+            Location location = Location.get(locationId)
+            Set<String> effectiveRoleNames = (getEffectiveRoles(user, location)*.roleType*.name()).findAll { it } as Set<String>
+            Set<String> higherCoreRoleNames = [
+                    RoleType.ROLE_SUPERUSER.name(),
+                    RoleType.ROLE_ADMIN.name(),
+                    RoleType.ROLE_MANAGER.name(),
+                    RoleType.ROLE_ASSISTANT.name()
+            ]
+            return effectiveRoleNames.contains(RoleType.ROLE_REGIONAL_WAREHOUSE.name()) &&
                     !effectiveRoleNames.any { higherCoreRoleNames.contains(it) }
         }
         return false

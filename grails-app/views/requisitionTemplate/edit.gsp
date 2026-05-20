@@ -80,11 +80,11 @@
                                             <warehouse:message code="requisitionTemplate.unitCost.label"/>
                                         </th>
                                     </g:hasRoleFinance>
-                                    <g:isUserAdmin>
+                                    <g:canManageStocklists>
                                         <th id="actions">
                                             <warehouse:message code="default.actions.label"/>
                                         </th>
-                                    </g:isUserAdmin>
+                                    </g:canManageStocklists>
                                 </tr>
                             </g:if>
                             <g:else>
@@ -115,11 +115,11 @@
                                             <warehouse:message code="requisitionTemplate.totalCost.label"/>
                                         </th>
                                     </g:hasRoleFinance>
-                                    <g:isUserAdmin>
+                                    <g:canManageStocklists>
                                         <th id="actions">
                                             <warehouse:message code="default.actions.label"/>
                                         </th>
-                                    </g:isUserAdmin>
+                                    </g:canManageStocklists>
                                 </tr>
                             </g:else>
                         </thead>
@@ -127,7 +127,7 @@
 
                         </tbody>
                         <tfoot>
-                            <g:isUserAdmin>
+                            <g:canManageStocklists>
                                 <tr class="prop" id="new-row">
                                     <g:if test="${requisition.replenishmentTypeCode == ReplenishmentTypeCode.PULL}">
                                         <td></td>
@@ -180,7 +180,7 @@
                                         </button>
                                     </td>
                                 </tr>
-                            </g:isUserAdmin>
+                            </g:canManageStocklists>
                             <tr>
                                 <td colspan="${requisition.replenishmentTypeCode == ReplenishmentTypeCode.PUSH || !requisition.replenishmentTypeCode ? 9 : 6}">
                                     <div class="buttons">

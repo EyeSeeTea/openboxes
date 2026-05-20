@@ -1,11 +1,11 @@
 <table>
 	<thead>
 		<tr>
-            <g:isUserAdmin>
+            <g:canManageStocklists>
                 <th>
                     <warehouse:message code="default.actions.label"/>
                 </th>
-            </g:isUserAdmin>
+            </g:canManageStocklists>
             <th>
                 <warehouse:message code="requisition.isPublished.label"/>
             </th>
@@ -52,11 +52,11 @@
 		</g:unless>
 		<g:each in="${requisitions}" status="i" var="requisition">
 			<tr class="${(i % 2) == 0 ? 'odd' : 'even'}">
-                <g:isUserAdmin>
+                <g:canManageStocklists>
                     <td>
                         <g:render template="/requisitionTemplate/actions" model="[requisition:requisition]"/>
                     </td>
-                </g:isUserAdmin>
+                </g:canManageStocklists>
                 <td>
                     <g:if test="${requisition.isPublished}">
                         <div class="tag tag-alert">

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog/1.9"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog/1.9 http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-1.9.xsd">
+
+    <changeSet author="codex" id="202605191200-0">
+        <preConditions onFail="MARK_RAN">
+            <sqlCheck expectedResult="0">select count(*) from role where role_type = 'ROLE_REGIONAL_WAREHOUSE'</sqlCheck>
+        </preConditions>
+        <insert tableName="role">
+            <column name="id" value="ROLE_REGIONAL_WAREHOUSE"/>
+            <column name="version" valueNumeric="0"/>
+            <column name="description" value="Role for regional warehouse users with inventory/inbound/outbound operations, no purchasing access, and no inbound movement creation"/>
+            <column name="role_type" value="ROLE_REGIONAL_WAREHOUSE"/>
+            <column name="name" value="Regional Warehouse User"/>
+        </insert>
+    </changeSet>
+</databaseChangeLog>

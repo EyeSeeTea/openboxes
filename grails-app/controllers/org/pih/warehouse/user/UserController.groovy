@@ -211,7 +211,8 @@ class UserController {
         }
     }
 
-
+    // Unrelated to role customizations: pre-existing fix for activation toggle flush without transaction.
+    @Transactional
     def toggleActivation() {
         def userInstance = User.get(params.id)
         if (!userInstance) {
