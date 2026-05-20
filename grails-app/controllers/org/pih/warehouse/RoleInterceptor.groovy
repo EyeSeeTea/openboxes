@@ -147,6 +147,22 @@ class RoleInterceptor {
         'productsConfiguration': ['*'],
         'productsConfigurationApi': ['*'],
     ]
+    def static reportingUserActions = [
+        'api'                 : ['getAppContext', 'getRequestTypes', 'getMenuConfig'],
+        'dashboard'           : ['megamenu'],
+        'grails'              : ['errors'],
+        'localizationApi'     : ['list'],
+        'locationApi'         : ['list'],
+        'productApi'          : ['list', 'productDemand', 'productAvailabilityAndDemand'],
+        'requisitionTemplate' : ['list', 'show'],
+        'stocklistApi'        : ['list', 'read'],
+        'stocklistItemApi'    : ['list', 'read', 'availableStocklists'],
+        'stockMovement'       : ['list'],
+        'stockMovementApi'    : ['read', 'list'],
+        'stockMovementItemApi': ['getStockMovementItems'],
+        'stockTransferApi'    : ['list', 'read', 'stockTransferCandidates', 'returnCandidates'],
+        'stockTransfer'       : ['list'],
+    ]
 
     def static invoiceActions = [
         'invoice': ['*']
@@ -192,9 +208,14 @@ class RoleInterceptor {
         Boolean hasRegionalWarehousePolicy = hasWarehouseContext &&
                 !hasRpcSuperuserPolicy &&
                 userService.hasRegionalWarehousePolicy(session.user, session?.warehouse?.id)
+        Boolean hasReportingUserPolicy = hasWarehouseContext &&
+                !hasRpcSuperuserPolicy &&
+                !hasRegionalWarehousePolicy &&
+                userService.hasReportingUserPolicy(session.user, session?.warehouse?.id)
         Boolean hasFacilityStorekeeperPolicy = hasWarehouseContext &&
                 !hasRpcSuperuserPolicy &&
                 !hasRegionalWarehousePolicy &&
+                !hasReportingUserPolicy &&
                 userService.hasFacilityStorekeeperPolicy(session.user, session?.warehouse?.id)
         Boolean isRpcSuperuserAllowedAction = hasRpcSuperuserPolicy && needRpcSuperuser(controllerName, actionName, params, request)
         Boolean isRpcSuperuserRestrictedAction = hasRpcSuperuserPolicy && needRpcSuperuserDeniedAction(controllerName, actionName, params, request)
@@ -202,13 +223,15 @@ class RoleInterceptor {
         Boolean isStorekeeperRestrictedAction = hasFacilityStorekeeperPolicy && needStorekeeperDeniedAction(controllerName, actionName, params, request)
         Boolean isRegionalWarehouseAllowedAction = hasRegionalWarehousePolicy && needRegionalWarehouse(controllerName, actionName, params, request)
         Boolean isRegionalWarehouseRestrictedAction = hasRegionalWarehousePolicy && needRegionalWarehouseDeniedAction(controllerName, actionName, params, request)
+        Boolean isReportingUserAllowedAction = hasReportingUserPolicy && needReportingUser(controllerName, actionName, params, request)
+        Boolean isReportingUserRestrictedAction = hasReportingUserPolicy && needReportingUserDeniedAction(controllerName, actionName, params, request)
 
-        if (isRpcSuperuserRestrictedAction || isStorekeeperRestrictedAction || isRegionalWarehouseRestrictedAction) {
+        if (isRpcSuperuserRestrictedAction || isStorekeeperRestrictedAction || isRegionalWarehouseRestrictedAction || isReportingUserRestrictedAction) {
             log.info("User ${session?.user?.username} does not have access to ${controllerName}/${actionName} in location ${session?.warehouse?.name}")
             redirect(controller: "errors", action: "handleForbidden")
             return false
         }
-        if (isRpcSuperuserAllowedAction || isStorekeeperAllowedAction || isRegionalWarehouseAllowedAction) {
+        if (isRpcSuperuserAllowedAction || isStorekeeperAllowedAction || isRegionalWarehouseAllowedAction || isReportingUserAllowedAction) {
             return true
         }
 
@@ -375,7 +398,7 @@ class RoleInterceptor {
         ]) {
             return true
         }
-        if (controllerName == 'productApi' && actionName in ['create', 'update', 'delete']) {
+        if (controllerName == 'productApi' && actionName in ['create', 'update', 'delete', 'importCsv']) {
             return true
         }
 
@@ -465,6 +488,98 @@ class RoleInterceptor {
         if (controllerName == 'dashboard' && actionName in ['hideTag', 'hideCatalog', 'flushCache']) {
             return true
         }
+        return false
+    }
+
+    static Boolean needReportingUser(controllerName, actionName, params = null, request = null) {
+        if (needReportingUserDeniedAction(controllerName, actionName, params, request)) {
+            return false
+        }
+        return reportingUserActions[controllerName]?.contains("*") ||
+                reportingUserActions[controllerName]?.contains(actionName)
+    }
+
+    static Boolean needReportingUserDeniedAction(controllerName, actionName, params, request = null) {
+        if (controllerName in ['purchaseOrder', 'purchaseOrderApi', 'supplier']) {
+            return true
+        }
+        if (controllerName == 'dashboard' && actionName == 'supplier') {
+            return true
+        }
+
+        if (controllerName in ['inventory', 'inventoryItem', 'stockTransfer', 'stockTransferApi', 'stockMovement', 'stockMovementApi', 'stockMovementItemApi', 'stocklist', 'stocklistApi', 'stocklistItemApi', 'stocklistManagement', 'requisitionTemplate', 'json']) {
+            if (needManager(controllerName, actionName)) {
+                return true
+            }
+        }
+
+        if (controllerName == 'stockMovement' && actionName in ['createInbound', 'createOutbound', 'importOutboundStockMovement', 'verifyRequest', 'createRequest']) {
+            return true
+        }
+        if (controllerName == 'stockMovementApi' && actionName in ['create', 'update', 'updateStatus', 'delete']) {
+            return true
+        }
+
+        if (controllerName == 'stocklistApi' && actionName in ['create', 'update', 'delete', 'sendMail', 'clear', 'clone', 'publish', 'unpublish', 'export']) {
+            return true
+        }
+        if (controllerName == 'stocklistItemApi' && actionName in ['create', 'update', 'remove']) {
+            return true
+        }
+        if (controllerName == 'requisitionTemplate' && actionName in [
+                'create',
+                'save',
+                'edit',
+                'editHeader',
+                'update',
+                'delete',
+                'clear',
+                'clone',
+                'publish',
+                'unpublish',
+                'export',
+                'batch',
+                'importData',
+                'doImport',
+                'sendMail',
+                'addToRequisitionItems',
+                'removeFromRequisitionItems',
+                'changeSortOrderAlpha',
+                'changeSortOrderChrono',
+        ]) {
+            return true
+        }
+        if (controllerName == 'stocklistManagement') {
+            return true
+        }
+        if (controllerName == 'json' && actionName in ['addToRequisitionItems', 'updateRequisitionItems', 'removeRequisitionItem', 'sortRequisitionItems']) {
+            return true
+        }
+
+        if (controllerName == 'product' && actionName in [
+                'batchEdit',
+                'batchEditProperties',
+                'create',
+                'save',
+                'edit',
+                'update',
+                'delete',
+                'deleteProducts',
+                'importAsCsv',
+                'savePackage',
+                'deleteDocument',
+                'deleteProductComponent',
+                'deleteProductGroup',
+                'editProductSynonym',
+                'editProductSynonymDialog',
+                'deleteSynonym',
+        ]) {
+            return true
+        }
+        if (controllerName == 'productApi' && actionName in ['create', 'update', 'delete', 'importCsv']) {
+            return true
+        }
+
         return false
     }
 }

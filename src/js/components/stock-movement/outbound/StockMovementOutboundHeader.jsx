@@ -7,7 +7,11 @@ import Button from 'components/form-elements/Button';
 import { STOCK_MOVEMENT_URL } from 'consts/applicationUrls';
 import Translate from 'utils/Translate';
 
-const StockMovementOutboundHeader = ({ showMyStockMovements, isRequestsOpen }) => (
+const StockMovementOutboundHeader = ({
+  showMyStockMovements,
+  isRequestsOpen,
+  hasReportingUserPolicy,
+}) => (
   <div className="d-flex list-page-header">
     <span className="d-flex align-self-center title">
       {
@@ -33,15 +37,17 @@ const StockMovementOutboundHeader = ({ showMyStockMovements, isRequestsOpen }) =
         label="react.stockMovement.myStockMovement.label"
         onClick={showMyStockMovements}
       />
-      <Link
-        className="primary-button"
-        to={STOCK_MOVEMENT_URL.createOutbound()}
-      >
-        <Translate
-          id="react.stockMovement.createStockMovement.label"
-          defaultMessage="Create Stock Movement"
-        />
-      </Link>
+      {!hasReportingUserPolicy && (
+        <Link
+          className="primary-button"
+          to={STOCK_MOVEMENT_URL.createOutbound()}
+        >
+          <Translate
+            id="react.stockMovement.createStockMovement.label"
+            defaultMessage="Create Stock Movement"
+          />
+        </Link>
+      )}
     </div>
   </div>
 );
@@ -49,6 +55,11 @@ const StockMovementOutboundHeader = ({ showMyStockMovements, isRequestsOpen }) =
 StockMovementOutboundHeader.propTypes = {
   showMyStockMovements: PropTypes.func.isRequired,
   isRequestsOpen: PropTypes.bool.isRequired,
+  hasReportingUserPolicy: PropTypes.bool,
+};
+
+StockMovementOutboundHeader.defaultProps = {
+  hasReportingUserPolicy: false,
 };
 
 export default StockMovementOutboundHeader;

@@ -24,7 +24,10 @@ const StockMovementInboundList = (props) => {
 
   return (
     <div className="d-flex flex-column list-page-main">
-      <StockMovementInboundHeader showMyStockMovements={selectFiltersForMyStockMovements} />
+      <StockMovementInboundHeader
+        showMyStockMovements={selectFiltersForMyStockMovements}
+        hasReportingUserPolicy={props.hasReportingUserPolicy}
+      />
       <StockMovementInboundFilters
         defaultValues={defaultFilterValues}
         setFilterParams={setFilterValues}
@@ -43,6 +46,7 @@ const mapStateToProps = (state) => ({
   shipmentStatuses: state.shipmentStatuses.data,
   isShipmentStatusesFetched: state.shipmentStatuses.fetched,
   shipmentTypes: state.stockMovementCommon.shipmentTypes,
+  hasReportingUserPolicy: state.session.hasReportingUserPolicy,
 });
 
 export default withRouter(connect(mapStateToProps, {
@@ -62,4 +66,9 @@ StockMovementInboundList.propTypes = {
     label: PropTypes.string,
     description: PropTypes.string,
   })).isRequired,
+  hasReportingUserPolicy: PropTypes.bool,
+};
+
+StockMovementInboundList.defaultProps = {
+  hasReportingUserPolicy: false,
 };

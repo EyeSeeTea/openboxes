@@ -28,6 +28,7 @@ const StockMovementOutboundList = (props) => {
       <StockMovementOutboundHeader
         isRequestsOpen={isRequestsList}
         showMyStockMovements={selectFiltersForMyStockMovements}
+        hasReportingUserPolicy={props.hasReportingUserPolicy}
       />
       <StockMovementOutboundFilters
         defaultValues={defaultFilterValues}
@@ -54,6 +55,7 @@ const mapStateToProps = (state) => ({
   isRequisitionStatusesFetched: state.requisitionStatuses.fetched,
   shipmentTypes: state.stockMovementCommon.shipmentTypes,
   approvers: state.approvers.data,
+  hasReportingUserPolicy: state.session.hasReportingUserPolicy,
 });
 
 export default withRouter(connect(mapStateToProps, {
@@ -80,4 +82,9 @@ StockMovementOutboundList.propTypes = {
     label: PropTypes.string,
     value: PropTypes.string,
   })).isRequired,
+  hasReportingUserPolicy: PropTypes.bool,
+};
+
+StockMovementOutboundList.defaultProps = {
+  hasReportingUserPolicy: false,
 };
