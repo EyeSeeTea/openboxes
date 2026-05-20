@@ -4,6 +4,7 @@ import _ from 'lodash';
 import PropTypes from 'prop-types';
 import { RiCloseFill } from 'react-icons/all';
 import Modal from 'react-modal';
+import { useSelector } from 'react-redux';
 
 import Button from 'components/form-elements/Button';
 import { PRODUCT_SUPPLIER_URL } from 'consts/applicationUrls';
@@ -17,10 +18,12 @@ const PreferenceTypeModal = ({
   modalData,
   productSupplierId,
 }) => {
-  const canManageProducts = useUserHasPermissions({
+  const hasRpcSuperuserPolicy = useSelector((state) => state.session.hasRpcSuperuserPolicy);
+  const hasProductManagerPermissions = useUserHasPermissions({
     minRequiredRole: RoleType.ROLE_ADMIN,
     supplementalRoles: [RoleType.ROLE_PRODUCT_MANAGER],
   });
+  const canManageProducts = hasProductManagerPermissions || hasRpcSuperuserPolicy;
 
   useEffect(() => {
     if (isOpen) {

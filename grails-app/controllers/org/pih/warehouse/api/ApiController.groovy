@@ -93,9 +93,11 @@ class ApiController {
 
         boolean hasFacilityStorekeeperPolicy = userService.hasFacilityStorekeeperPolicy(user, session?.warehouse?.id)
         boolean hasRegionalWarehousePolicy = userService.hasRegionalWarehousePolicy(user, session?.warehouse?.id)
+        boolean hasRpcSuperuserPolicy = userService.hasRpcSuperuserPolicy(user, session?.warehouse?.id)
         if (userService.hasHighestRole(user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED) &&
                 !hasFacilityStorekeeperPolicy &&
-                !hasRegionalWarehousePolicy) {
+                !hasRegionalWarehousePolicy &&
+                !hasRpcSuperuserPolicy) {
             menuConfig = grailsApplication.config.openboxes.requestorMegamenu;
         }
         List translatedMenu = megamenuService.buildAndTranslateMenu(menuConfig, user, location)
@@ -168,6 +170,7 @@ class ApiController {
         boolean isUserManager = userService.getEffectiveRoles(user).any { managerRoles.contains(it.roleType) }
         boolean hasFacilityStorekeeperPolicy = userService.hasFacilityStorekeeperPolicy(session?.user, session.warehouse?.id)
         boolean hasRegionalWarehousePolicy = userService.hasRegionalWarehousePolicy(session?.user, session.warehouse?.id)
+        boolean hasRpcSuperuserPolicy = userService.hasRpcSuperuserPolicy(session?.user, session.warehouse?.id)
         def supportedActivities = location.supportedActivities ?: location.locationType.supportedActivities
         boolean isImpersonated = session.impersonateUserId ? true : false
         def buildNumber = gitProperties.shortCommitId
@@ -215,6 +218,7 @@ class ApiController {
                 isUserManager                 : isUserManager,
                 hasFacilityStorekeeperPolicy  : hasFacilityStorekeeperPolicy,
                 hasRegionalWarehousePolicy    : hasRegionalWarehousePolicy,
+                hasRpcSuperuserPolicy         : hasRpcSuperuserPolicy,
                 supportedActivities           : supportedActivities,
                 isImpersonated                : isImpersonated,
                 grailsVersion                 : grailsVersion,

@@ -33,6 +33,7 @@ const StockListTable = ({
   translate,
   highestRole,
   hasRegionalWarehousePolicy,
+  hasRpcSuperuserPolicy,
 }) => {
   const {
     tableData,
@@ -49,7 +50,10 @@ const StockListTable = ({
   } = useStockListTableData(filterParams);
 
   const customActionFilter = ({ isPublished, requiresStocklistWrite }, row) => {
-    const canWriteStocklists = hasRegionalWarehousePolicy || highestRole === 'Admin' || highestRole === 'Superuser';
+    const canWriteStocklists = hasRegionalWarehousePolicy ||
+      hasRpcSuperuserPolicy ||
+      highestRole === 'Admin' ||
+      highestRole === 'Superuser';
     if (requiresStocklistWrite && !canWriteStocklists) return false;
     // skip actions that don't have isPublished property
     if (isPublished === undefined) return true;
@@ -228,7 +232,7 @@ const StockListTable = ({
       accessor: 'lastUpdated',
       width: 150,
     },
-  ], [highestRole, hasRegionalWarehousePolicy]);
+  ], [highestRole, hasRegionalWarehousePolicy, hasRpcSuperuserPolicy]);
 
   return (
     <div className="list-page-list-section">
@@ -269,6 +273,7 @@ const mapStateToProps = (state) => ({
   translate: translateWithDefaultMessage(getTranslate(state.localize)),
   highestRole: state.session.highestRole,
   hasRegionalWarehousePolicy: state.session.hasRegionalWarehousePolicy,
+  hasRpcSuperuserPolicy: state.session.hasRpcSuperuserPolicy,
 });
 
 export default connect(mapStateToProps)(StockListTable);
@@ -278,4 +283,5 @@ StockListTable.propTypes = {
   translate: PropTypes.func.isRequired,
   highestRole: PropTypes.string.isRequired,
   hasRegionalWarehousePolicy: PropTypes.bool.isRequired,
+  hasRpcSuperuserPolicy: PropTypes.bool.isRequired,
 };

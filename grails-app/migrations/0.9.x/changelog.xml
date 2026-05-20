@@ -45,4 +45,5 @@
     <include file="0.9.x/changelog-2026-04-01-1500-add-unique-constraint-party-code.xml" />
     <include file="0.9.x/changelog-2026-05-15-1200-add-facility-storekeeper-role.xml" />
     <include file="0.9.x/changelog-2026-05-19-1200-add-regional-warehouse-role.xml" />
+    <include file="0.9.x/changelog-2026-05-20-1200-add-rpc-superuser-role.xml" />
 </databaseChangeLog>

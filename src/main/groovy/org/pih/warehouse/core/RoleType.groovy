@@ -65,6 +65,7 @@ enum RoleType {
     ROLE_STOCKER('Stocker', 50),
     ROLE_FACILITY_STOREKEEPER('Facility Storekeeper', 4),
     ROLE_REGIONAL_WAREHOUSE('Regional Warehouse User', 4),
+    ROLE_RPC_SUPERUSER('RPC Superuser', 4),
     ROLE_WORKER('Worker', 50),
 
     // Pharmacy roles
@@ -118,6 +119,7 @@ enum RoleType {
                 ROLE_BROWSER,
                 ROLE_FACILITY_STOREKEEPER,
                 ROLE_REGIONAL_WAREHOUSE,
+                ROLE_RPC_SUPERUSER,
                 ROLE_ASSISTANT,
                 ROLE_MANAGER,
                 ROLE_ADMIN,
@@ -167,6 +169,7 @@ enum RoleType {
                 ROLE_BROWSER,
                 ROLE_FACILITY_STOREKEEPER,
                 ROLE_REGIONAL_WAREHOUSE,
+                ROLE_RPC_SUPERUSER,
                 ROLE_ASSISTANT,
                 ROLE_MANAGER,
                 ROLE_ADMIN,
@@ -196,6 +199,7 @@ enum RoleType {
                 ROLE_ASSISTANT,
                 ROLE_FACILITY_STOREKEEPER,
                 ROLE_REGIONAL_WAREHOUSE,
+                ROLE_RPC_SUPERUSER,
                 ROLE_MANAGER,
                 ROLE_ADMIN,
                 ROLE_SUPERUSER,

@@ -106,6 +106,47 @@ class RoleInterceptor {
         ],
         'json'               : ['addToRequisitionItems', 'updateRequisitionItems', 'removeRequisitionItem', 'sortRequisitionItems']
     ]
+    def static rpcSuperuserActions = [
+        'inventory'          : ['*'],
+        'inventoryItem'      : ['*'],
+        'stockTransfer'      : ['*'],
+        'stockTransferApi'   : ['*'],
+        'stockMovement'      : ['*'],
+        'stockMovementApi'   : ['*'],
+        'stocklist'          : ['*'],
+        'stocklistApi'       : ['*'],
+        'stocklistItemApi'   : ['*'],
+        'stocklistManagement': ['*'],
+        'requisitionTemplate': ['*'],
+        'json'               : ['addToRequisitionItems', 'updateRequisitionItems', 'removeRequisitionItem', 'sortRequisitionItems'],
+        'purchaseOrder'      : ['*'],
+        'purchaseOrderApi'   : ['*'],
+        'supplier'           : ['*'],
+        'product'            : ['*'],
+        'productApi'         : ['*'],
+        'productType'        : ['*'],
+        'category'           : ['*'],
+        'categoryApi'        : ['*'],
+        'productCatalog'     : ['*'],
+        'tag'                : ['*'],
+        'attribute'          : ['*'],
+        'attributeApi'       : ['*'],
+        'productAssociation' : ['*'],
+        'productSupplier'    : ['*'],
+        'productSupplierApi' : ['*'],
+        'productSupplierPreferenceApi': ['*'],
+        'productSupplierAttributeApi': ['*'],
+        'productPackage'     : ['*'],
+        'productPackageApi'  : ['*'],
+        'productComponent'   : ['*'],
+        'productGroup'       : ['*'],
+        'unitOfMeasure'      : ['*'],
+        'unitOfMeasureApi'   : ['*'],
+        'unitOfMeasureClass' : ['*'],
+        'unitOfMeasureConversion': ['*'],
+        'productsConfiguration': ['*'],
+        'productsConfigurationApi': ['*'],
+    ]
 
     def static invoiceActions = [
         'invoice': ['*']
@@ -146,22 +187,28 @@ class RoleInterceptor {
     boolean before() {
         // Apply custom location-scoped role policy only after a warehouse context exists.
         Boolean hasWarehouseContext = session?.warehouse?.id
+        Boolean hasRpcSuperuserPolicy = hasWarehouseContext &&
+                userService.hasRpcSuperuserPolicy(session.user, session?.warehouse?.id)
         Boolean hasRegionalWarehousePolicy = hasWarehouseContext &&
+                !hasRpcSuperuserPolicy &&
                 userService.hasRegionalWarehousePolicy(session.user, session?.warehouse?.id)
         Boolean hasFacilityStorekeeperPolicy = hasWarehouseContext &&
+                !hasRpcSuperuserPolicy &&
                 !hasRegionalWarehousePolicy &&
                 userService.hasFacilityStorekeeperPolicy(session.user, session?.warehouse?.id)
+        Boolean isRpcSuperuserAllowedAction = hasRpcSuperuserPolicy && needRpcSuperuser(controllerName, actionName, params, request)
+        Boolean isRpcSuperuserRestrictedAction = hasRpcSuperuserPolicy && needRpcSuperuserDeniedAction(controllerName, actionName, params, request)
         Boolean isStorekeeperAllowedAction = hasFacilityStorekeeperPolicy && needFacilityStorekeeper(controllerName, actionName, params, request)
         Boolean isStorekeeperRestrictedAction = hasFacilityStorekeeperPolicy && needStorekeeperDeniedAction(controllerName, actionName, params, request)
         Boolean isRegionalWarehouseAllowedAction = hasRegionalWarehousePolicy && needRegionalWarehouse(controllerName, actionName, params, request)
         Boolean isRegionalWarehouseRestrictedAction = hasRegionalWarehousePolicy && needRegionalWarehouseDeniedAction(controllerName, actionName, params, request)
 
-        if (isStorekeeperRestrictedAction || isRegionalWarehouseRestrictedAction) {
+        if (isRpcSuperuserRestrictedAction || isStorekeeperRestrictedAction || isRegionalWarehouseRestrictedAction) {
             log.info("User ${session?.user?.username} does not have access to ${controllerName}/${actionName} in location ${session?.warehouse?.name}")
             redirect(controller: "errors", action: "handleForbidden")
             return false
         }
-        if (isStorekeeperAllowedAction || isRegionalWarehouseAllowedAction) {
+        if (isRpcSuperuserAllowedAction || isStorekeeperAllowedAction || isRegionalWarehouseAllowedAction) {
             return true
         }
 
@@ -403,6 +450,21 @@ class RoleInterceptor {
             return true
         }
 
+        return false
+    }
+
+    static Boolean needRpcSuperuser(controllerName, actionName, params = null, request = null) {
+        if (needRpcSuperuserDeniedAction(controllerName, actionName, params, request)) {
+            return false
+        }
+        return rpcSuperuserActions[controllerName]?.contains("*") ||
+                rpcSuperuserActions[controllerName]?.contains(actionName)
+    }
+
+    static Boolean needRpcSuperuserDeniedAction(controllerName, actionName, params, request = null) {
+        if (controllerName == 'dashboard' && actionName in ['hideTag', 'hideCatalog', 'flushCache']) {
+            return true
+        }
         return false
     }
 }

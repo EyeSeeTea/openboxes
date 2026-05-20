@@ -69,7 +69,8 @@ class AuthTagLib {
     }
     def canManageStocklists = { attrs, body ->
         boolean hasRegionalWarehousePolicy = userService.hasRegionalWarehousePolicy(session?.user, session?.warehouse?.id)
-        if (userService.isUserAdmin(session?.user) || hasRegionalWarehousePolicy) {
+        boolean hasRpcSuperuserPolicy = userService.hasRpcSuperuserPolicy(session?.user, session?.warehouse?.id)
+        if (userService.isUserAdmin(session?.user) || hasRegionalWarehousePolicy || hasRpcSuperuserPolicy) {
             out << body()
         }
     }
@@ -128,18 +129,22 @@ class AuthTagLib {
     def hasHighestRoleAuthenticated = { attrs, body ->
         boolean hasFacilityStorekeeperPolicy = userService.hasFacilityStorekeeperPolicy(session?.user, session?.warehouse?.id)
         boolean hasRegionalWarehousePolicy = userService.hasRegionalWarehousePolicy(session?.user, session?.warehouse?.id)
+        boolean hasRpcSuperuserPolicy = userService.hasRpcSuperuserPolicy(session?.user, session?.warehouse?.id)
         if (userService.hasHighestRole(session?.user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED) &&
                 !hasFacilityStorekeeperPolicy &&
-                !hasRegionalWarehousePolicy)
+                !hasRegionalWarehousePolicy &&
+                !hasRpcSuperuserPolicy)
             out << body()
     }
 
     def hasHigherRoleThanAuthenticated = { attrs, body ->
         boolean hasFacilityStorekeeperPolicy = userService.hasFacilityStorekeeperPolicy(session?.user, session?.warehouse?.id)
         boolean hasRegionalWarehousePolicy = userService.hasRegionalWarehousePolicy(session?.user, session?.warehouse?.id)
+        boolean hasRpcSuperuserPolicy = userService.hasRpcSuperuserPolicy(session?.user, session?.warehouse?.id)
         if (!userService.hasHighestRole(session?.user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED) ||
                 hasFacilityStorekeeperPolicy ||
-                hasRegionalWarehousePolicy)
+                hasRegionalWarehousePolicy ||
+                hasRpcSuperuserPolicy)
             out << body()
     }
 }
