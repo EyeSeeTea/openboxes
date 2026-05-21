@@ -31,8 +31,7 @@ _None._ The `stock-transfer-documents` capability is unchanged — this proposal
 - `grails-app/services/org/pih/warehouse/custom/adjustments/CustomReasonCodeService.groovy` — filters `ReasonCode.listInventoryAdjustmentReasonCodes()` by the flag.
 - `grails-app/controllers/org/pih/warehouse/custom/adjustments/DamagedAdjustmentInterceptor.groovy` (Grails 3 URL interceptor) — guards `InventoryController.createDamaged` and any sibling actions that hardcode the DAMAGED transaction type.
 
-**Upstream files touched (5 surgical edits, listed in `design.md` → Upstream touch points)**
-- `grails-app/conf/application.yml` — add nested `openboxes.custom.adjustments.damaged.enabled: false` default. Lowest-impact wire-up of the default.
+**Upstream files touched (4 surgical edits, listed in `design.md` → Upstream touch points)**
 - `grails-app/taglib/org/pih/warehouse/SelectTagLib.groovy` — one line swap in the `selectInventoryAdjustmentReasonCode` taglib body, from `ReasonCode.listInventoryAdjustmentReasonCodes()` to `customReasonCodeService.listInventoryAdjustmentReasonCodes()`.
 - `grails-app/views/inventoryItem/_adjustStock.gsp` — replace `<g:select from="${... .listInventoryAdjustmentReasonCodes()}">` with `<g:selectInventoryAdjustmentReasonCode>` so it routes through the taglib.
 - `grails-app/controllers/org/pih/warehouse/api/ReasonCodeApiController.groovy` — in the `ADJUST_INVENTORY` branch, call `customReasonCodeService.listInventoryAdjustmentReasonCodes()` instead of the static enum method. Other branches unchanged.

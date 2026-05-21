@@ -2,7 +2,7 @@
 
 ### Requirement: System SHALL expose a configurable flag to disable direct damaged-stock adjustments
 
-The system SHALL read a single config key `openboxes.custom.adjustments.damaged.enabled` from the standard Grails config chain (`grails-app/conf/application.yml` with per-instance overrides via `docker/openboxes.yml`). The default SHALL be `false`. When `false`, all user-initiated UI paths for creating a stock adjustment with reason code `DAMAGED` or transaction type `Damaged` SHALL be unavailable.
+The system SHALL read a single config key `openboxes.custom.adjustments.damaged.enabled` from the standard Grails config chain. Per-instance YAML lives in `docker/openboxes.yml` (with a commented-out template in `docker/openboxes.client-template.yml`); when the key is absent, the in-code `?: false` fallback resolves the default to `false`. When the effective value is `false`, all user-initiated UI paths for creating a stock adjustment with reason code `DAMAGED` or transaction type `Damaged` SHALL be unavailable.
 
 The flag SHALL be readable from services, controllers, interceptors, and GSP views via `grailsApplication.config.openboxes.custom.adjustments.damaged.enabled`.
 

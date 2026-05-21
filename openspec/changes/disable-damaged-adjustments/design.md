@@ -154,22 +154,15 @@ Wrap the existing `<div class="action-menu-item">` containing the `createDamaged
 
 The `grailsApplication` variable is already accessible in GSPs in this repo — verified by `grails-app/views/order/show.gsp:126` (`${orderInstance?.currencyCode?:grailsApplication.config.openboxes.locale.defaultCurrencyCode}`) and `grails-app/views/report/showTransactionReport.gsp:283` (`${grailsApplication.config.openboxes.ajaxRequest.timeout}`).
 
-### D5. YAML default in `application.yml`, per-instance overrides in `docker/openboxes.yml`
+### D5. Default lives in code (`?: false`); per-instance overrides in `docker/openboxes.yml`
 
-Add the nested default to `grails-app/conf/application.yml` under the existing top-level `openboxes:` block (line 329):
+The default is the `?: false` fallback in `CustomReasonCodeService` / `DamagedAdjustmentInterceptor` and the falsy GSP test in `_actions.gsp`. When the key is absent from every config source, `grailsApplication.config.openboxes.custom.adjustments.damaged.enabled` resolves to `null` and the fallback yields `false` (damaged adjustments blocked).
 
-```yaml
-openboxes:
-    # ... existing keys ...
-    custom:
-        adjustments:
-            damaged:
-                enabled: false
-```
+Per-instance YAML:
+- `docker/openboxes.client-template.yml` documents the opt-in (commented-out block).
+- `docker/openboxes.yml` on `release/est/tjk/0.9.7` sets `openboxes.custom.adjustments.damaged.enabled: true`.
 
-Tajikistan flips it in `docker/openboxes.yml` (per `docker/openboxes.client-template.yml` convention). Default `false` means cross-merge to other client branches is behavior-preserving.
-
-**Why touch `application.yml` at all?** Without a default in the canonical config, `grailsApplication.config.openboxes.custom.adjustments.damaged.enabled` returns `null` and the `?: false` fallback in the service/interceptor would handle it. So the default *could* live entirely in code. But the convention in this repo (`openboxes.forecasting.enabled: true`, `openboxes.bom.enabled: false` — `application.yml:381,386`) is that every flag has a YAML default, so admins can see what's configurable by reading the YAML rather than grepping Groovy. Following the convention is worth one nested leaf in an upstream file.
+**Why _not_ a YAML default in `application.yml`?** Original draft added a nested leaf there to mirror the `openboxes.forecasting.enabled` / `openboxes.bom.enabled` convention (one-line discoverability for admins). Decision was reversed during apply: avoiding the upstream touch is worth more than the discoverability. Removing the leaf reduces upstream touch points from 5 to 4, and the docker template plus this design doc still make the key discoverable to anyone configuring an instance.
 
 ## Upstream Touch Points
 
@@ -177,7 +170,6 @@ Per `rules/custom-package-isolation.md` and Upstream Compatibility rule 7, the f
 
 | File | Edit | Reason |
 |---|---|---|
-| `grails-app/conf/application.yml` | Add nested key `openboxes.custom.adjustments.damaged.enabled: false` under the existing `openboxes:` block at line 329 | Following the existing convention of declaring every feature flag's default in YAML so it's discoverable alongside `forecasting`, `bom`, `signup`, etc. |
 | `grails-app/taglib/org/pih/warehouse/SelectTagLib.groovy` | One line: in `selectInventoryAdjustmentReasonCode` (line 230), change `attrs.from = ReasonCode.listInventoryAdjustmentReasonCodes()` to `attrs.from = customReasonCodeService.listInventoryAdjustmentReasonCodes()`. Add `def customReasonCodeService` near the top of the class. | The taglib is the chokepoint for GSPs that render the inventory-adjustment reason dropdown via the taglib (path 2: Create Adjustment per-line). Closes that path. |
 | `grails-app/views/inventoryItem/_adjustStock.gsp` | Replace the `<g:select name="reasonCode" from="${... .listInventoryAdjustmentReasonCodes()}" ...>` block at lines 69-74 with `<g:selectInventoryAdjustmentReasonCode name="reasonCode" ...>` — same other attributes, just route through the taglib instead of bypassing it. | Closes path 1 (Adjust Stock modal). The Adjust Stock GSP currently calls the static enum method directly via `<g:select from="...">`, so the taglib edit alone is insufficient. Converting this one call site to the taglib consolidates paths 1 + 2 onto a single chokepoint. |
 | `grails-app/controllers/org/pih/warehouse/api/ReasonCodeApiController.groovy` | Add `def customReasonCodeService` and change line 33 (`ActivityCode.ADJUST_INVENTORY` branch) from `getReasonCodes(ReasonCode.listInventoryAdjustmentReasonCodes())` to `getReasonCodes(customReasonCodeService.listInventoryAdjustmentReasonCodes())`. No other branches changed. | Closes path 4 (JSON API). No known React consumer today, but filtering prevents a future regression where a new frontend caller exposes DAMAGED in an inventory-adjustment dropdown. |

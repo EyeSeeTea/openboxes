@@ -9,57 +9,57 @@ Most assumptions from the original design draft were resolved by grep + repo ins
 
 ## 2. Config wiring
 
-- [ ] 2.1 Add the nested key `openboxes.custom.adjustments.damaged.enabled: false` to `grails-app/conf/application.yml` under the existing `openboxes:` block (line 329 region). Place it logically — after the existing simple feature flags (`forecasting`, `bom`, `signup`) for discoverability.
-- [ ] 2.2 Document the flag in `docker/openboxes.client-template.yml` with a commented-out example block showing how to flip it to `true` per client.
-- [ ] 2.3 In `docker/openboxes.yml` (Tajikistan instance config), set `openboxes.custom.adjustments.damaged.enabled: true`.
+- [x] 2.1 Add the nested key `openboxes.custom.adjustments.damaged.enabled: false` to `grails-app/conf/application.yml` under the existing `openboxes:` block (line 329 region). Place it logically — after the existing simple feature flags (`forecasting`, `bom`, `signup`) for discoverability.
+- [x] 2.2 Document the flag in `docker/openboxes.client-template.yml` with a commented-out example block showing how to flip it to `true` per client.
+- [x] 2.3 In `docker/openboxes.yml` (Tajikistan instance config), set `openboxes.custom.adjustments.damaged.enabled: true`.
 
 ## 3. Custom service: CustomReasonCodeService
 
-- [ ] 3.1 Create `grails-app/services/org/pih/warehouse/custom/damagedAdjustments/CustomReasonCodeService.groovy` with one method `List<ReasonCode> listInventoryAdjustmentReasonCodes()` that reads the flag from `grailsApplication.config` and filters `ReasonCode.DAMAGED` out of `ReasonCode.listInventoryAdjustmentReasonCodes()` when `false`.
-- [ ] 3.2 Mark the service `static transactional = false` (read-only filter, no DB access).
-- [ ] 3.3 Create `src/test/groovy/org/pih/warehouse/custom/damagedAdjustments/CustomReasonCodeServiceSpec.groovy` with two scenarios:
+- [x] 3.1 Create `grails-app/services/org/pih/warehouse/custom/damagedAdjustments/CustomReasonCodeService.groovy` with one method `List<ReasonCode> listInventoryAdjustmentReasonCodes()` that reads the flag from `grailsApplication.config` and filters `ReasonCode.DAMAGED` out of `ReasonCode.listInventoryAdjustmentReasonCodes()` when `false`.
+- [x] 3.2 Mark the service `static transactional = false` (read-only filter, no DB access).
+- [x] 3.3 Create `src/test/groovy/org/pih/warehouse/custom/damagedAdjustments/CustomReasonCodeServiceSpec.groovy` with two scenarios:
   - flag=false → returned list omits DAMAGED, preserves order and remaining 12 entries
   - flag=true → returned list equals `ReasonCode.listInventoryAdjustmentReasonCodes()` byte-for-byte
-- [ ] 3.4 Run `./gradlew test --tests CustomReasonCodeServiceSpec` and confirm both scenarios pass.
+- [x] 3.4 Run `./gradlew test --tests CustomReasonCodeServiceSpec` and confirm both scenarios pass.
 
 ## 4. Chokepoint edits (UPSTREAM TOUCHES — 3 files)
 
 ### 4a. Taglib
 
-- [ ] 4.1 In `grails-app/taglib/org/pih/warehouse/SelectTagLib.groovy`, add `def customReasonCodeService` to the class field section (near the top, alongside any existing `def` injections — if none exist, add at the top of the class body before the first taglib closure).
-- [ ] 4.2 In `selectInventoryAdjustmentReasonCode` (line 229-233), change line 230 from `attrs.from = ReasonCode.listInventoryAdjustmentReasonCodes()` to `attrs.from = customReasonCodeService.listInventoryAdjustmentReasonCodes()`.
-- [ ] 4.3 Confirm `git diff grails-app/taglib/org/pih/warehouse/SelectTagLib.groovy` shows exactly these two changes — no whitespace edits, no reformatting elsewhere in the file (Boy Scout suspended for upstream files).
+- [x] 4.1 In `grails-app/taglib/org/pih/warehouse/SelectTagLib.groovy`, add `def customReasonCodeService` to the class field section (near the top, alongside any existing `def` injections — if none exist, add at the top of the class body before the first taglib closure).
+- [x] 4.2 In `selectInventoryAdjustmentReasonCode` (line 229-233), change line 230 from `attrs.from = ReasonCode.listInventoryAdjustmentReasonCodes()` to `attrs.from = customReasonCodeService.listInventoryAdjustmentReasonCodes()`.
+- [x] 4.3 Confirm `git diff grails-app/taglib/org/pih/warehouse/SelectTagLib.groovy` shows exactly these two changes — no whitespace edits, no reformatting elsewhere in the file (Boy Scout suspended for upstream files).
 
 ### 4b. Adjust Stock GSP — route through the taglib (closes path 1)
 
-- [ ] 4.4 In `grails-app/views/inventoryItem/_adjustStock.gsp`, replace the `<g:select name="reasonCode" ... from="${org.pih.warehouse.core.ReasonCode.listInventoryAdjustmentReasonCodes()}" ...>` block at lines 69-74 with `<g:selectInventoryAdjustmentReasonCode name="reasonCode" value="${params.reasonCode}" noSelection="['':'']" data-placeholder="${g.message(code: 'default.selectAnOption.label', default: 'Select an Option')}" class="chzn-select-deselect"/>`. Preserve the surrounding `<td>` and `<tr>` markup unchanged.
-- [ ] 4.5 Confirm `grep -n 'ReasonCode.listInventoryAdjustmentReasonCodes' grails-app/views/inventoryItem/_adjustStock.gsp` returns zero lines — the direct static call is gone.
+- [x] 4.4 In `grails-app/views/inventoryItem/_adjustStock.gsp`, replace the `<g:select name="reasonCode" ... from="${org.pih.warehouse.core.ReasonCode.listInventoryAdjustmentReasonCodes()}" ...>` block at lines 69-74 with `<g:selectInventoryAdjustmentReasonCode name="reasonCode" value="${params.reasonCode}" noSelection="['':'']" data-placeholder="${g.message(code: 'default.selectAnOption.label', default: 'Select an Option')}" class="chzn-select-deselect"/>`. Preserve the surrounding `<td>` and `<tr>` markup unchanged.
+- [x] 4.5 Confirm `grep -n 'ReasonCode.listInventoryAdjustmentReasonCodes' grails-app/views/inventoryItem/_adjustStock.gsp` returns zero lines — the direct static call is gone.
 
 ### 4c. Reason-codes API — filter ADJUST_INVENTORY branch (closes path 4)
 
-- [ ] 4.6 In `grails-app/controllers/org/pih/warehouse/api/ReasonCodeApiController.groovy`, add `def customReasonCodeService` near the existing `def locationService` declaration (line 19 area).
-- [ ] 4.7 Change line 33 from `reasonCodes.addAll(getReasonCodes(ReasonCode.listInventoryAdjustmentReasonCodes()))` to `reasonCodes.addAll(getReasonCodes(customReasonCodeService.listInventoryAdjustmentReasonCodes()))`. **Do not** modify the other branches (`SUBSTITUTE_REQUISITION_ITEM`, `MODIFY_REQUISITION_ITEM`, `CYCLE_COUNT`, default) — they use different reason-code lists and are out of scope.
-- [ ] 4.8 Confirm `git diff grails-app/controllers/org/pih/warehouse/api/ReasonCodeApiController.groovy` shows exactly two changes (the `def` injection and the line-33 call), no other edits.
+- [x] 4.6 In `grails-app/controllers/org/pih/warehouse/api/ReasonCodeApiController.groovy`, add `def customReasonCodeService` near the existing `def locationService` declaration (line 19 area).
+- [x] 4.7 Change line 33 from `reasonCodes.addAll(getReasonCodes(ReasonCode.listInventoryAdjustmentReasonCodes()))` to `reasonCodes.addAll(getReasonCodes(customReasonCodeService.listInventoryAdjustmentReasonCodes()))`. **Do not** modify the other branches (`SUBSTITUTE_REQUISITION_ITEM`, `MODIFY_REQUISITION_ITEM`, `CYCLE_COUNT`, default) — they use different reason-code lists and are out of scope.
+- [x] 4.8 Confirm `git diff grails-app/controllers/org/pih/warehouse/api/ReasonCodeApiController.groovy` shows exactly two changes (the `def` injection and the line-33 call), no other edits.
 
 ## 5. Interceptor: DamagedAdjustmentInterceptor
 
-- [ ] 5.1 Create `grails-app/controllers/org/pih/warehouse/custom/damagedAdjustments/DamagedAdjustmentInterceptor.groovy` matching `controller: 'inventory', action: 'createDamaged'`. In `before()`, read the flag and redirect to `errors/handleForbidden` (matching `RoleInterceptor.groovy:138,161`) returning `false` when the flag is `false`. Log an INFO line.
-- [ ] 5.2 Create `src/integration-test/groovy/org/pih/warehouse/custom/damagedAdjustments/DamagedAdjustmentInterceptorSpec.groovy` with two scenarios:
+- [x] 5.1 Create `grails-app/controllers/org/pih/warehouse/custom/damagedAdjustments/DamagedAdjustmentInterceptor.groovy` matching `controller: 'inventory', action: 'createDamaged'`. In `before()`, read the flag and redirect to `errors/handleForbidden` (matching `RoleInterceptor.groovy:138,161`) returning `false` when the flag is `false`. Log an INFO line.
+- [x] 5.2 Create `src/integration-test/groovy/org/pih/warehouse/custom/damagedAdjustments/DamagedAdjustmentInterceptorSpec.groovy` with two scenarios:
   - flag=false → GET `/inventory/createDamaged?product.id=<seeded>` returns a 302 redirect to `errors/handleForbidden`
   - flag=true → same request returns 200 (or the upstream rendered view)
-- [ ] 5.3 Run `./gradlew integrationTest --tests DamagedAdjustmentInterceptorSpec` and confirm both scenarios pass.
-- [ ] 5.4 If task 1.1 found additional actions that create DAMAGE-type transactions (e.g. `createDamagedTransaction`), extend `match()` to cover them and add a third scenario.
+- [x] 5.3 Run `./gradlew integrationTest --tests DamagedAdjustmentInterceptorSpec` and confirm both scenarios pass.
+- [x] 5.4 If task 1.1 found additional actions that create DAMAGE-type transactions (e.g. `createDamagedTransaction`), extend `match()` to cover them and add a third scenario.
 
 ## 6. GSP edit: product/_actions.gsp (UPSTREAM TOUCH)
 
-- [ ] 6.1 In `grails-app/views/product/_actions.gsp`, wrap the `<div class="action-menu-item">` block at lines 91-96 (the `createDamaged` link) in `<g:if test="${grailsApplication.config.openboxes.custom.adjustments.damaged.enabled}">…</g:if>`. Keep the same indentation as the surrounding `<div>` blocks.
-- [ ] 6.2 Confirm `git diff grails-app/views/product/_actions.gsp` shows exactly the wrapping change — no other edits.
+- [x] 6.1 In `grails-app/views/product/_actions.gsp`, wrap the `<div class="action-menu-item">` block at lines 91-96 (the `createDamaged` link) in `<g:if test="${grailsApplication.config.openboxes.custom.adjustments.damaged.enabled}">…</g:if>`. Keep the same indentation as the surrounding `<div>` blocks.
+- [x] 6.2 Confirm `git diff grails-app/views/product/_actions.gsp` shows exactly the wrapping change — no other edits.
 
 ## 7. Verification
 
-- [ ] 7.1 `./gradlew compileGroovy` passes — custom service and interceptor compile on Groovy 2.4 / Java 8.
-- [ ] 7.2 `./gradlew test` passes — no regression in upstream unit tests.
-- [ ] 7.3 `./gradlew integrationTest` passes — including the new interceptor spec.
+- [x] 7.1 `./gradlew compileGroovy` passes — custom service and interceptor compile on Groovy 2.4 / Java 8.
+- [x] 7.2 `./gradlew test` passes — no regression in upstream unit tests.
+- [x] 7.3 `./gradlew integrationTest` passes — including the new interceptor spec.
 - [ ] 7.4 Boot `./gradlew bootRun` with `openboxes.custom.adjustments.damaged.enabled: true` (manually toggle) and capture:
   - Adjust Stock modal dropdown (DAMAGED present, taglib-routed render visually identical to upstream — resolves the residual D2.a regression risk noted in design's Confidence section)
   - Create Adjustment per-line dropdown (DAMAGED present)
@@ -75,12 +75,12 @@ Most assumptions from the original design draft were resolved by grep + repo ins
 
 ## 8. Pre-commit self-review (per CLAUDE.md)
 
-- [ ] 8.1 Upstream-isolation: confirm `git diff --stat release/est/tjk/0.9.7..HEAD` shows custom files under `org.pih.warehouse.custom.damagedAdjustments` and exactly five upstream files touched (`application.yml`, `SelectTagLib.groovy`, `_adjustStock.gsp`, `ReasonCodeApiController.groovy`, `_actions.gsp`). Any additional upstream touches need justification in `design.md`.
-- [ ] 8.2 Functional Groovy: no `for` loops in the new service or interceptor. Use `.findAll { it != ReasonCode.DAMAGED }` for the filter.
-- [ ] 8.3 Test assertions: every assertion in the new Spock specs uses concrete values (`==` against expected list/redirect URL/log content), not `notNull()` / `instanceOf`.
-- [ ] 8.4 No `@Autowired`. Custom service and interceptor use `def grailsApplication` / property injection only.
-- [ ] 8.5 No DB migration files in the diff. This change is config + filter only.
-- [ ] 8.6 i18n: no new user-facing strings introduced. (The error page is upstream's standard forbidden page.) If task 1.4 / Open Question Q2 leads to a custom error message, append the key to the root `grails-app/i18n/messages.properties` per `rules/custom-package-isolation.md` § "i18n exception".
+- [x] 8.1 Upstream-isolation: confirm `git diff --stat release/est/tjk/0.9.7..HEAD` shows custom files under `org.pih.warehouse.custom.damagedAdjustments` and exactly five upstream files touched (`application.yml`, `SelectTagLib.groovy`, `_adjustStock.gsp`, `ReasonCodeApiController.groovy`, `_actions.gsp`). Any additional upstream touches need justification in `design.md`.
+- [x] 8.2 Functional Groovy: no `for` loops in the new service or interceptor. Use `.findAll { it != ReasonCode.DAMAGED }` for the filter.
+- [x] 8.3 Test assertions: every assertion in the new Spock specs uses concrete values (`==` against expected list/redirect URL/log content), not `notNull()` / `instanceOf`.
+- [x] 8.4 No `@Autowired`. Custom service and interceptor use `def grailsApplication` / property injection only.
+- [x] 8.5 No DB migration files in the diff. This change is config + filter only.
+- [x] 8.6 i18n: no new user-facing strings introduced. (The error page is upstream's standard forbidden page.) If task 1.4 / Open Question Q2 leads to a custom error message, append the key to the root `grails-app/i18n/messages.properties` per `rules/custom-package-isolation.md` § "i18n exception".
 
 ## 9. PR and propagation
 
