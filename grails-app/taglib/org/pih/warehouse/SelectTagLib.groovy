@@ -57,6 +57,7 @@ class SelectTagLib {
     def shipmentService
     def requisitionService
     def organizationService
+    def customReasonCodeService
     CategoryService categoryService
 
     /**
@@ -227,7 +228,7 @@ class SelectTagLib {
     }
 
     def selectInventoryAdjustmentReasonCode = { attrs, body ->
-        attrs.from = ReasonCode.listInventoryAdjustmentReasonCodes()
+        attrs.from = customReasonCodeService.listInventoryAdjustmentReasonCodes()
         attrs.optionValue = { format.metadata(obj: it) }
         out << g.select(attrs)
     }
