@@ -1,5 +1,5 @@
 # OpenSpec project configuration
-context:
+context: |
   Project: OpenBoxes (EyeSeeTea fork)
   What it is: |
     Open-source Logistics Management Information System (LMIS) for healthcare
@@ -35,12 +35,12 @@ context:
     openspec/            # change proposals and archive (this directory)
     .claude/             # Claude Code tooling (tracked except .context/)
 
-  Custom code isolation (CRITICAL):
+  Custom code isolation (CRITICAL): |
     - Backend: org.pih.warehouse.custom.<feature>/
     - Frontend: src/js/custom/<feature>/
     - Migrations: grails-app/migrations/custom/ (or clearly-prefixed)
-    Every custom file lives under one of these paths so "what's custom?" is a
-    file listing rather than a patch diff against upstream.
+      Every custom file lives under one of these paths so "what's custom?" is a
+      file listing rather than a patch diff against upstream.
 
   Configuration:
     - grails-app/conf/application.yml      # Grails config (upstream; prefer external overrides)
@@ -109,7 +109,7 @@ context:
       - Run with npm test
     Assertions are concrete values, not toBeDefined/toBeTruthy (team-wide rule).
 
-rules:
+rules: {}
   # The team-wide CLAUDE.md and auto-loaded path-scoped rules cover commit style,
   # functional style, test quality, Boy Scout, etc. This section is for project-specific
   # rules that deviate from or extend those defaults. See .claude/CLAUDE.md for the
