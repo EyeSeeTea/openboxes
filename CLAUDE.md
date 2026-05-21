@@ -186,7 +186,7 @@ Keep `backend-tests.yml` and `frontend-tests.yml` green before opening a PR onto
 - `grails-app/conf/application.yml`, `grails-app/conf/application.groovy` — Grails config; prefer external/env overrides, don't edit these for customizations
 - `grails-app/conf/spring/resources.groovy` — Spring bean overrides (useful extension point)
 - `grails-app/migrations/changelog.groovy` — Liquibase master changelog
-- `docker/docker-compose.yml`, `docker/openboxes-config.properties` — dev container setup
+- `docker/docker-compose.yml`, `docker/openboxes.yml` (+ `docker/openboxes.client-template.yml`) — dev container setup and per-client config overrides (YAML; replaced the upstream `openboxes-config.properties`)
 - `openspec/` — customization proposals and archive (patch manifest)
 - `.claude/docs/FORK_MAINTENANCE.md` — concrete git recipes for layered fork maintenance
 
