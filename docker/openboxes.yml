@@ -29,7 +29,7 @@ openboxes:
     custom:
         adjustments:
             damaged:
-                enabled: true
+                enabled: false
 
     jobs:
         sendStockAlertsJob:

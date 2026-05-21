@@ -10,7 +10,7 @@ class DamagedAdjustmentInterceptor {
     }
 
     boolean before() {
-        boolean enabled = grailsApplication.config.openboxes.custom.adjustments.damaged.enabled ?: false
+        boolean enabled = grailsApplication.config.openboxes.custom.adjustments.damaged.enabled != false
         if (!enabled) {
             log.info "Damaged adjustment blocked by openboxes.custom.adjustments.damaged.enabled=false"
             redirect(controller: 'errors', action: 'handleForbidden')

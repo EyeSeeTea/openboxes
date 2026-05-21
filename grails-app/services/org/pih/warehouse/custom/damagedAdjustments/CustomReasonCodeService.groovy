@@ -10,7 +10,7 @@ class CustomReasonCodeService {
 
     List<ReasonCode> listInventoryAdjustmentReasonCodes() {
         List<ReasonCode> base = ReasonCode.listInventoryAdjustmentReasonCodes()
-        boolean damagedEnabled = grailsApplication.config.openboxes.custom.adjustments.damaged.enabled ?: false
+        boolean damagedEnabled = grailsApplication.config.openboxes.custom.adjustments.damaged.enabled != false
         return damagedEnabled ? base : base.findAll { it != ReasonCode.DAMAGED }
     }
 }

@@ -196,10 +196,9 @@ openboxes:
 
     # -------------------------------------------------------------------------
     # Custom: damaged stock adjustments
-    # Default is false (only programmatic damaged transactions are allowed).
-    # Set to true to re-enable the user-initiated Adjust Stock / Create Damaged
-    # Transaction paths (e.g. for a site that does not use the transfer-to-Damaged-
-    # bin workflow).
+    # Default (key absent): user-initiated damaged adjustments are enabled.
+    # Set to false to disable the Adjust Stock / Create Damaged Transaction paths
+    # and require the transfer-to-Damaged-bin workflow instead.
     # -------------------------------------------------------------------------
     # custom:
     #     adjustments:
