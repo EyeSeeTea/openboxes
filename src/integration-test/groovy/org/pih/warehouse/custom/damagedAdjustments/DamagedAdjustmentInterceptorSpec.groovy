@@ -15,14 +15,16 @@ class DamagedAdjustmentInterceptorSpec extends ApiSpec {
     private static final String CREATE_DAMAGED_PATH = "/inventory/createDamaged"
     private static final String FORBIDDEN_PATH = "/errors/handleForbidden"
 
+    def originalEnabled
+
     def setup() {
-        // Ensure each test starts with the flag disabled (the safe default).
+        // Capture pre-test value so cleanup restores it instead of forcing a default.
+        originalEnabled = grailsApplication.config.openboxes.custom.adjustments.damaged.enabled
         grailsApplication.config.openboxes.custom.adjustments.damaged.enabled = false
     }
 
     def cleanup() {
-        // Restore default so this spec doesn't leak state into other specs.
-        grailsApplication.config.openboxes.custom.adjustments.damaged.enabled = false
+        grailsApplication.config.openboxes.custom.adjustments.damaged.enabled = originalEnabled
     }
 
     def "flag=false: GET /inventory/createDamaged redirects to errors/handleForbidden"() {

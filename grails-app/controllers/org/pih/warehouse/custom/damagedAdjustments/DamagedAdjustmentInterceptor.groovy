@@ -2,6 +2,8 @@ package org.pih.warehouse.custom.damagedAdjustments
 
 class DamagedAdjustmentInterceptor {
 
+    def customReasonCodeService
+
     // Runs early (before RoleInterceptor) — no session state dependency.
     int order = HIGHEST_PRECEDENCE + 1
 
@@ -10,9 +12,8 @@ class DamagedAdjustmentInterceptor {
     }
 
     boolean before() {
-        boolean enabled = grailsApplication.config.openboxes.custom.adjustments.damaged.enabled != false
-        if (!enabled) {
-            log.info "Damaged adjustment blocked by openboxes.custom.adjustments.damaged.enabled=false"
+        if (!customReasonCodeService.damagedEnabled) {
+            log.warn "Damaged adjustment blocked for user=${session.user?.username} (openboxes.custom.adjustments.damaged.enabled=false)"
             redirect(controller: 'errors', action: 'handleForbidden')
             return false
         }
