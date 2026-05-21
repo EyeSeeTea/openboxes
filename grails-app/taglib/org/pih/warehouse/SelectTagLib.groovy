@@ -671,6 +671,9 @@ class SelectTagLib {
             disabledTransactionTypes = transactionTypes.findAll { it.id in disabledTransactionTypes }
             transactionTypes.removeAll(disabledTransactionTypes)
         }
+        if (grailsApplication.config.openboxes.custom.adjustments.damaged.enabled == false) {
+            transactionTypes.removeAll { it.id == Constants.DAMAGE_TRANSACTION_TYPE_ID }
+        }
 
         attrs.from = transactionTypes
         attrs.optionKey = 'id'
