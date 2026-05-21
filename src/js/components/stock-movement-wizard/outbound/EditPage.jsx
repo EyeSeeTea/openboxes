@@ -411,7 +411,7 @@ class EditItemsPage extends Component {
     const errors = validateForSave(values);
 
     _.forEach(values.editPageItems, (item, key) => {
-      if (_.isNil(item.quantityRevised) && (item.quantityRequested > item.quantityPickable) && (item.statusCode !== 'SUBSTITUTED')) {
+      if (_.isNil(item.quantityRevised) && (item.quantityRequested > (item.quantityPickable ?? item.quantityAvailable)) && (item.statusCode !== 'SUBSTITUTED')) {
         errors.editPageItems[key] = { quantityRevised: 'react.stockMovement.errors.lowerQty.label' };
       }
     });
