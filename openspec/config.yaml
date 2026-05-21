@@ -35,18 +35,19 @@ context:
     openspec/            # change proposals and archive (this directory)
     .claude/             # Claude Code tooling (tracked except .context/)
 
-  Custom code isolation (CRITICAL):
+  Custom code isolation (CRITICAL): |
     - Backend: org.pih.warehouse.custom.<feature>/
     - Frontend: src/js/custom/<feature>/
     - Migrations: grails-app/migrations/custom/ (or clearly-prefixed)
     Every custom file lives under one of these paths so "what's custom?" is a
     file listing rather than a patch diff against upstream.
 
-  Configuration:
+  Configuration: |
     - grails-app/conf/application.yml      # Grails config (upstream; prefer external overrides)
     - grails-app/conf/application.groovy   # Grails config (upstream)
     - grails-app/conf/spring/resources.groovy  # Spring bean overrides (extension point)
-    - docker/openboxes-config.properties   # dev/container config
+    - docker/openboxes.yml                 # per-instance config overrides (YAML; replaces upstream openboxes-config.properties)
+    - docker/openboxes.client-template.yml # per-client config template
     - External config file path is set per environment; customer config
       belongs on the customer's release/est/<client>/<version> branch.
 
