@@ -195,6 +195,18 @@ openboxes:
     #             secretKey: CHANGE_ME
 
     # -------------------------------------------------------------------------
+    # Custom: damaged stock adjustments
+    # Default is false (only programmatic damaged transactions are allowed).
+    # Set to true to re-enable the user-initiated Adjust Stock / Create Damaged
+    # Transaction paths (e.g. for a site that does not use the transfer-to-Damaged-
+    # bin workflow).
+    # -------------------------------------------------------------------------
+    # custom:
+    #     adjustments:
+    #         damaged:
+    #             enabled: false
+
+    # -------------------------------------------------------------------------
     # LDAP (optional — enable only for clients using corporate auth)
     # -------------------------------------------------------------------------
     # ldap:
