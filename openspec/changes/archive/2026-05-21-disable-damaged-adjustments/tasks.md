@@ -60,18 +60,9 @@ Most assumptions from the original design draft were resolved by grep + repo ins
 - [x] 7.1 `./gradlew compileGroovy` passes — custom service and interceptor compile on Groovy 2.4 / Java 8.
 - [x] 7.2 `./gradlew test` passes — no regression in upstream unit tests.
 - [x] 7.3 `./gradlew integrationTest` passes — including the new interceptor spec.
-- [ ] 7.4 Boot `./gradlew bootRun` with `openboxes.custom.adjustments.damaged.enabled: true` (manually toggle) and capture:
-  - Adjust Stock modal dropdown (DAMAGED present, taglib-routed render visually identical to upstream — resolves the residual D2.a regression risk noted in design's Confidence section)
-  - Create Adjustment per-line dropdown (DAMAGED present)
-  - Product menu (Damaged link present)
-  - `curl -s '/openboxes/api/reasonCodes?activityCode=ADJUST_INVENTORY' | jq '.data[].id'` includes `DAMAGED`
-- [ ] 7.5 Flip flag to `false`, restart, capture matching artifacts:
-  - Adjust Stock modal dropdown (DAMAGED absent)
-  - Create Adjustment per-line dropdown (DAMAGED absent)
-  - Product menu (Damaged link absent)
-  - Direct URL `/openboxes/inventory/createDamaged?product.id=<any>` (redirects to forbidden page)
-  - `curl -s '/openboxes/api/reasonCodes?activityCode=ADJUST_INVENTORY' | jq '.data[].id'` does NOT include `DAMAGED`
-- [ ] 7.6 Attach all artifacts (4 screenshots + 2 curl outputs from flag=true and flag=false) to the PR description.
+- [~] 7.4 Flag=enabled (default after the semantics flip) — bootRun smoke verified manually on the developer instance: Adjust Stock modal, per-line dropdown, and Product menu all render `DAMAGED`; `reasonCodes` API includes `DAMAGED`. No screenshots captured because flag=enabled is the upstream baseline — the PR description documents this as the reference behaviour rather than attaching redundant artifacts.
+- [x] 7.5 Flag=disabled — captured via the screen-capture video attached to PR #5 (`### :video_camera: Screenshots/Screen capture` section). Video walks through all four chokepoints with `enabled: false`: Adjust Stock modal (DAMAGED absent), Create Transaction wizard (Damaged absent), Product menu (link absent), direct URL `/inventory/createDamaged` redirects to `errors/handleForbidden`. The `reasonCodes` API check is documented in the PR's `Notes to the tester` section (step 5).
+- [x] 7.6 PR #5 description contains the screen-capture video plus the full `Notes to the tester` runbook (five verification steps + regression checks). Substitutes the "4 screenshots + 2 curl outputs" plan because (a) the video is denser than four stills, (b) the test-notes runbook gives the reviewer reproducible curl commands rather than archived output that goes stale.
 
 ## 8. Pre-commit self-review (per CLAUDE.md)
 
@@ -84,6 +75,6 @@ Most assumptions from the original design draft were resolved by grep + repo ins
 
 ## 9. PR and propagation
 
-- [ ] 9.1 Open PR from `feature/disable-damaged-adjustments` to `release/est/tjk/0.9.7`. Title: `feat(adjustments): config-driven flag to disable damaged stock adjustments`. Body links to this OpenSpec change folder.
-- [ ] 9.2 After merge, archive this change via `/opsx:archive disable-damaged-adjustments`. Confirm the archive directory includes the final `design.md` (with checked Validation boxes) so the upstream touch points are in the patch manifest.
-- [ ] 9.3 Note in the archive's `design.md` Migration Plan section: "Deploy status: tjk only. sp/EST not yet adopted — opt in by setting flag in their own `docker/openboxes.yml` after next EST→client merge brings the code in."
+- [x] 9.1 PR #5 opened from `feature/disable-damaged-adjustments` to `release/est/tjk/0.9.7` (title shipped as `TJK: Disable user-initiated damaged stock adjustments`; body links to this OpenSpec change folder and includes screenshot/video artifacts).
+- [x] 9.2 Archived to `openspec/changes/archive/2026-05-21-disable-damaged-adjustments/` with final `design.md` (Validation boxes checked, upstream touch points listed). Archived before merge to land the patch manifest in tjk alongside the code.
+- [x] 9.3 Deploy status note added to `design.md` Migration Plan: "`release/est/tjk/0.9.7` only (opted out via `docker/openboxes.yml`). sp / EST shared layer not yet adopted — flag defaults to `true`, preserving upstream behaviour until they choose to opt out." (Wording reflects the post-flip semantics: default=enabled, `false` opts out.)

@@ -154,13 +154,15 @@ Wrap the existing `<div class="action-menu-item">` containing the `createDamaged
 
 The `grailsApplication` variable is already accessible in GSPs in this repo — verified by `grails-app/views/order/show.gsp:126` (`${orderInstance?.currencyCode?:grailsApplication.config.openboxes.locale.defaultCurrencyCode}`) and `grails-app/views/report/showTransactionReport.gsp:283` (`${grailsApplication.config.openboxes.ajaxRequest.timeout}`).
 
-### D5. Default lives in code (`?: false`); per-instance overrides in `docker/openboxes.yml`
+### D5. Default lives in code (`!= false`); per-instance overrides in `docker/openboxes.yml`
 
-The default is the `?: false` fallback in `CustomReasonCodeService` / `DamagedAdjustmentInterceptor` and the falsy GSP test in `_actions.gsp`. When the key is absent from every config source, `grailsApplication.config.openboxes.custom.adjustments.damaged.enabled` resolves to `null` and the fallback yields `false` (damaged adjustments blocked).
+The default is the `!= false` check centralized in `CustomReasonCodeService.isDamagedEnabled()` (also used by `DamagedAdjustmentInterceptor` and `_actions.gsp`). When the key is absent from every config source, `grailsApplication.config.openboxes.custom.adjustments.damaged.enabled` resolves to a `ConfigObject` (truthy), so `!= false` yields `true` (damaged adjustments enabled). Only the literal YAML `false` opts out.
+
+**Semantics flipped during apply** (commit 2474a4084): the original `?: false` (default=disabled, opt-in true) was inverted to `!= false` (default=enabled, opt-out false). Reason: damaged adjustments are the upstream default behaviour — making the flag fail-open preserves upstream behaviour for every fork consumer who hasn't opted in, and limits the blast radius to the one client that explicitly opts out.
 
 Per-instance YAML:
-- `docker/openboxes.client-template.yml` documents the opt-in (commented-out block).
-- `docker/openboxes.yml` on `release/est/tjk/0.9.7` sets `openboxes.custom.adjustments.damaged.enabled: true`.
+- `docker/openboxes.client-template.yml` documents the opt-out (commented-out block, `enabled: false`).
+- `docker/openboxes.yml` on `release/est/tjk/0.9.7` sets `openboxes.custom.adjustments.damaged.enabled: false`.
 
 **Why _not_ a YAML default in `application.yml`?** Original draft added a nested leaf there to mirror the `openboxes.forecasting.enabled` / `openboxes.bom.enabled` convention (one-line discoverability for admins). Decision was reversed during apply: avoiding the upstream touch is worth more than the discoverability. Removing the leaf reduces upstream touch points from 5 to 4, and the docker template plus this design doc still make the key discoverable to anyone configuring an instance.
 
@@ -195,14 +197,16 @@ Per `rules/custom-package-isolation.md` and Upstream Compatibility rule 7, the f
 ## Migration Plan
 
 1. **Land code on `feature/disable-damaged-adjustments`** branched from `release/est/tjk/0.9.7`. PR back into tjk.
-2. **Default `false` everywhere.** No behavior change on any branch until a customer opts in via their `docker/openboxes.yml`.
-3. **Tajikistan opts in** by setting `openboxes.custom.adjustments.damaged.enabled: true` in `docker/openboxes.yml` on `release/est/tjk/0.9.7`. Restart required (file-based config).
+2. **Default `true` everywhere.** Upstream behaviour is preserved on any branch that doesn't set the flag — damaged adjustments remain enabled until a customer explicitly opts out via their `docker/openboxes.yml`.
+3. **Tajikistan opts out** by setting `openboxes.custom.adjustments.damaged.enabled: false` in `docker/openboxes.yml` on `release/est/tjk/0.9.7`. Restart required (file-based config).
 4. **Operator training note** (separate doc, not in this repo): the damage workflow now requires (a) stock-transfer into the Damaged bin with proof attached, (b) write-off transaction from the Damaged bin. The previous "Adjust Stock with reason Damaged" / "Create Damaged Transaction" paths return 403 / are hidden.
-5. **Rollback:** flip the flag back to `false` and restart. No DB changes to revert. Code remains in place but inert.
+5. **Rollback:** remove the `enabled: false` line (or set it to `true`) and restart. No DB changes to revert. Code remains in place but inert.
+
+**Deploy status:** `release/est/tjk/0.9.7` only (opted out via `docker/openboxes.yml`). sp / EST shared layer not yet adopted — they keep the upstream-default behaviour (damaged adjustments enabled) until the EST→client merge brings the code in and the operator chooses to opt out.
 
 ### Other client branches
 
-- **sp:** unaffected by default. If sp wants the same policy, set the flag in their `docker/openboxes.yml` after the next EST → sp merge brings the code in.
+- **sp:** unaffected by default — flag defaults to `true`, preserving upstream behaviour. If sp wants the Tajikistan policy, set `enabled: false` in their `docker/openboxes.yml` after the next EST → sp merge brings the code in.
 - **EST shared layer:** the code lives on the feature branch initially. If/when this is judged useful at the EST level, propagate up via `/propagate-change` (currently scoped to client branch only).
 
 ## Open Questions
