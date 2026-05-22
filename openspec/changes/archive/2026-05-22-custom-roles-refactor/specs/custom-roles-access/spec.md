@@ -1,22 +1,4 @@
-# custom-roles-access
-
-## Purpose
-Define fixed custom-role authorization policies for the four customer roles,
-including menu visibility, page action visibility, controller/API enforcement,
-seeded role records, and role constants.
-
-Source change: `openspec/changes/archive/2026-05-21-custom-roles/`
-## Requirements
-### Requirement: Custom operational roles SHALL be assignable role types
-The system SHALL define and seed assignable role records for `ROLE_FACILITY_STOREKEEPER`, `ROLE_REGIONAL_WAREHOUSE`, `ROLE_RPC_SUPERUSER`, and `ROLE_REPORTING_USER`. The backend `RoleType` enum and frontend role constants SHALL expose the same role identifiers.
-
-#### Scenario: Custom roles are available for assignment
-- **WHEN** an administrator opens user role assignment for a location
-- **THEN** the role options SHALL include Facility Storekeeper, Regional Warehouse User, RPC Superuser, and Reporting User
-
-#### Scenario: Frontend and backend use matching role identifiers
-- **WHEN** the session payload includes one of the custom role identifiers
-- **THEN** frontend permission checks SHALL evaluate the same identifier used by backend authorization checks
+## MODIFIED Requirements
 
 ### Requirement: Facility Storekeeper SHALL follow the approved access matrix
 The system SHALL enforce the Facility Storekeeper policy:
@@ -84,32 +66,6 @@ The system SHALL enforce the Regional Warehouse User policy:
 - **THEN** read access SHALL be allowed
 - **AND** product create, update, import, preference, and delete actions SHALL be hidden or denied
 
-### Requirement: RPC Superuser SHALL follow the approved access matrix
-The system SHALL enforce the RPC Superuser policy:
-
-| Module | Access |
-| ------ | ------ |
-| Dashboard | Read |
-| Inventory | Read/Write |
-| Purchasing | Read/Write |
-| Inbound | Read/Write |
-| Outbound | Read/Write |
-| Reporting | Read |
-| Products | Read/Write |
-| Stocklists | Read/Write |
-
-#### Scenario: RPC Superuser can use operational write workflows
-- **WHEN** an RPC Superuser performs inventory, purchasing, inbound, outbound, product, or stocklist write actions
-- **THEN** the actions SHALL be allowed when the user is authorized for the current location
-
-#### Scenario: RPC Superuser has read-only dashboard access
-- **WHEN** an RPC Superuser calls dashboard state-changing actions
-- **THEN** the request SHALL be denied
-
-#### Scenario: RPC Superuser can see write actions for allowed modules
-- **WHEN** an RPC Superuser opens list pages for purchasing, products, stock movements, or stocklists
-- **THEN** create, edit, import, and related write actions SHALL be visible for modules where the role has Read/Write access
-
 ### Requirement: Reporting User SHALL follow the approved access matrix
 The system SHALL enforce the Reporting User policy:
 
@@ -163,4 +119,3 @@ The system SHALL enforce custom role policy at menu visibility, page action visi
 - **WHEN** a custom-role-only user has the role assigned only at a location and logs in without a remembered warehouse
 - **THEN** the location chooser SHALL return the authorized locations for that user
 - **AND** the user SHALL NOT need a global default role or remembered warehouse to select an authorized location
-

@@ -11,15 +11,13 @@ package org.pih.warehouse
 
 import org.pih.warehouse.core.ActivityCode
 import org.pih.warehouse.core.Location
-import org.pih.warehouse.core.Role
 import org.pih.warehouse.core.RoleType
-import org.pih.warehouse.core.User
-import org.pih.warehouse.core.Location
 import org.pih.warehouse.core.User
 
 class AuthTagLib {
 
     def userService
+    def customRolePolicyService
 
     def supports = { attrs, body ->
         def warehouseInstance = Location.get(attrs.location ?: session.warehouse.id)
@@ -68,9 +66,25 @@ class AuthTagLib {
             out << body()
     }
     def canManageStocklists = { attrs, body ->
-        boolean hasRegionalWarehousePolicy = userService.hasRegionalWarehousePolicy(session?.user, session?.warehouse?.id)
-        boolean hasRpcSuperuserPolicy = userService.hasRpcSuperuserPolicy(session?.user, session?.warehouse?.id)
-        if (userService.isUserAdmin(session?.user) || hasRegionalWarehousePolicy || hasRpcSuperuserPolicy) {
+        if (userService.isUserAdmin(session?.user) ||
+                customRolePolicyService.canManageStocklists(session?.user, session?.warehouse?.id)) {
+            out << body()
+        }
+    }
+    def canSendStocklistEmail = { attrs, body ->
+        if (!customRolePolicyService.shouldHideStocklistEmail(session?.user, session?.warehouse?.id)) {
+            out << body()
+        }
+    }
+    def canCreateInboundMovement = { attrs, body ->
+        Map<String, Object> permissions = customRolePolicyService.getCustomRolePermissions(session?.user, session?.warehouse?.id)
+        if (permissions.canCreateInboundMovement) {
+            out << body()
+        }
+    }
+    def canCreateInboundFromPurchaseOrder = { attrs, body ->
+        Map<String, Object> permissions = customRolePolicyService.getCustomRolePermissions(session?.user, session?.warehouse?.id)
+        if (permissions.canCreateInboundFromPurchaseOrder) {
             out << body()
         }
     }

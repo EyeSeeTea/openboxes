@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 
+import { getCustomRolePermissions } from 'custom/roles/customRolePermissions';
 import PropTypes from 'prop-types';
 import {
   RiDeleteBinLine,
@@ -32,8 +33,7 @@ const StockListTable = ({
   filterParams,
   translate,
   highestRole,
-  hasRegionalWarehousePolicy,
-  hasRpcSuperuserPolicy,
+  customRolePermissions,
 }) => {
   const {
     tableData,
@@ -49,11 +49,12 @@ const StockListTable = ({
     exportStockListItems,
   } = useStockListTableData(filterParams);
 
+  const permissions = getCustomRolePermissions({ customRolePermissions });
+
   const customActionFilter = ({ isPublished, requiresStocklistWrite }, row) => {
-    const canWriteStocklists = hasRegionalWarehousePolicy ||
-      hasRpcSuperuserPolicy ||
-      highestRole === 'Admin' ||
-      highestRole === 'Superuser';
+    const canWriteStocklists = permissions.canManageStocklists
+      || highestRole === 'Admin'
+      || highestRole === 'Superuser';
     if (requiresStocklistWrite && !canWriteStocklists) return false;
     // skip actions that don't have isPublished property
     if (isPublished === undefined) return true;
@@ -232,7 +233,7 @@ const StockListTable = ({
       accessor: 'lastUpdated',
       width: 150,
     },
-  ], [highestRole, hasRegionalWarehousePolicy, hasRpcSuperuserPolicy]);
+  ], [highestRole, permissions.canManageStocklists]);
 
   return (
     <div className="list-page-list-section">
@@ -272,8 +273,7 @@ const StockListTable = ({
 const mapStateToProps = (state) => ({
   translate: translateWithDefaultMessage(getTranslate(state.localize)),
   highestRole: state.session.highestRole,
-  hasRegionalWarehousePolicy: state.session.hasRegionalWarehousePolicy,
-  hasRpcSuperuserPolicy: state.session.hasRpcSuperuserPolicy,
+  customRolePermissions: state.session.customRolePermissions,
 });
 
 export default connect(mapStateToProps)(StockListTable);
@@ -282,6 +282,12 @@ StockListTable.propTypes = {
   filterParams: PropTypes.shape({}).isRequired,
   translate: PropTypes.func.isRequired,
   highestRole: PropTypes.string.isRequired,
-  hasRegionalWarehousePolicy: PropTypes.bool.isRequired,
-  hasRpcSuperuserPolicy: PropTypes.bool.isRequired,
+  customRolePermissions: PropTypes.shape({
+    activeCustomRolePolicy: PropTypes.string,
+    canManageStocklists: PropTypes.bool,
+  }),
+};
+
+StockListTable.defaultProps = {
+  customRolePermissions: undefined,
 };

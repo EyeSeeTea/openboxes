@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { getCustomRolePermissions } from 'custom/roles/customRolePermissions';
 import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 
@@ -10,56 +11,62 @@ import Translate from 'utils/Translate';
 const StockMovementOutboundHeader = ({
   showMyStockMovements,
   isRequestsOpen,
-  hasReportingUserPolicy,
-}) => (
-  <div className="d-flex list-page-header">
-    <span className="d-flex align-self-center title">
-      {
-        isRequestsOpen
-          ? (
+  customRolePermissions,
+}) => {
+  const permissions = getCustomRolePermissions({ customRolePermissions });
+  return (
+    <div className="d-flex list-page-header">
+      <span className="d-flex align-self-center title">
+        {
+          isRequestsOpen
+            ? (
+              <Translate
+                id="react.stockMovement.request.list.label"
+                defaultMessage="Request List"
+              />
+            )
+            : (
+              <Translate
+                id="react.stockMovement.outbound.list.label"
+                defaultMessage="Outbound Movement List"
+              />
+            )
+        }
+      </span>
+      <div className="d-flex justify-content-end buttons align-items-center">
+        <Button
+          defaultLabel="My Stock Movements"
+          variant="primary-outline"
+          label="react.stockMovement.myStockMovement.label"
+          onClick={showMyStockMovements}
+        />
+        {permissions.canCreateOutboundMovement && (
+          <Link
+            className="primary-button"
+            to={STOCK_MOVEMENT_URL.createOutbound()}
+          >
             <Translate
-              id="react.stockMovement.request.list.label"
-              defaultMessage="Request List"
+              id="react.stockMovement.createStockMovement.label"
+              defaultMessage="Create Stock Movement"
             />
-          )
-          : (
-            <Translate
-              id="react.stockMovement.outbound.list.label"
-              defaultMessage="Outbound Movement List"
-            />
-          )
-      }
-    </span>
-    <div className="d-flex justify-content-end buttons align-items-center">
-      <Button
-        defaultLabel="My Stock Movements"
-        variant="primary-outline"
-        label="react.stockMovement.myStockMovement.label"
-        onClick={showMyStockMovements}
-      />
-      {!hasReportingUserPolicy && (
-        <Link
-          className="primary-button"
-          to={STOCK_MOVEMENT_URL.createOutbound()}
-        >
-          <Translate
-            id="react.stockMovement.createStockMovement.label"
-            defaultMessage="Create Stock Movement"
-          />
-        </Link>
-      )}
+          </Link>
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 StockMovementOutboundHeader.propTypes = {
   showMyStockMovements: PropTypes.func.isRequired,
   isRequestsOpen: PropTypes.bool.isRequired,
-  hasReportingUserPolicy: PropTypes.bool,
+  customRolePermissions: PropTypes.shape({
+    activeCustomRolePolicy: PropTypes.string,
+    canCreateOutboundMovement: PropTypes.bool,
+  }),
 };
 
 StockMovementOutboundHeader.defaultProps = {
-  hasReportingUserPolicy: false,
+  customRolePermissions: undefined,
 };
 
 export default StockMovementOutboundHeader;

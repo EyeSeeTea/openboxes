@@ -26,6 +26,7 @@ import org.grails.plugins.web.taglib.ApplicationTagLib
 class UserService {
 
     def authService
+    def customRolePolicyService
     def dataSource
     GrailsApplication grailsApplication
 
@@ -199,7 +200,7 @@ class UserService {
 
     Boolean canUserBrowse(User u) {
         if (u) {
-            def user = User.get(u.id)
+            User user = resolveUser(u)
             Set<String> roleNames = [
                     RoleType.ROLE_SUPERUSER.name(),
                     RoleType.ROLE_ADMIN.name(),
@@ -211,7 +212,10 @@ class UserService {
                     RoleType.ROLE_RPC_SUPERUSER.name(),
                     RoleType.ROLE_REPORTING_USER.name()
             ] as Set<String>
-            return getEffectiveRoles(user).any { Role role -> roleNames.contains(role.roleType?.name()) }
+            Set<String> effectiveRoleNames = (getEffectiveRoles(user)*.roleType*.name()).findAll { it } as Set<String>
+            Set<String> allRoleNames = (user?.getAllRoles()*.roleType*.name()).findAll { it } as Set<String>
+            Set<String> combinedRoleNames = (effectiveRoleNames + allRoleNames) as Set<String>
+            return combinedRoleNames.any { roleNames.contains(it) }
         }
         return false
     }
@@ -304,71 +308,19 @@ class UserService {
     }
 
     Boolean hasFacilityStorekeeperPolicy(User u, String locationId) {
-        if (u) {
-            def user = User.get(u.id)
-            Location location = Location.get(locationId)
-            Set<String> effectiveRoleNames = (getEffectiveRoles(user, location)*.roleType*.name()).findAll { it } as Set<String>
-            Set<String> higherCoreRoleNames = [
-                    RoleType.ROLE_SUPERUSER.name(),
-                    RoleType.ROLE_ADMIN.name(),
-                    RoleType.ROLE_MANAGER.name(),
-                    RoleType.ROLE_ASSISTANT.name()
-            ]
-            return effectiveRoleNames.contains(RoleType.ROLE_FACILITY_STOREKEEPER.name()) &&
-                    !effectiveRoleNames.any { higherCoreRoleNames.contains(it) }
-        }
-        return false
+        return Boolean.TRUE.equals(customRolePolicyService.hasCustomPolicy(u, locationId, RoleType.ROLE_FACILITY_STOREKEEPER))
     }
 
     Boolean hasRegionalWarehousePolicy(User u, String locationId) {
-        if (u) {
-            def user = User.get(u.id)
-            Location location = Location.get(locationId)
-            Set<String> effectiveRoleNames = (getEffectiveRoles(user, location)*.roleType*.name()).findAll { it } as Set<String>
-            Set<String> higherCoreRoleNames = [
-                    RoleType.ROLE_SUPERUSER.name(),
-                    RoleType.ROLE_ADMIN.name(),
-                    RoleType.ROLE_MANAGER.name(),
-                    RoleType.ROLE_ASSISTANT.name()
-            ]
-            return effectiveRoleNames.contains(RoleType.ROLE_REGIONAL_WAREHOUSE.name()) &&
-                    !effectiveRoleNames.any { higherCoreRoleNames.contains(it) }
-        }
-        return false
+        return Boolean.TRUE.equals(customRolePolicyService.hasCustomPolicy(u, locationId, RoleType.ROLE_REGIONAL_WAREHOUSE))
     }
 
     Boolean hasRpcSuperuserPolicy(User u, String locationId) {
-        if (u) {
-            def user = User.get(u.id)
-            Location location = Location.get(locationId)
-            Set<String> effectiveRoleNames = (getEffectiveRoles(user, location)*.roleType*.name()).findAll { it } as Set<String>
-            Set<String> higherCoreRoleNames = [
-                    RoleType.ROLE_SUPERUSER.name(),
-                    RoleType.ROLE_ADMIN.name(),
-                    RoleType.ROLE_MANAGER.name(),
-                    RoleType.ROLE_ASSISTANT.name()
-            ]
-            return effectiveRoleNames.contains(RoleType.ROLE_RPC_SUPERUSER.name()) &&
-                    !effectiveRoleNames.any { higherCoreRoleNames.contains(it) }
-        }
-        return false
+        return Boolean.TRUE.equals(customRolePolicyService.hasCustomPolicy(u, locationId, RoleType.ROLE_RPC_SUPERUSER))
     }
 
     Boolean hasReportingUserPolicy(User u, String locationId) {
-        if (u) {
-            def user = User.get(u.id)
-            Location location = Location.get(locationId)
-            Set<String> effectiveRoleNames = (getEffectiveRoles(user, location)*.roleType*.name()).findAll { it } as Set<String>
-            Set<String> higherCoreRoleNames = [
-                    RoleType.ROLE_SUPERUSER.name(),
-                    RoleType.ROLE_ADMIN.name(),
-                    RoleType.ROLE_MANAGER.name(),
-                    RoleType.ROLE_ASSISTANT.name()
-            ]
-            return effectiveRoleNames.contains(RoleType.ROLE_REPORTING_USER.name()) &&
-                    !effectiveRoleNames.any { higherCoreRoleNames.contains(it) }
-        }
-        return false
+        return Boolean.TRUE.equals(customRolePolicyService.hasCustomPolicy(u, locationId, RoleType.ROLE_REPORTING_USER))
     }
 
     // Checks if requestor role exist for any location - for location chooser purposes
@@ -569,7 +521,15 @@ class UserService {
     }
 
     public def getEffectiveRoles(User user, Location location) {
-        return user.getEffectiveRoles(location)
+        User persistentUser = resolveUser(user)
+        return persistentUser?.getEffectiveRoles(location) ?: []
+    }
+
+    private User resolveUser(User user) {
+        if (!user?.id) {
+            return user
+        }
+        return User.get(user.id) ?: user
     }
 
 

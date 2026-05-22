@@ -31,6 +31,7 @@ import java.text.SimpleDateFormat
 class ApiController {
 
     def userService
+    def customRolePolicyService
     def helpScoutService
     def localizationService
     GrailsApplication grailsApplication
@@ -91,9 +92,10 @@ class ApiController {
         Map menuSectionsUrlParts = grailsApplication.config.openboxes.menuSectionsUrlParts
         User user = User.get(session?.user?.id)
 
-        boolean hasFacilityStorekeeperPolicy = userService.hasFacilityStorekeeperPolicy(user, session?.warehouse?.id)
-        boolean hasRegionalWarehousePolicy = userService.hasRegionalWarehousePolicy(user, session?.warehouse?.id)
-        boolean hasRpcSuperuserPolicy = userService.hasRpcSuperuserPolicy(user, session?.warehouse?.id)
+        Map<String, Boolean> customRolePolicyFlags = customRolePolicyService.getPolicyFlags(user, session?.warehouse?.id)
+        boolean hasFacilityStorekeeperPolicy = customRolePolicyFlags.hasFacilityStorekeeperPolicy
+        boolean hasRegionalWarehousePolicy = customRolePolicyFlags.hasRegionalWarehousePolicy
+        boolean hasRpcSuperuserPolicy = customRolePolicyFlags.hasRpcSuperuserPolicy
         if (userService.hasHighestRole(user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED) &&
                 !hasFacilityStorekeeperPolicy &&
                 !hasRegionalWarehousePolicy &&
@@ -168,16 +170,12 @@ class ApiController {
         // TODO: investigate why in isUserManager method in userService there is Assistant role included
         ArrayList<RoleType> managerRoles = [RoleType.ROLE_SUPERUSER, RoleType.ROLE_ADMIN, RoleType.ROLE_MANAGER]
         boolean isUserManager = userService.getEffectiveRoles(user).any { managerRoles.contains(it.roleType) }
-        boolean hasRpcSuperuserPolicy = userService.hasRpcSuperuserPolicy(session?.user, session.warehouse?.id)
-        boolean hasRegionalWarehousePolicy = !hasRpcSuperuserPolicy &&
-                userService.hasRegionalWarehousePolicy(session?.user, session.warehouse?.id)
-        boolean hasReportingUserPolicy = !hasRpcSuperuserPolicy &&
-                !hasRegionalWarehousePolicy &&
-                userService.hasReportingUserPolicy(session?.user, session.warehouse?.id)
-        boolean hasFacilityStorekeeperPolicy = !hasRpcSuperuserPolicy &&
-                !hasRegionalWarehousePolicy &&
-                !hasReportingUserPolicy &&
-                userService.hasFacilityStorekeeperPolicy(session?.user, session.warehouse?.id)
+        Map<String, Boolean> customRolePolicyFlags = customRolePolicyService.getPolicyFlags(session?.user, session.warehouse?.id)
+        boolean hasFacilityStorekeeperPolicy = customRolePolicyFlags.hasFacilityStorekeeperPolicy
+        boolean hasRegionalWarehousePolicy = customRolePolicyFlags.hasRegionalWarehousePolicy
+        boolean hasRpcSuperuserPolicy = customRolePolicyFlags.hasRpcSuperuserPolicy
+        boolean hasReportingUserPolicy = customRolePolicyFlags.hasReportingUserPolicy
+        Map<String, Object> customRolePermissions = customRolePolicyService.getCustomRolePermissions(session?.user, session.warehouse?.id)
         def supportedActivities = location.supportedActivities ?: location.locationType.supportedActivities
         boolean isImpersonated = session.impersonateUserId ? true : false
         def buildNumber = gitProperties.shortCommitId
@@ -227,6 +225,7 @@ class ApiController {
                 hasRegionalWarehousePolicy    : hasRegionalWarehousePolicy,
                 hasRpcSuperuserPolicy         : hasRpcSuperuserPolicy,
                 hasReportingUserPolicy        : hasReportingUserPolicy,
+                customRolePermissions         : customRolePermissions,
                 supportedActivities           : supportedActivities,
                 isImpersonated                : isImpersonated,
                 grailsVersion                 : grailsVersion,

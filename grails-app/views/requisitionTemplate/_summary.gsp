@@ -114,11 +114,13 @@
 						</g:link>
 					</g:else>
 				</g:canManageStocklists>
-				<g:link controller="requisitionTemplate" action="sendMail" id="${requisition?.id}" class="button">
-					<img src="${resource(dir:'images/icons/silk',file:'email.png')}" />
-					${warehouse.message(code: 'default.button.email.label')}
-				</g:link>
-			</div>
+					<g:canSendStocklistEmail>
+						<g:link controller="requisitionTemplate" action="sendMail" id="${requisition?.id}" class="button">
+							<img src="${resource(dir:'images/icons/silk',file:'email.png')}" />
+							${warehouse.message(code: 'default.button.email.label')}
+						</g:link>
+					</g:canSendStocklistEmail>
+				</div>
 
 			<span class="action-menu" style="margin-left: 15px">
 				<button class="action-btn button">

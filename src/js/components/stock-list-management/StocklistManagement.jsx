@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 
+import { getCustomRolePermissions } from 'custom/roles/customRolePermissions';
 import update from 'immutability-helper';
 import _ from 'lodash';
 import PropTypes from 'prop-types';
@@ -222,9 +223,8 @@ class StocklistManagement extends Component {
 
   render() {
     const { data } = this.state;
-    const canWriteStocklists = this.props.isUserAdmin
-      || this.props.hasRegionalWarehousePolicy
-      || this.props.hasRpcSuperuserPolicy;
+    const permissions = getCustomRolePermissions({ customRolePermissions: this.props.customRolePermissions });
+    const canWriteStocklists = this.props.isUserAdmin || permissions.canManageStocklists;
     return (
       <div className="main-container">
         { this.state.productInfo
@@ -635,8 +635,7 @@ const mapStateToProps = (state) => ({
   locale: state.session.activeLanguage,
   stockListManagementTranslationsFetched: state.session.fetchedTranslations.stockListManagement,
   isUserAdmin: state.session.isUserAdmin,
-  hasRegionalWarehousePolicy: state.session.hasRegionalWarehousePolicy,
-  hasRpcSuperuserPolicy: state.session.hasRpcSuperuserPolicy,
+  customRolePermissions: state.session.customRolePermissions,
 });
 
 export default connect(mapStateToProps, {
@@ -657,6 +656,12 @@ StocklistManagement.propTypes = {
   stockListManagementTranslationsFetched: PropTypes.bool.isRequired,
   fetchTranslations: PropTypes.func.isRequired,
   isUserAdmin: PropTypes.bool.isRequired,
-  hasRegionalWarehousePolicy: PropTypes.bool.isRequired,
-  hasRpcSuperuserPolicy: PropTypes.bool.isRequired,
+  customRolePermissions: PropTypes.shape({
+    activeCustomRolePolicy: PropTypes.string,
+    canManageStocklists: PropTypes.bool,
+  }),
+};
+
+StocklistManagement.defaultProps = {
+  customRolePermissions: undefined,
 };

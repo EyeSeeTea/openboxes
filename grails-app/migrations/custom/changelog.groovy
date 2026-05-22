@@ -6,14 +6,14 @@
  *
  *   1. Drop a file under grails-app/migrations/custom/<yyyy-mm-dd>-<feature>.groovy
  *      with a `databaseChangeLog = { changeSet(...) { ... rollback { ... } } }` block.
- *   2. Append a one-line `include file: '<yyyy-mm-dd>-<feature>.groovy'` below.
+ *   2. Append a one-line `include file: 'custom/<yyyy-mm-dd>-<feature>.groovy'` below.
  *
  * Order include lines by FK dependency (target tables above holder tables).
  * See .claude/rules/custom-package-isolation.md for the full rules.
  */
 databaseChangeLog = {
-    include file: '2026-05-15-add-facility-storekeeper-role.groovy'
-    include file: '2026-05-19-add-regional-warehouse-role.groovy'
-    include file: '2026-05-20-add-rpc-superuser-role.groovy'
-    include file: '2026-05-20-add-reporting-user-role.groovy'
+    include file: 'custom/2026-05-15-add-facility-storekeeper-role.groovy'
+    include file: 'custom/2026-05-19-add-regional-warehouse-role.groovy'
+    include file: 'custom/2026-05-20-add-rpc-superuser-role.groovy'
+    include file: 'custom/2026-05-20-add-reporting-user-role.groovy'
 }

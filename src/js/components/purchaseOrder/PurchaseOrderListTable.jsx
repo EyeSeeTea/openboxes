@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 
+import { getCustomRolePermissions } from 'custom/roles/customRolePermissions';
 import PropTypes from 'prop-types';
 import {
   RiArrowGoBackLine,
@@ -32,8 +33,7 @@ import 'react-confirm-alert/src/react-confirm-alert.css';
 const PurchaseOrderListTable = ({
   supportedActivities,
   highestRole,
-  hasRpcSuperuserPolicy,
-  hasFacilityStorekeeperPolicy,
+  customRolePermissions,
   translate,
   currencyCode,
   allStatuses,
@@ -51,7 +51,10 @@ const PurchaseOrderListTable = ({
     downloadOrders,
     onFetchHandler,
   } = usePurchaseOrderListTableData(filterParams);
-  const effectiveHighestRole = hasRpcSuperuserPolicy ? 'Superuser' : highestRole;
+  const permissions = getCustomRolePermissions({ customRolePermissions });
+  const effectiveHighestRole = permissions.activeCustomRolePolicy === 'ROLE_RPC_SUPERUSER'
+    ? 'Superuser'
+    : highestRole;
 
   const getStatusTooltip = (status) => translate(
     `react.purchaseOrder.status.${status.toLowerCase()}.description.label`,
@@ -84,7 +87,7 @@ const PurchaseOrderListTable = ({
       label: 'react.purchaseOrder.edit.label',
       defaultLabel: 'Edit order',
       leftIcon: <RiPencilLine />,
-      hiddenForFacilityStorekeeper: true,
+      requiresPurchasingWrite: true,
       statuses: ['PENDING'],
       activityCode: ['PLACE_ORDER'],
       href: PURCHASE_ORDER_URL.edit,
@@ -93,7 +96,7 @@ const PurchaseOrderListTable = ({
       label: 'react.purchaseOrder.editLineItems.label',
       defaultLabel: 'Edit line items',
       leftIcon: <RiListUnordered />,
-      hiddenForFacilityStorekeeper: true,
+      requiresPurchasingWrite: true,
       statuses: ['PENDING'],
       activityCode: ['PLACE_ORDER'],
       href: PURCHASE_ORDER_URL.addItems,
@@ -102,7 +105,7 @@ const PurchaseOrderListTable = ({
       label: 'react.purchaseOrder.placeOrder.label',
       defaultLabel: 'Place order',
       leftIcon: <RiShoppingCartLine />,
-      hiddenForFacilityStorekeeper: true,
+      requiresPurchasingWrite: true,
       statuses: ['PENDING'],
       activityCode: ['PLACE_ORDER'],
       href: ORDER_URL.placeOrder,
@@ -118,7 +121,7 @@ const PurchaseOrderListTable = ({
       label: 'react.purchaseOrder.cancelOrder.label',
       defaultLabel: 'Cancel order',
       leftIcon: <RiCloseLine />,
-      hiddenForFacilityStorekeeper: true,
+      requiresPurchasingWrite: true,
       activityCode: ['PLACE_ORDER'],
       onClick: () => cancelOrder(),
     },
@@ -126,7 +129,7 @@ const PurchaseOrderListTable = ({
       label: 'react.purchaseOrder.rollbackOrder.label',
       defaultLabel: 'Rollback Order',
       leftIcon: <RiArrowGoBackLine />,
-      hiddenForFacilityStorekeeper: true,
+      requiresPurchasingWrite: true,
       minimumRequiredRole: 'Superuser',
       activityCode: ['PLACE_ORDER'],
       // Display for statuses > PENDING
@@ -138,7 +141,7 @@ const PurchaseOrderListTable = ({
       label: 'react.purchaseOrder.delete.label',
       defaultLabel: 'Delete',
       leftIcon: <RiDeleteBinLine />,
-      hiddenForFacilityStorekeeper: true,
+      requiresPurchasingWrite: true,
       minimumRequiredRole: 'Assistant',
       variant: 'danger',
       onClick: (id) => deleteHandler(id),
@@ -164,7 +167,7 @@ const PurchaseOrderListTable = ({
             supportedActivities,
             highestRole: effectiveHighestRole,
             customFilter: (action) =>
-              !(hasFacilityStorekeeperPolicy && action.hiddenForFacilityStorekeeper),
+              permissions.canManagePurchasing || !action.requiresPurchasingWrite,
           })}
           id={row.original.id}
         />
@@ -314,7 +317,7 @@ const PurchaseOrderListTable = ({
       sortable: false,
       minWidth: 260,
     },
-  ], [supportedActivities, effectiveHighestRole, actions, hasFacilityStorekeeperPolicy]);
+  ], [supportedActivities, effectiveHighestRole, actions, permissions.canManagePurchasing]);
 
   const totalAmount = () => `${translate('react.purchaseOrder.totalAmount.label', 'Total amount')}: ${tableData.totalPrice.toLocaleString([locale, 'en'])} ${currencyCode}`;
 
@@ -386,8 +389,7 @@ const PurchaseOrderListTable = ({
 const mapStateToProps = (state) => ({
   supportedActivities: state.session.supportedActivities,
   highestRole: state.session.highestRole,
-  hasRpcSuperuserPolicy: state.session.hasRpcSuperuserPolicy,
-  hasFacilityStorekeeperPolicy: state.session.hasFacilityStorekeeperPolicy,
+  customRolePermissions: state.session.customRolePermissions,
   translate: translateWithDefaultMessage(getTranslate(state.localize)),
   currencyCode: state.session.currencyCode,
   allStatuses: state.purchaseOrder.statuses,
@@ -400,8 +402,10 @@ PurchaseOrderListTable.propTypes = {
   filterParams: PropTypes.shape({}).isRequired,
   supportedActivities: PropTypes.arrayOf(PropTypes.string).isRequired,
   highestRole: PropTypes.string.isRequired,
-  hasRpcSuperuserPolicy: PropTypes.bool.isRequired,
-  hasFacilityStorekeeperPolicy: PropTypes.bool,
+  customRolePermissions: PropTypes.shape({
+    activeCustomRolePolicy: PropTypes.string,
+    canManagePurchasing: PropTypes.bool,
+  }),
   translate: PropTypes.func.isRequired,
   currencyCode: PropTypes.string.isRequired,
   allStatuses: PropTypes.arrayOf(PropTypes.shape({
@@ -414,5 +418,5 @@ PurchaseOrderListTable.propTypes = {
 };
 
 PurchaseOrderListTable.defaultProps = {
-  hasFacilityStorekeeperPolicy: false,
+  customRolePermissions: undefined,
 };

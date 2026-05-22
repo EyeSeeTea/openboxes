@@ -30,12 +30,14 @@
 							<warehouse:message code="default.create.label" args="[g.message(code: 'order.label')]" default="Create purchase order" />
 						</g:link>
 					</g:supports>
-					<g:link data-testid="create-shipment-button" controller="stockMovement" action="createCombinedShipments" class="button" params="[direction:'INBOUND']">
-						<img src="${resource(dir: 'images/icons/silk', file: 'add.png')}" />&nbsp;
-						<warehouse:message code="default.create.label" args="[warehouse.message(code: 'shipmentFromPO.label')]"/>
-					</g:link>
-				</g:isUserInRole>
-			</div>
+						<g:canCreateInboundFromPurchaseOrder>
+							<g:link data-testid="create-shipment-button" controller="stockMovement" action="createCombinedShipments" class="button" params="[direction:'INBOUND']">
+								<img src="${resource(dir: 'images/icons/silk', file: 'add.png')}" />&nbsp;
+								<warehouse:message code="default.create.label" args="[warehouse.message(code: 'shipmentFromPO.label')]"/>
+							</g:link>
+						</g:canCreateInboundFromPurchaseOrder>
+					</g:isUserInRole>
+				</div>
 
 			<div class="yui-gf">
 				<div class="yui-u first">

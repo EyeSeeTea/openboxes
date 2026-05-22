@@ -1,4 +1,5 @@
 import _ from 'lodash';
+import { DEFAULT_CUSTOM_ROLE_PERMISSIONS } from 'custom/roles/customRolePermissions';
 
 import {
   CHANGE_CURRENT_LOCALE,
@@ -28,6 +29,7 @@ const initialState = {
   hasRegionalWarehousePolicy: false,
   hasRpcSuperuserPolicy: false,
   hasReportingUserPolicy: false,
+  customRolePermissions: DEFAULT_CUSTOM_ROLE_PERMISSIONS,
   supportedActivities: [],
   menuConfig: [],
   menuSectionsUrlParts: {},
@@ -107,6 +109,7 @@ export default function (state = initialState, action) {
         hasRegionalWarehousePolicy: _.get(action, 'payload.data.data.hasRegionalWarehousePolicy', false),
         hasRpcSuperuserPolicy: _.get(action, 'payload.data.data.hasRpcSuperuserPolicy', false),
         hasReportingUserPolicy: _.get(action, 'payload.data.data.hasReportingUserPolicy', false),
+        customRolePermissions: _.get(action, 'payload.data.data.customRolePermissions', state.customRolePermissions),
         supportedActivities: _.get(action, 'payload.data.data.supportedActivities'),
         activeLanguage: _.get(action, 'payload.data.data.activeLanguage'),
         activeLanguageTag: _.get(action, 'payload.data.data.activeLanguageTag'),

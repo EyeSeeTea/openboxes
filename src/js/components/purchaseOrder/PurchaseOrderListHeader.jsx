@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { getCustomRolePermissions } from 'custom/roles/customRolePermissions';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { withRouter } from 'react-router-dom';
@@ -11,37 +12,41 @@ import Translate from 'utils/Translate';
 const PurchaseOrderListHeader = ({
   history,
   supportedActivities,
-  hasFacilityStorekeeperPolicy,
-}) => (
-  <div className="d-flex list-page-header">
-    <span className="d-flex align-self-center title">
-      <Translate id="react.purchaseOrder.list.label" defaultMessage="Purchase Order List" />
-    </span>
-    <div className="d-flex justify-content-end buttons align-items-center">
-      {!hasFacilityStorekeeperPolicy && (
-      <Button
-        defaultLabel="Create Shipment from PO"
-        label="react.purchaseOrder.createShipmentFromPo.label"
-        onClick={() => history.push({ pathname: STOCK_MOVEMENT_URL.createCombinedShipments(), search: 'direction=INBOUND' })}
-      />
-      )}
-      {supportedActivities.includes('PLACE_ORDER') && !hasFacilityStorekeeperPolicy
-        && (
-        <a href={ORDER_URL.create()}>
-          <Button
-            defaultLabel="Create Order"
-            label="react.purchaseOrder.createOrder.label"
-          />
-        </a>
-        )}
+  customRolePermissions,
+}) => {
+  const permissions = getCustomRolePermissions({ customRolePermissions });
 
+  return (
+    <div className="d-flex list-page-header">
+      <span className="d-flex align-self-center title">
+        <Translate id="react.purchaseOrder.list.label" defaultMessage="Purchase Order List" />
+      </span>
+      <div className="d-flex justify-content-end buttons align-items-center">
+        {permissions.canCreateInboundFromPurchaseOrder && (
+          <Button
+            defaultLabel="Create Shipment from PO"
+            label="react.purchaseOrder.createShipmentFromPo.label"
+            onClick={() => history.push({ pathname: STOCK_MOVEMENT_URL.createCombinedShipments(), search: 'direction=INBOUND' })}
+          />
+        )}
+        {supportedActivities.includes('PLACE_ORDER') && permissions.canManagePurchasing
+          && (
+          <a href={ORDER_URL.create()}>
+            <Button
+              defaultLabel="Create Order"
+              label="react.purchaseOrder.createOrder.label"
+            />
+          </a>
+          )}
+
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const mapStateToProps = (state) => ({
   supportedActivities: state.session.supportedActivities,
-  hasFacilityStorekeeperPolicy: state.session.hasFacilityStorekeeperPolicy,
+  customRolePermissions: state.session.customRolePermissions,
 });
 
 export default withRouter(connect(mapStateToProps)(PurchaseOrderListHeader));
@@ -51,9 +56,13 @@ PurchaseOrderListHeader.propTypes = {
     push: PropTypes.func.isRequired,
   }).isRequired,
   supportedActivities: PropTypes.arrayOf(PropTypes.string).isRequired,
-  hasFacilityStorekeeperPolicy: PropTypes.bool,
+  customRolePermissions: PropTypes.shape({
+    activeCustomRolePolicy: PropTypes.string,
+    canCreateInboundFromPurchaseOrder: PropTypes.bool,
+    canManagePurchasing: PropTypes.bool,
+  }),
 };
 
 PurchaseOrderListHeader.defaultProps = {
-  hasFacilityStorekeeperPolicy: false,
+  customRolePermissions: undefined,
 };
