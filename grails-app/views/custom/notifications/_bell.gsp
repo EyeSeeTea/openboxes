@@ -188,9 +188,11 @@
         modalBody.innerHTML = '';
         if (n.body && n.body.trim()) {
             var frame = document.createElement('iframe');
-            frame.setAttribute('sandbox', '');
+            // allow-popups lets links escape the sessionless frame; base target="_blank"
+            // forces them into a real browser tab instead of navigating inside the iframe.
+            frame.setAttribute('sandbox', 'allow-popups allow-popups-to-escape-sandbox');
             frame.setAttribute('title', n.title || '');
-            frame.setAttribute('srcdoc', n.body);
+            frame.setAttribute('srcdoc', '<base target="_blank">' + n.body);
             modalBody.appendChild(frame);
         } else {
             var p = document.createElement('p');

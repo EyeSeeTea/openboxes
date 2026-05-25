@@ -45,11 +45,11 @@ describe('NotificationModal', () => {
       expect(screen.getByText('Low stock alert')).toBeInTheDocument();
     });
 
-    it('renders the HTML body inside a sandboxed iframe', () => {
+    it('renders the HTML body inside a sandboxed iframe with links opening in new tabs', () => {
       renderModal();
       const frame = document.querySelector('.notification-modal__frame');
-      expect(frame).toHaveAttribute('sandbox', '');
-      expect(frame).toHaveAttribute('srcdoc', '<p>Stock is below threshold.</p>');
+      expect(frame).toHaveAttribute('sandbox', 'allow-popups allow-popups-to-escape-sandbox');
+      expect(frame).toHaveAttribute('srcdoc', '<base target="_blank"><p>Stock is below threshold.</p>');
     });
 
     it('renders createdAt value', () => {

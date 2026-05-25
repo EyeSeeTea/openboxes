@@ -74,14 +74,15 @@ const NotificationModal = ({
         </div>
         <div className="notification-modal__body">
           {hasBody ? (
-            // Reason: body is an email body (untrusted HTML). A sandboxed iframe with no
-            // allow-scripts token neutralizes scripts/handlers at the browser level and
-            // isolates the email's own CSS from the app — no sanitizer dependency needed.
+            // Reason: body is an email body (untrusted HTML). Sandboxed iframe isolates
+            // email CSS from the app and blocks scripts. allow-popups lets user-clicked
+            // links escape the frame; base target="_blank" forces them into a real browser
+            // tab (without it, links navigate inside the sessionless frame → login redirect).
             <iframe
               className="notification-modal__frame"
               title={notification.title}
-              sandbox=""
-              srcDoc={notification.body}
+              sandbox="allow-popups allow-popups-to-escape-sandbox"
+              srcDoc={`<base target="_blank">${notification.body}`}
             />
           ) : (
             <p className="notification-modal__no-body">
