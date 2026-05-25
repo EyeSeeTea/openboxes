@@ -58,7 +58,22 @@ This change moves the trigger from "an email was sent" to "the app decided to no
 
 **Rationale:** These are the semantic events. The `users`/`recipients`/`subscribers`/`recipient` variables are already in scope (the agent scan captured the variable per site). Recording there is email-independent and covers the high-value notifications in one file. Per-site `NotificationType` lets v2 typing land without re-touching these lines.
 
-**Per-site inventory (verified by agent scan; confirm exact lines at implementation time):** `NotificationService.groovy` ~lines 128, 131 (stock/expiry alerts, `subscribers`), 166 (shipment-items shipped, `recipient`), 175 (shipment notifications, `users`), 199–206 (receipt notifications, `recipient`), 221 (application error, `subscribers`), 237 (user-account creation, `recipients`), 252 (user-account confirmation, `userInstance`), 290 (requisition pending-approval, `recipient`), 302 (requisition status update, `recipient`), 312 (fulfillment, `requestor`).
+**Per-site inventory (VERIFIED against `NotificationService.groovy`, 10 methods):**
+
+| Method (line) | Recipients var | Type | Email guard to place the call *before/outside* |
+|---|---|---|---|
+| `sendAlerts` (116) | `subscribers` `List<User>` | `STOCK_ALERT` | `.collect{it.email}.findAll{it!=null}` at 118 — covers both expiry+stock callers |
+| `sendShipmentItemsShipped` (~162) | `recipient` (per-item `Person`) | `SHIPMENT` | `if (emailValidator.isValid(recipient?.email))` at 163 |
+| `sendShipmentNotifications` (171) | `users` `List<User>` | `SHIPMENT` | none (collect at 173) |
+| `sendReceiptNotifications` (~183) | `recipient` (per-item `Person`) | `SHIPMENT` | `if (emailValidator.isValid(recipient?.email))` at 184 |
+| `sendApplicationErrorNotification` (215) | `subscribers` | `SYSTEM` | none (collect at 216) |
+| `sendUserAccountCreation` (231) | `recipients` | `USER_ACCOUNT` | none (collect at 234) |
+| `sendUserAccountConfirmation` (245) | `userInstance` `User` | `USER_ACCOUNT` | `if (userInstance?.email)` at 248 |
+| `publishRequisitionPendingApprovalNotifications` (282) | `recipient` | `REQUISITION` | `if (recipient?.email)` at 287 |
+| `publishRequisitionStatusUpdateNotification` (295) | `recipient` `Person` | `REQUISITION` | `if (!recipient.email) return` at 296 |
+| `publishFulfillmentNotification` (306) | `requestor` `Person` | `FULFILLMENT` | `if (requestor.email)` at 310 |
+
+**Critical placement rule (refines the original D4):** 6 of the 10 sends are wrapped in `if (...email)` guards. To satisfy OQ1 (reach email-less users), the `notifyUsers(...)` call MUST be placed **outside/before** the email guard — not inside it — otherwise email-less recipients are skipped exactly as they are today. For the per-item loops (`sendShipmentItemsShipped`, `sendReceiptNotifications`) the call goes inside the `each` (so each `recipient` is captured) but before the `isValid(email)` check.
 
 ### D5. No schema, no frontend, no API change
 
