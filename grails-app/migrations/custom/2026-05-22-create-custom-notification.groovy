@@ -51,6 +51,10 @@ databaseChangeLog = {
             column(name: 'user_id')
             column(name: 'date_created')
         }
+        createIndex(indexName: 'idx_custom_notification_user_updated', tableName: 'custom_notification') {
+            column(name: 'user_id')
+            column(name: 'last_updated')
+        }
         rollback {
             dropTable(tableName: 'custom_notification')
         }
