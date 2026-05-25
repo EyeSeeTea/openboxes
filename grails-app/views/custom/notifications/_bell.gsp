@@ -328,7 +328,7 @@
         if (li) li.className = 'custom-notification-bell__item custom-notification-bell__item--read';
         setBadge(Math.max(0, currentBadgeCount() - 1));
         var url = markReadUrlTemplate.replace('__ID__', encodeURIComponent(id));
-        fetch(url, { method: 'PUT', credentials: 'same-origin' })
+        fetch(url, { method: 'PUT', credentials: 'same-origin', headers: ajaxHeaders })
             .catch(function() { /* swallow; next badge poll reconciles */ });
     }
     function markAllRead() {
@@ -337,7 +337,7 @@
             items[i].className = 'custom-notification-bell__item custom-notification-bell__item--read';
         }
         setBadge(0);
-        fetch(markAllUrl, { method: 'PUT', credentials: 'same-origin' })
+        fetch(markAllUrl, { method: 'PUT', credentials: 'same-origin', headers: ajaxHeaders })
             .catch(function() { /* swallow; next badge poll reconciles */ });
     }
 

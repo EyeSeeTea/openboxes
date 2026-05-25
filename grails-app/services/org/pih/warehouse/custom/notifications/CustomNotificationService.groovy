@@ -34,6 +34,9 @@ class CustomNotificationService {
                         log.error "custom_notification_record_failed user_id='${user.id}' errors=${notification.errors.allErrors*.code}"
                     }
                 } catch (Exception ex) {
+                    // Catches runtime exceptions only. Hibernate constraint violations mark
+                    // the transaction for rollback before this catch executes, so a DB-level
+                    // failure can still roll back the entire batch.
                     log.error "custom_notification_record_failed user_id='${user?.id}' title='${title}'", ex
                 }
             }

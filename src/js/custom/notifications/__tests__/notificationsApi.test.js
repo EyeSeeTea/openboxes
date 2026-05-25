@@ -24,7 +24,7 @@ describe('notificationsApi', () => {
       apiClient.get.mockResolvedValueOnce({ data: { data: [] } });
       getNotifications();
       expect(apiClient.get).toHaveBeenCalledWith(BASE_URL, {
-        params: { unreadOnly: false, limit: 20 },
+        params: { unreadOnly: false, limit: 20, offset: 0 },
       });
     });
 
@@ -32,7 +32,15 @@ describe('notificationsApi', () => {
       apiClient.get.mockResolvedValueOnce({ data: { data: [] } });
       getNotifications({ unreadOnly: true, limit: 5 });
       expect(apiClient.get).toHaveBeenCalledWith(BASE_URL, {
-        params: { unreadOnly: true, limit: 5 },
+        params: { unreadOnly: true, limit: 5, offset: 0 },
+      });
+    });
+
+    it('forwards a non-zero offset', () => {
+      apiClient.get.mockResolvedValueOnce({ data: { data: [] } });
+      getNotifications({ offset: 20 });
+      expect(apiClient.get).toHaveBeenCalledWith(BASE_URL, {
+        params: { unreadOnly: false, limit: 20, offset: 20 },
       });
     });
   });

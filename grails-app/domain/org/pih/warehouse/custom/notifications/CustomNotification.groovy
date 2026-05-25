@@ -28,6 +28,7 @@ class CustomNotification {
         table 'custom_notification'
         id generator: 'uuid'
         user column: 'user_id'
+        body type: 'text'
         isRead column: 'is_read'
         readAt column: 'read_at'
         dateCreated column: 'date_created'

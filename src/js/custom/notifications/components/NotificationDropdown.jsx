@@ -27,6 +27,7 @@ const NotificationDropdown = ({
   onLoadMore,
   hasMore,
   loadingMore,
+  error,
 }) => {
   const history = useHistory();
   const [selectedNotification, setSelectedNotification] = useState(null);
@@ -85,7 +86,11 @@ const NotificationDropdown = ({
           <Translate id="notifications.bell.tabAll" defaultMessage="All" />
         </button>
       </div>
-      {notifications.length === 0 ? (
+      {error && notifications.length === 0 ? (
+        <p className="notification-dropdown__empty">
+          <Translate id="notifications.bell.error" defaultMessage="Could not load notifications" />
+        </p>
+      ) : notifications.length === 0 ? (
         <p className="notification-dropdown__empty">
           {activeTab === 'unread' ? (
             <Translate id="notifications.bell.emptyUnread" defaultMessage="No unread notifications" />
@@ -153,6 +158,11 @@ NotificationDropdown.propTypes = {
   onLoadMore: PropTypes.func.isRequired,
   hasMore: PropTypes.bool.isRequired,
   loadingMore: PropTypes.bool.isRequired,
+  error: PropTypes.instanceOf(Error),
+};
+
+NotificationDropdown.defaultProps = {
+  error: null,
 };
 
 export default NotificationDropdown;

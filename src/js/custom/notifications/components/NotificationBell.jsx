@@ -13,6 +13,7 @@ const NotificationBell = () => {
   const {
     notifications,
     unreadCount,
+    error,
     markRead,
     markAllRead,
     loadMore,
@@ -34,14 +35,6 @@ const NotificationBell = () => {
       document.removeEventListener('mousedown', handleOutsideClick);
     };
   }, [isOpen]);
-
-  const handleMarkRead = (id) => {
-    markRead(id);
-  };
-
-  const handleMarkAllRead = () => {
-    markAllRead();
-  };
 
   return (
     <li className="nav-item notification-bell" ref={containerRef}>
@@ -66,11 +59,12 @@ const NotificationBell = () => {
           unreadCount={unreadCount}
           activeTab={activeTab}
           onTabChange={setActiveTab}
-          onMarkRead={handleMarkRead}
-          onMarkAllRead={handleMarkAllRead}
+          onMarkRead={markRead}
+          onMarkAllRead={markAllRead}
           onLoadMore={loadMore}
           hasMore={hasMore}
           loadingMore={loadingMore}
+          error={error}
         />
       )}
     </li>
