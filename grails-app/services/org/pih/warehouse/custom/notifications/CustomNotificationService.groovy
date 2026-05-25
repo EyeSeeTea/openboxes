@@ -19,25 +19,24 @@ class CustomNotificationService {
         String safeTitle = titleOrDefault(title)
         String typeName = (type ?: NotificationType.EMAIL_TRIGGER).name()
         List<User> uniqueUsers = users.findAll { it != null }.unique { it.id }
-        // withNewSession: callers include GPars/Quartz background threads with no
-        // OSIV-bound session, so GORM saves would otherwise throw 'No Session
-        // found for current thread'.
-        CustomNotification.withNewSession {
-            CustomNotification.withTransaction {
-                uniqueUsers.each { User user ->
-                    try {
-                        CustomNotification notification = new CustomNotification(
-                            user: user,
-                            notificationType: typeName,
-                            title: safeTitle,
-                            body: body,
-                        )
-                        if (!notification.save(flush: false)) {
-                            log.error "custom_notification_record_failed user_id='${user.id}' errors=${notification.errors.allErrors*.code}"
-                        }
-                    } catch (Exception ex) {
-                        log.error "custom_notification_record_failed user_id='${user?.id}' title='${title}'", ex
+        // withTransaction participates in the caller's transaction when one exists
+        // (request threads) and creates a new session+transaction when there isn't one
+        // (Quartz/GPars background threads). withNewSession caused lock timeouts when
+        // the caller held a write lock on the user row (e.g. handleSignup).
+        CustomNotification.withTransaction {
+            uniqueUsers.each { User user ->
+                try {
+                    CustomNotification notification = new CustomNotification(
+                        user: user,
+                        notificationType: typeName,
+                        title: safeTitle,
+                        body: body,
+                    )
+                    if (!notification.save(flush: false)) {
+                        log.error "custom_notification_record_failed user_id='${user.id}' errors=${notification.errors.allErrors*.code}"
                     }
+                } catch (Exception ex) {
+                    log.error "custom_notification_record_failed user_id='${user?.id}' title='${title}'", ex
                 }
             }
         }
