@@ -169,10 +169,10 @@ class NotificationService {
         def recipientItems = shipmentInstance.shipmentItems.groupBy {it.recipient }
         recipientItems.each { Person recipient, items ->
             def subject = g.message(code: "email.yourItemShipped.message", args: [shipmentInstance.origin.name, shipmentInstance.destination.name, shipmentInstance.shipmentNumber])
-            // in-app-notifications (custom): captures email-less recipients; per-recipient email below is unchanged
-            notificationDispatcherService.notify([recipient], subject, null, NotificationType.SHIPMENT, false)
+            def body = "${g.render(template: "/email/shipmentItemShipped", model: [shipmentInstance: shipmentInstance, shipmentItems: items, recipient:recipient])}"
+            // in-app-notifications (custom): same body as the per-recipient email; reaches email-less recipients
+            notificationDispatcherService.notify([recipient], subject, body.toString(), NotificationType.SHIPMENT, false)
             if (emailValidator.isValid(recipient?.email)) {
-                def body = "${g.render(template: "/email/shipmentItemShipped", model: [shipmentInstance: shipmentInstance, shipmentItems: items, recipient:recipient])}"
                 mailService.sendHtmlMail(subject, body.toString(), recipient.email)
             }
         }
@@ -190,11 +190,10 @@ class NotificationService {
         Map<Person, List<PartialReceiptItem>> recipientItems = partialReceipt.partialReceiptItems.groupBy {it.recipient }
         recipientItems.each { Person recipient, items ->
             String subject = messageLocalizer.localize("email.yourItemReceived.message", shipment.destination.name, shipment.shipmentNumber)
-            // in-app-notifications (custom): captures email-less recipients; per-recipient email below is unchanged
-            notificationDispatcherService.notify([recipient], subject, null, NotificationType.SHIPMENT, false)
+            GString body = "${applicationTagLib.render(template: "/email/shipmentItemReceived", model: [shipmentInstance: shipment, receiptItems: items, recipient: recipient, receivedBy: partialReceipt.recipient])}"
+            // in-app-notifications (custom): same body as the per-recipient email; reaches email-less recipients
+            notificationDispatcherService.notify([recipient], subject, body.toString(), NotificationType.SHIPMENT, false)
             if (emailValidator.isValid(recipient?.email)) {
-                GString body = "${applicationTagLib.render(template: "/email/shipmentItemReceived", model: [shipmentInstance: shipment, receiptItems: items, recipient: recipient, receivedBy: partialReceipt.recipient])}"
-
                 File barcodeFile = fileGenerationService.generateBarcodeFile(shipment.shipmentNumber)
                 String barcodeFileUri = fileGenerationService.getFileUri(barcodeFile)
                 String fileName = "GoodsReceiptNote-${shipment.shipmentNumber}.pdf"
@@ -293,11 +292,11 @@ class NotificationService {
         String template = "/email/approvalsAlert"
 
         recipients.each { recipient ->
-            // in-app-notifications (custom): captures email-less recipients; per-recipient email below is unchanged
-            notificationDispatcherService.notify([recipient], subject, null, NotificationType.REQUISITION, false)
+            String redirectToRequestsList = "/stockMovement/list?direction=OUTBOUND&sourceType=ELECTRONIC&approver=${recipient.id}"
+            String body = renderTemplate(template, [requisition: requisition, redirectUrl: redirectToRequestsList])
+            // in-app-notifications (custom): same body as the per-recipient email; reaches email-less recipients
+            notificationDispatcherService.notify([recipient], subject, body, NotificationType.REQUISITION, false)
             if (recipient?.email) {
-                String redirectToRequestsList = "/stockMovement/list?direction=OUTBOUND&sourceType=ELECTRONIC&approver=${recipient.id}"
-                String body = renderTemplate(template, [requisition: requisition, redirectUrl: redirectToRequestsList])
                 mailService.sendHtmlMail(subject, body, recipient.email)
             }
         }
