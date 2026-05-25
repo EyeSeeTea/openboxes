@@ -1120,6 +1120,12 @@ class UrlMappings {
             action = [GET: "getExpirationHistoryReport"]
         }
 
+        // in-app-notifications (custom)
+        "/api/custom/notifications"(controller: 'customNotification', action: 'list', method: 'GET')
+        "/api/custom/notifications/unread-count"(controller: 'customNotification', action: 'unreadCount', method: 'GET')
+        "/api/custom/notifications/read-all"(controller: 'customNotification', action: 'markAllRead', method: 'PUT')
+        "/api/custom/notifications/$id/read"(controller: 'customNotification', action: 'markRead', method: 'PUT')
+
         // Error handling
 
         "401"(controller: "errors", action: "handleUnauthorized")
