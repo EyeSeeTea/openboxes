@@ -19,8 +19,7 @@ class NotificationDispatcherService {
     def mailService
 
     void notify(Collection<User> users, String title, String body, NotificationType type, boolean sendEmail = true) {
-        // In-app channel: self-gated by openboxes.custom.notifications.inApp.enabled and
-        // independent of the mail configuration or send success.
+        // In-app channel: always runs, independent of mail configuration or send success.
         customNotificationService.notifyUsers(users, title, body, type)
 
         if (sendEmail) {

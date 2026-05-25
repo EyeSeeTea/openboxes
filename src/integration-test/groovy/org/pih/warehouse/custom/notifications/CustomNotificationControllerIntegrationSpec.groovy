@@ -169,23 +169,7 @@ class CustomNotificationControllerIntegrationSpec extends IntegrationSpec {
         customNotificationService.countUnread(dave) == 1
     }
 
-    def "notifyUsers writes zero rows when the in-app flag is disabled"() {
-        given:
-        def user = buildUser('flagoff@example.com')
-        def previous = grailsApplication.config.openboxes.custom.notifications.inApp.enabled
-        grailsApplication.config.openboxes.custom.notifications.inApp.enabled = false
-
-        when:
-        customNotificationService.notifyUsers([user], 'Disabled', null, NotificationType.SYSTEM)
-
-        then:
-        customNotificationService.countUnread(user) == 0
-
-        cleanup:
-        grailsApplication.config.openboxes.custom.notifications.inApp.enabled = previous
-    }
-
-    def "notifyUsers stores '(no subject)' when title is null"() {
+    def"notifyUsers stores '(no subject)' when title is null"() {
         given:
         def user = buildUser('null-subject@example.com')
 
