@@ -21,6 +21,7 @@ import org.pih.warehouse.core.Role
 import org.pih.warehouse.core.RoleType
 import org.pih.warehouse.core.User
 import org.pih.warehouse.core.UserDataService
+import org.pih.warehouse.custom.notifications.NotificationType
 
 import javax.imageio.ImageIO as IIO
 import javax.swing.*
@@ -35,6 +36,8 @@ class UserController {
     static allowedMethods = [save: "POST", update: "POST", delete: "GET"]
     MailService mailService
     def userService
+    // in-app-notifications (custom)
+    def notificationDispatcherService
     def locationService
     LocalizationService localizationService
     LocationRoleDataService locationRoleDataService
@@ -212,6 +215,7 @@ class UserController {
     }
 
 
+    @Transactional
     def toggleActivation() {
         def userInstance = User.get(params.id)
         if (!userInstance) {
@@ -483,11 +487,11 @@ class UserController {
             // Include the user whose status has changed
             users << userInstance
 
-            def recipients = users.collect { it.email }
             def activatedOrDeactivated = "${userInstance.active ? warehouse.message(code: 'user.activated.label') : warehouse.message(code: 'user.disabled.label')}"
             def subject = "${warehouse.message(code: 'email.userAccountActivated.message', args: [userInstance.username, activatedOrDeactivated])}"
             def body = "${g.render(template: '/email/userAccountActivated', model: [userInstance: userInstance])}"
-            mailService.sendHtmlMail(subject, body.toString(), recipients)
+            // in-app-notifications (custom): dispatcher handles both in-app and email
+            notificationDispatcherService.notify(users, subject, body.toString(), NotificationType.USER_ACCOUNT)
             flash.message = "${warehouse.message(code: 'email.sent.message')}"
         }
         catch (Exception e) {

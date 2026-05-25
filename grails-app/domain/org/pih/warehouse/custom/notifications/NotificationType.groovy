@@ -24,6 +24,9 @@ enum NotificationType {
     /** Application-error / system notification. */
     SYSTEM,
 
+    /** New product created. */
+    PRODUCT,
+
     /** Fallback for events not cleanly classifiable, and the legacy email-send trigger. */
     EMAIL_TRIGGER
 }
