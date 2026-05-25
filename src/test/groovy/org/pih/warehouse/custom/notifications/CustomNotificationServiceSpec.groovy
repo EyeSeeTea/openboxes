@@ -7,9 +7,9 @@ import spock.lang.Specification
 
 /**
  * Unit-level coverage for the parts of CustomNotificationService that work against
- * the in-memory mock datastore. recordSendAsNotifications (withNewSession) and
- * markAllRead (HQL executeUpdate) need a real Hibernate datastore, so they are
- * covered in CustomNotificationControllerIntegrationSpec instead.
+ * the in-memory mock datastore. notifyUsers (withNewSession) and markAllRead
+ * (HQL executeUpdate) need a real Hibernate datastore, so they are covered in
+ * CustomNotificationControllerIntegrationSpec instead.
  */
 class CustomNotificationServiceSpec extends Specification
         implements ServiceUnitTest<CustomNotificationService>, DataTest {

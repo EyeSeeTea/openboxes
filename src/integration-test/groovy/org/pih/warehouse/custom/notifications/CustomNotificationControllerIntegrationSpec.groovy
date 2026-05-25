@@ -9,6 +9,7 @@ import org.pih.warehouse.common.base.IntegrationSpec
 class CustomNotificationControllerIntegrationSpec extends IntegrationSpec {
 
     CustomNotificationService customNotificationService
+    def grailsApplication
 
     def "customNotificationService bean is available in the application context"() {
         expect:
@@ -134,82 +135,86 @@ class CustomNotificationControllerIntegrationSpec extends IntegrationSpec {
         customNotificationService.countUnread(user) == 0
     }
 
-    def "recordSendAsNotifications creates one notification per matched user and skips unknown recipients"() {
+    private static final String NO_SUBJECT_TITLE = '(no subject)'
+    private static final int MAX_TITLE_LENGTH = 255
+
+    // -------------------------------------------------------------------------
+    // notifyUsers — keyed by User, reaches email-less recipients, flag-gated
+    // -------------------------------------------------------------------------
+
+    def "notifyUsers creates one notification per user including a user with no email"() {
         given:
-        def alice = buildUser('alice@example.com')
-        def bob = buildUser('bob@example.com')
+        def withEmail = buildUser('withemail@example.com')
+        def withoutEmail = buildUser()
 
         when:
-        customNotificationService.recordSendAsNotifications(
-            ['alice@example.com', 'bob@example.com', 'unknown@example.com'], 'Hello', '<p>body</p>')
+        customNotificationService.notifyUsers([withEmail, withoutEmail], 'Hello', '<p>body</p>', NotificationType.SHIPMENT)
 
         then:
-        customNotificationService.countUnread(alice) == 1
-        customNotificationService.countUnread(bob) == 1
-        CustomNotification.findByUser(alice).title == 'Hello'
-        CustomNotification.findByUser(alice).body == '<p>body</p>'
+        customNotificationService.countUnread(withEmail) == 1
+        customNotificationService.countUnread(withoutEmail) == 1
+        CustomNotification.findByUser(withEmail).title == 'Hello'
+        CustomNotification.findByUser(withEmail).body == '<p>body</p>'
+        CustomNotification.findByUser(withEmail).notificationType == NotificationType.SHIPMENT.name()
     }
 
-    def "recordSendAsNotifications falls back to username when no email matches"() {
-        given:
-        def carol = buildUser('carol.internal@example.com', 'carol@example.com')
-
-        when:
-        customNotificationService.recordSendAsNotifications(['carol@example.com'], 'Fallback', null)
-
-        then:
-        customNotificationService.countUnread(carol) == 1
-    }
-
-    def "recordSendAsNotifications deduplicates repeated recipient addresses"() {
+    def "notifyUsers deduplicates repeated users by id"() {
         given:
         def dave = buildUser('dave@example.com')
 
         when:
-        customNotificationService.recordSendAsNotifications(
-            ['dave@example.com', 'dave@example.com'], 'Dedup', null)
+        customNotificationService.notifyUsers([dave, dave], 'Dedup', null, NotificationType.SYSTEM)
 
         then:
         customNotificationService.countUnread(dave) == 1
     }
 
-    // -------------------------------------------------------------------------
-    // recordSendAsNotifications — subject fallback / truncation
-    // -------------------------------------------------------------------------
+    def "notifyUsers writes zero rows when the in-app flag is disabled"() {
+        given:
+        def user = buildUser('flagoff@example.com')
+        def previous = grailsApplication.config.openboxes.notifications.inApp.enabled
+        grailsApplication.config.openboxes.notifications.inApp.enabled = false
 
-    private static final String NO_SUBJECT_TITLE = '(no subject)'
-    private static final int MAX_TITLE_LENGTH = 255
+        when:
+        customNotificationService.notifyUsers([user], 'Disabled', null, NotificationType.SYSTEM)
 
-    def "recordSendAsNotifications stores '(no subject)' when subject is null"() {
+        then:
+        customNotificationService.countUnread(user) == 0
+
+        cleanup:
+        grailsApplication.config.openboxes.notifications.inApp.enabled = previous
+    }
+
+    def "notifyUsers stores '(no subject)' when title is null"() {
         given:
         def user = buildUser('null-subject@example.com')
 
         when:
-        customNotificationService.recordSendAsNotifications(['null-subject@example.com'], null, null)
+        customNotificationService.notifyUsers([user], null, null, NotificationType.SYSTEM)
 
         then:
         CustomNotification.findByUser(user).title == NO_SUBJECT_TITLE
     }
 
-    def "recordSendAsNotifications stores '(no subject)' when subject is blank whitespace"() {
+    def "notifyUsers stores '(no subject)' when title is blank whitespace"() {
         given:
         def user = buildUser('blank-subject@example.com')
 
         when:
-        customNotificationService.recordSendAsNotifications(['blank-subject@example.com'], '   ', null)
+        customNotificationService.notifyUsers([user], '   ', null, NotificationType.SYSTEM)
 
         then:
         CustomNotification.findByUser(user).title == NO_SUBJECT_TITLE
     }
 
-    def "recordSendAsNotifications truncates a subject longer than 255 characters to 252 chars plus ellipsis"() {
+    def "notifyUsers truncates a title longer than 255 characters to 252 chars plus ellipsis"() {
         given:
         def user = buildUser('long-subject@example.com')
-        String longSubject = 'A' * 300
+        String longTitle = 'A' * 300
         String expectedTitle = ('A' * 252) + '...'
 
         when:
-        customNotificationService.recordSendAsNotifications(['long-subject@example.com'], longSubject, null)
+        customNotificationService.notifyUsers([user], longTitle, null, NotificationType.SYSTEM)
 
         then:
         CustomNotification notification = CustomNotification.findByUser(user)
