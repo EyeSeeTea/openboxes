@@ -118,16 +118,18 @@ class NotificationService {
 
     def sendAlerts(String subject, String template, Map model, List<User> subscribers, String csv) {
 
+        String body = renderTemplate(template, model)
+
+        // in-app-notifications (custom): record for all subscribers (incl. those with no
+        // email) before the email-only short-circuit below, so email-less subscribers
+        // still get the in-app alert.
+        notificationDispatcherService.notify(subscribers, subject, body, NotificationType.STOCK_ALERT, false)
+
         Collection toList = subscribers.collect { it.email }.findAll{ it != null }.toArray()
         if (toList.isEmpty()) {
             log.info("Skipped ${subject} email because there are no subscribers")
             return
         }
-
-        String body = renderTemplate(template, model)
-
-        // in-app-notifications (custom): captures email-less subscribers; email send below is unchanged
-        notificationDispatcherService.notify(subscribers, subject, body, NotificationType.STOCK_ALERT, false)
 
         // Send email with attachment (if csv exists)
         if (csv) {
