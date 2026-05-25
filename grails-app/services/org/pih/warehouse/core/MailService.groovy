@@ -21,6 +21,7 @@ import javax.mail.util.ByteArrayDataSource
 class MailService {
 
     Config config = Holders.getConfig()
+    def customNotificationService
 
     String getDefaultFrom() {
         return config.getProperty("grails.mail.from")
@@ -200,6 +201,11 @@ class MailService {
         try {
             log.info "sending ${summary}"
             email.send()
+            try {
+                customNotificationService?.recordSendAsNotifications(to, subject, body)
+            } catch (Throwable t) {
+                log.error("custom_notification_hook_failed subject='${subject}'", t)
+            }
             return true
         } catch (Exception e) {
             log.error("could not send ${summary}", e)
