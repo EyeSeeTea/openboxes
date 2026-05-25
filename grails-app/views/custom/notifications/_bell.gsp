@@ -147,6 +147,10 @@
     var countUrl = root.getAttribute('data-count-url');
     var markAllUrl = root.getAttribute('data-mark-all-url');
     var markReadUrlTemplate = root.getAttribute('data-mark-read-url-template');
+    // Reason: Spring Security detects this header and returns 401 instead of
+    // redirecting to the login page, so the post-login redirect stays on the
+    // actual page the user was viewing — not the API endpoint URL.
+    var ajaxHeaders = { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' };
     var badge = root.querySelector('.custom-notification-bell__badge');
     var dropdown = root.querySelector('.custom-notification-bell__dropdown');
     var list = root.querySelector('.custom-notification-bell__list');
@@ -268,7 +272,7 @@
         });
     }
     function pollCount() {
-        fetch(countUrl, { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+        fetch(countUrl, { credentials: 'same-origin', headers: ajaxHeaders })
             .then(function(r) { return r.ok ? r.json() : null; })
             .then(function(body) {
                 if (!body || typeof body.unreadCount !== 'number') return;
@@ -281,7 +285,7 @@
         empty.hidden = true;
         hasMore = false;
         updateLoadMore();
-        fetch(pageUrl(0), { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+        fetch(pageUrl(0), { credentials: 'same-origin', headers: ajaxHeaders })
             .then(function(r) { return r.ok ? r.json() : null; })
             .then(function(body) {
                 if (!body) return;
@@ -305,7 +309,7 @@
         loadingMore = true;
         loadMore.disabled = true;
         var offset = list.children.length;
-        fetch(pageUrl(offset), { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+        fetch(pageUrl(offset), { credentials: 'same-origin', headers: ajaxHeaders })
             .then(function(r) { return r.ok ? r.json() : null; })
             .then(function(body) {
                 if (!body) return;
