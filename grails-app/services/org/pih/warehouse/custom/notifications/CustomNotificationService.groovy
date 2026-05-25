@@ -5,15 +5,13 @@ import org.pih.warehouse.core.User
 
 class CustomNotificationService {
 
-    def grailsApplication
-
     /**
      * Record one notification per user, keyed by the User object (never by email),
      * so recipients without an email address are still notified. Independent of the
-     * mail-enabled config and of any email send. No-ops when the in-app flag is off.
+     * mail-enabled config and of any email send.
      */
     void notifyUsers(Collection<User> users, String title, String body, NotificationType type = NotificationType.EMAIL_TRIGGER) {
-        if (!inAppNotificationsEnabled || !users) {
+        if (!users) {
             return
         }
         String safeTitle = titleOrDefault(title)
@@ -40,12 +38,6 @@ class CustomNotificationService {
                 }
             }
         }
-    }
-
-    private boolean isInAppNotificationsEnabled() {
-        def enabled = grailsApplication.config.openboxes.custom.notifications.inApp.enabled
-        // Default to enabled when the key is absent (config returns an empty ConfigObject).
-        return enabled instanceof Boolean ? enabled : true
     }
 
     private static String titleOrDefault(String title) {
