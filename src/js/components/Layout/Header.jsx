@@ -1,5 +1,6 @@
 import React from 'react';
 
+import NotificationBell from 'custom/notifications/components/NotificationBell';
 import PropTypes from 'prop-types';
 import { RiMenuLine } from 'react-icons/ri';
 import { connect } from 'react-redux';
@@ -41,6 +42,7 @@ const Header = ({
       <div className="collapse navbar-collapse w-100" id="navbarToggler">
         <ul className="navbar-nav w-100">
           <Menu />
+          <NotificationBell />
           <NavbarIcons />
         </ul>
       </div>
