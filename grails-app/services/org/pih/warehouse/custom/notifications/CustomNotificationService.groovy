@@ -5,41 +5,53 @@ import org.pih.warehouse.core.User
 
 class CustomNotificationService {
 
-    void recordSendAsNotifications(Collection<String> recipientEmails, String subject, String body = null) {
-        String trimmedSubject = subject?.trim()
-        String safeTitle = !trimmedSubject ? '(no subject)'
-            : (trimmedSubject.size() > 255 ? trimmedSubject[0..251] + '...' : trimmedSubject)
-        Set<String> uniqueEmails = (recipientEmails ?: []) as Set
-        // Bind a Hibernate session and transaction explicitly: this method is
-        // called from MailService.doSendMail which runs on a variety of threads
-        // (HTTP request, Quartz jobs, GPars workers). Background threads do
-        // not have an OSIV-bound session, so GORM queries throw 'No Session
-        // found for current thread' without an explicit withNewSession.
+    def grailsApplication
+
+    /**
+     * Record one notification per user, keyed by the User object (never by email),
+     * so recipients without an email address are still notified. Independent of the
+     * mail-enabled config and of any email send. No-ops when the in-app flag is off.
+     */
+    void notifyUsers(Collection<User> users, String title, String body, NotificationType type = NotificationType.EMAIL_TRIGGER) {
+        if (!inAppNotificationsEnabled || !users) {
+            return
+        }
+        String safeTitle = titleOrDefault(title)
+        String typeName = (type ?: NotificationType.EMAIL_TRIGGER).name()
+        List<User> uniqueUsers = users.findAll { it != null }.unique { it.id }
+        // withNewSession: callers include GPars/Quartz background threads with no
+        // OSIV-bound session, so GORM saves would otherwise throw 'No Session
+        // found for current thread'.
         CustomNotification.withNewSession {
             CustomNotification.withTransaction {
-                uniqueEmails.each { String email ->
+                uniqueUsers.each { User user ->
                     try {
-                        List<User> users = User.findAllByEmail(email)
-                        if (!users) {
-                            users = User.findAllByUsername(email)
-                        }
-                        users.each { User user ->
-                            CustomNotification notification = new CustomNotification(
-                                user: user,
-                                notificationType: NotificationType.EMAIL_TRIGGER.name(),
-                                title: safeTitle,
-                                body: body,
-                            )
-                            if (!notification.save(flush: false)) {
-                                log.error "custom_notification_record_failed email='${email}' user_id='${user.id}' errors=${notification.errors.allErrors*.code}"
-                            }
+                        CustomNotification notification = new CustomNotification(
+                            user: user,
+                            notificationType: typeName,
+                            title: safeTitle,
+                            body: body,
+                        )
+                        if (!notification.save(flush: false)) {
+                            log.error "custom_notification_record_failed user_id='${user.id}' errors=${notification.errors.allErrors*.code}"
                         }
                     } catch (Exception ex) {
-                        log.error "custom_notification_record_failed email='${email}' subject='${subject}'", ex
+                        log.error "custom_notification_record_failed user_id='${user?.id}' title='${title}'", ex
                     }
                 }
             }
         }
+    }
+
+    private boolean isInAppNotificationsEnabled() {
+        def enabled = grailsApplication.config.openboxes.notifications.inApp.enabled
+        // Default to enabled when the key is absent (config returns an empty ConfigObject).
+        return enabled instanceof Boolean ? enabled : true
+    }
+
+    private static String titleOrDefault(String title) {
+        String trimmed = title?.trim()
+        return !trimmed ? '(no subject)' : (trimmed.size() > 255 ? trimmed[0..251] + '...' : trimmed)
     }
 
     List<CustomNotification> listForUser(User user, Boolean unreadOnly = false, Integer limit = 20, Integer offset = 0, Date since = null, Date updatedSince = null) {
