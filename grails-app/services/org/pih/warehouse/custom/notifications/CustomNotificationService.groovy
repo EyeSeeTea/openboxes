@@ -44,7 +44,7 @@ class CustomNotificationService {
     }
 
     private boolean isInAppNotificationsEnabled() {
-        def enabled = grailsApplication.config.openboxes.notifications.inApp.enabled
+        def enabled = grailsApplication.config.openboxes.custom.notifications.inApp.enabled
         // Default to enabled when the key is absent (config returns an empty ConfigObject).
         return enabled instanceof Boolean ? enabled : true
     }

@@ -7,7 +7,7 @@ In-app notifications currently exist only as a side-effect of sending email: a h
 - **BREAKING (internal):** Remove the post-send hook in `MailService.doSendMail`. Notifications are no longer a byproduct of email delivery.
 - Add a first-class `notifyUsers(Collection<User> users, String title, String body, NotificationType type)` method to `CustomNotificationService` that records one notification per user — keyed by `User`, never by email string.
 - Hook `notifyUsers` into `NotificationService` (upstream `org.pih.warehouse.report.NotificationService`) at the ~11 points where `User`/`Person` recipients are already resolved, *before* they are reduced to email strings via `.collect { it.email }`. This is the single choke point for the high-value events (shipment shipped/received, requisition pending-approval and status, fulfillment, stock/expiry alerts, user-account events, application errors).
-- Add an independent enable flag `openboxes.notifications.inApp.enabled` (default `true`), read by `CustomNotificationService` so the on/off logic lives in our code, not in the upstream mail path. Email and in-app notifications become independently switchable.
+- Add an independent enable flag `openboxes.custom.notifications.inApp.enabled` (default `true`), read by `CustomNotificationService` so the on/off logic lives in our code, not in the upstream mail path. Email and in-app notifications become independently switchable.
 - Configure the flag **only** in `docker/openboxes.yml` and the docker client template (`docker/openboxes.client-template.yml`) — **not** in `application.yml`/`application.groovy`.
 - Email-less users are now reachable (their `User` is captured before the email filter), which lays the groundwork for a future DHIS2 sync (notifications keyed by `User` → mappable to a DHIS2 user UID). The DHIS2 sync itself is **out of scope** for this change.
 
@@ -23,7 +23,7 @@ _None._ This refines an existing capability rather than introducing a new one.
 
 ### Modified Capabilities
 
-- `in-app-notifications`: The notification-creation requirement changes from "created as a side-effect of a successful email send" to "created from the originating business event, by `User`, independent of email transport and of the mail-enabled config." Adds the `openboxes.notifications.inApp.enabled` flag requirement. Removes the `MailService` recipient-email→user resolution requirement.
+- `in-app-notifications`: The notification-creation requirement changes from "created as a side-effect of a successful email send" to "created from the originating business event, by `User`, independent of email transport and of the mail-enabled config." Adds the `openboxes.custom.notifications.inApp.enabled` flag requirement. Removes the `MailService` recipient-email→user resolution requirement.
 
 ## Impact
 
@@ -31,7 +31,7 @@ _None._ This refines an existing capability rather than introducing a new one.
 - **Backend (upstream touch, surgical):**
   - `grails-app/services/org/pih/warehouse/core/MailService.groovy` — **remove** the existing post-send hook (reverts a touch point we previously added).
   - `grails-app/services/org/pih/warehouse/report/NotificationService.groovy` — add ~11 one-line `notifyUsers(...)` calls at the recipient-resolution points. New upstream touch point; documented in `design.md`.
-- **Config:** new key `openboxes.notifications.inApp.enabled` in `docker/openboxes.yml` and `docker/openboxes.client-template.yml` only.
+- **Config:** new key `openboxes.custom.notifications.inApp.enabled` in `docker/openboxes.yml` and `docker/openboxes.client-template.yml` only.
 - **Database:** none. Reuses the existing `custom_notification` table.
 - **Frontend:** none. The bell, dropdown, modal, and REST API are unchanged — only *what triggers a notification row* changes server-side.
 - **External systems:** none in this change. (Enables a later, separate DHIS2 sync.)

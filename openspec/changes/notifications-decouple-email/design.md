@@ -17,7 +17,7 @@ This change moves the trigger from "an email was sent" to "the app decided to no
 - Record in-app notifications from the originating business event, keyed by `User`, regardless of whether an email is also sent, whether the send succeeds, or whether the mail-enabled config is on.
 - Reach users who have no email address.
 - Expose a first-class `notifyUsers(Collection<User>, String title, String body, NotificationType type)` on `CustomNotificationService`.
-- Add an independent enable flag `openboxes.notifications.inApp.enabled` (default `true`), configured **only** in `docker/openboxes.yml` and `docker/openboxes.client-template.yml`.
+- Add an independent enable flag `openboxes.custom.notifications.inApp.enabled` (default `true`), configured **only** in `docker/openboxes.yml` and `docker/openboxes.client-template.yml`.
 - Keep all decision/logic in our custom service so the upstream touch is just call insertions — leaving a clean future upstream-contribution path ("promote `notifyUsers` into `NotificationService`, drop the `custom` namespacing").
 
 **Non-Goals:**
@@ -48,7 +48,7 @@ This change moves the trigger from "an email was sent" to "the app decided to no
 
 ### D3. Enable flag owned by the custom service, configured in docker only
 
-**Choice:** `CustomNotificationService.notifyUsers` checks `grailsApplication.config.openboxes.notifications.inApp.enabled` (default `true` when unset) and no-ops when disabled. The key is declared **only** in `docker/openboxes.yml` and `docker/openboxes.client-template.yml`.
+**Choice:** `CustomNotificationService.notifyUsers` checks `grailsApplication.config.openboxes.custom.notifications.inApp.enabled` (default `true` when unset) and no-ops when disabled. The key is declared **only** in `docker/openboxes.yml` and `docker/openboxes.client-template.yml`.
 
 **Rationale:** Keeping the flag-read in *our* service means the upstream `NotificationService` calls stay unconditional one-liners — no flag logic leaks into upstream files. Per project config rules and the user's explicit instruction, custom config goes in the docker config + client template, never in `application.yml`/`application.groovy`. Default-on preserves current behavior unless a deployment opts out. Email (`grails.mail.*` / `isMailEnabled`) and in-app notifications are now independently switchable.
 
@@ -87,7 +87,7 @@ This change moves the trigger from "an email was sent" to "the app decided to no
 |---|---|---|
 | `grails-app/services/org/pih/warehouse/report/NotificationService.groovy` | ~11 one-line `customNotificationService.notifyUsers(...)` calls at recipient-resolution points, under a `// in-app-notifications (custom)` comment; one `def customNotificationService` injection | The event-level choke point. See D1, D4. **New touch point.** |
 | `grails-app/services/org/pih/warehouse/core/MailService.groovy` | **Remove** the post-send hook block and (if now unused) the `def customNotificationService` injection | Eliminates double-recording and the email coupling. See D2. **Reverts a prior touch point.** |
-| `docker/openboxes.yml` | Add `openboxes.notifications.inApp.enabled: true` | Deployment default for the new flag. See D3. |
+| `docker/openboxes.yml` | Add `openboxes.custom.notifications.inApp.enabled: true` | Deployment default for the new flag. See D3. |
 | `docker/openboxes.client-template.yml` | Add the same key (documented, default `true`) | Per-client override surface. See D3. |
 
 Net effect on `MailService` is a *reduction* in fork surface (one touch point removed). `application.yml` / `application.groovy` are intentionally **not** touched.
@@ -102,7 +102,7 @@ Net effect on `MailService` is a *reduction* in fork surface (one touch point re
 
 ## Migration Plan
 
-1. **Service:** Add `notifyUsers(Collection<User>, String title, String body, NotificationType type)` to `CustomNotificationService` (reuse `withNewSession { withTransaction { } }`); add the `openboxes.notifications.inApp.enabled` config read with default-true.
+1. **Service:** Add `notifyUsers(Collection<User>, String title, String body, NotificationType type)` to `CustomNotificationService` (reuse `withNewSession { withTransaction { } }`); add the `openboxes.custom.notifications.inApp.enabled` config read with default-true.
 2. **Hook in:** Add the ~11 `notifyUsers(...)` calls in `NotificationService.groovy` at the resolution points (D4), plus the `def customNotificationService` injection.
 3. **Hook out:** Remove the `MailService.doSendMail` post-send hook and unused injection (D2). Remove `recordSendAsNotifications` (and its email-resolution tests) unless retained for a documented Phase 2 reason.
 4. **Config:** Add the flag to `docker/openboxes.yml` and `docker/openboxes.client-template.yml`.
@@ -123,7 +123,7 @@ Net effect on `MailService` is a *reduction* in fork surface (one touch point re
 - [ ] **V2. Email-less user is reachable.** Integration test: a `User` with `email == null` passed to `notifyUsers` gets a `custom_notification` row. (Contrast with the old path, where they never appeared.)
 - [ ] **V3. The mail coupling is gone.** Verifiable by grepping `MailService.groovy` post-implementation: no reference to `customNotificationService` / `recordSendAsNotifications` remains inside `doSendMail`.
 - [ ] **V4. Notifications independent of mail-enabled.** Test/smoke: with `isMailEnabled=false`, invoking a `NotificationService` event still creates notification rows (records before, and regardless of, the `doSendMail` early return).
-- [ ] **V5. Flag disables recording.** Unit test: with `openboxes.notifications.inApp.enabled=false`, `notifyUsers` writes zero rows; with the key absent, it writes rows (default-true).
+- [ ] **V5. Flag disables recording.** Unit test: with `openboxes.custom.notifications.inApp.enabled=false`, `notifyUsers` writes zero rows; with the key absent, it writes rows (default-true).
 - [ ] **V6. No double-recording.** Test: a single `NotificationService` event whose recipients are all emailed yields exactly one notification per user (not two).
 - [ ] **V7. Flag is only in docker config.** Verifiable: `grep -rn "notifications.inApp.enabled"` matches `docker/openboxes.yml` and `docker/openboxes.client-template.yml` and **not** `grails-app/conf/application.yml` or `application.groovy`.
 - [ ] **V8. Upstream touch is surgical and reversible.** Verifiable by diff: `NotificationService.groovy` changes are only `notifyUsers(...)` call lines + one injection under the comment delimiter; `MailService.groovy` change is a pure deletion of the prior hook; no reformatting elsewhere.

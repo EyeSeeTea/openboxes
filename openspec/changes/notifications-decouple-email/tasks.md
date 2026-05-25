@@ -17,7 +17,7 @@ Implementation order follows the `Migration Plan` in `design.md`. Each task is s
   - De-duplicate the user collection; for each `User`, create a `CustomNotification` with `user: user`, `notificationType: type?.name() ?: NotificationType.EMAIL_TRIGGER.name()`, the `title`/`body`, `isRead: false`.
   - Per-user `try/catch` logging; never rethrow into the caller.
   - Apply the same blank-title fallback already used by the service (`'(no subject)'`).
-- [ ] **1.2** Add the enable-flag read: a private helper reading `grailsApplication.config.openboxes.notifications.inApp.enabled`, defaulting to `true` when unset/null. Inject `def grailsApplication` if not already present.
+- [ ] **1.2** Add the enable-flag read: a private helper reading `grailsApplication.config.openboxes.custom.notifications.inApp.enabled`, defaulting to `true` when unset/null. Inject `def grailsApplication` if not already present.
 - [ ] **1.3** Decide the fate of `recordSendAsNotifications`: remove it (and its email-resolution unit/integration tests) unless a documented Phase-2 reason keeps it. Default: remove.
 
 ## 2. Hook in — `NotificationService`
@@ -34,7 +34,7 @@ Implementation order follows the `Migration Plan` in `design.md`. Each task is s
 
 ## 4. Config
 
-- [ ] **4.1** Add `openboxes.notifications.inApp.enabled: true` to `docker/openboxes.yml`.
+- [ ] **4.1** Add `openboxes.custom.notifications.inApp.enabled: true` to `docker/openboxes.yml`.
 - [ ] **4.2** Add the same key (with a brief comment, default `true`) to `docker/openboxes.client-template.yml`.
 - [ ] **4.3** Confirm the key is NOT added to `grails-app/conf/application.yml` or `application.groovy`.
 

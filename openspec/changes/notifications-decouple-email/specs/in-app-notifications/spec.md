@@ -43,16 +43,16 @@ The system SHALL persist a notification record for each `User` resolved at the o
 
 ### Requirement: Independent in-app notification toggle
 
-The system SHALL provide a configuration flag `openboxes.notifications.inApp.enabled` that enables or disables in-app notification recording independently of the email configuration. When the flag is absent, the system SHALL default to enabled. The flag SHALL be configured only in the docker configuration (`docker/openboxes.yml`) and the docker client template (`docker/openboxes.client-template.yml`), and SHALL NOT be added to `application.yml` or `application.groovy`.
+The system SHALL provide a configuration flag `openboxes.custom.notifications.inApp.enabled` that enables or disables in-app notification recording independently of the email configuration. When the flag is absent, the system SHALL default to enabled. The flag SHALL be configured only in the docker configuration (`docker/openboxes.yml`) and the docker client template (`docker/openboxes.client-template.yml`), and SHALL NOT be added to `application.yml` or `application.groovy`.
 
 #### Scenario: Recording disabled by flag
 
-- **WHEN** `openboxes.notifications.inApp.enabled` is `false` and a business event invokes `notifyUsers(...)`
+- **WHEN** `openboxes.custom.notifications.inApp.enabled` is `false` and a business event invokes `notifyUsers(...)`
 - **THEN** no `custom_notification` row is created
 
 #### Scenario: Recording enabled by flag
 
-- **WHEN** `openboxes.notifications.inApp.enabled` is `true` and a business event invokes `notifyUsers(...)`
+- **WHEN** `openboxes.custom.notifications.inApp.enabled` is `true` and a business event invokes `notifyUsers(...)`
 - **THEN** notification rows are created as specified by "Notification record persistence"
 
 #### Scenario: Default-on when unconfigured
@@ -62,7 +62,7 @@ The system SHALL provide a configuration flag `openboxes.notifications.inApp.ena
 
 #### Scenario: Independent of email toggle
 
-- **WHEN** email is enabled but `openboxes.notifications.inApp.enabled` is `false`
+- **WHEN** email is enabled but `openboxes.custom.notifications.inApp.enabled` is `false`
 - **THEN** emails are still sent but no in-app notifications are recorded; and conversely, when email is disabled but the in-app flag is on, notifications are recorded while no email is sent
 
 ## MODIFIED Requirements

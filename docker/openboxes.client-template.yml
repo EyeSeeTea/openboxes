@@ -215,9 +215,10 @@ openboxes:
     # In-app notifications (custom)
     # Records notifications in the in-app bell menu (independent of email).
     # -------------------------------------------------------------------------
-    # notifications:
-    #     inApp:
-    #         enabled: true
+    # custom:
+    #     notifications:
+    #         inApp:
+    #             enabled: true
 
     # -------------------------------------------------------------------------
     # Barcode scanner / printer
