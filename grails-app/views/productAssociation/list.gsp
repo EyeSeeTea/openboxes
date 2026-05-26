@@ -19,18 +19,22 @@
                         <img src="${resource(dir: 'images/icons/silk', file: 'application_view_list.png')}" />&nbsp;
                         <warehouse:message code="default.list.label" args="[g.message(code:'productAssociations.label')]"/>
                     </g:link>
-                    <g:link class="button" action="create">
-                        <img src="${resource(dir: 'images/icons/silk', file: 'add.png')}" />&nbsp;
-                        <warehouse:message code="default.add.label" args="[g.message(code:'productAssociation.label')]"/>
-                    </g:link>
+                    <g:canManageProducts>
+                        <g:link class="button" action="create">
+                            <img src="${resource(dir: 'images/icons/silk', file: 'add.png')}" />&nbsp;
+                            <warehouse:message code="default.add.label" args="[g.message(code:'productAssociation.label')]"/>
+                        </g:link>
+                    </g:canManageProducts>
                     <g:link class="button" controller="batch" action="downloadExcel" params="[type:'ProductAssociation']">
                         <img src="${resource(dir: 'images/icons/silk', file: 'page_excel.png')}" />&nbsp;
                         <warehouse:message code="default.export.label" args="[g.message(code:'productAssociations.label')]"/>
                     </g:link>
-                    <g:link class="button" controller="batch" action="importData" params="[type: 'productAssociation']" >
-                        <img src="${resource(dir: 'images/icons/silk', file: 'database_refresh.png')}" />&nbsp;
-                        <warehouse:message code="default.import.label" args="[g.message(code:'productAssociations.label')]"/>
-                    </g:link>
+                    <g:canManageProducts>
+                        <g:link class="button" controller="batch" action="importData" params="[type: 'productAssociation']" >
+                            <img src="${resource(dir: 'images/icons/silk', file: 'database_refresh.png')}" />&nbsp;
+                            <warehouse:message code="default.import.label" args="[g.message(code:'productAssociations.label')]"/>
+                        </g:link>
+                    </g:canManageProducts>
 	        	</div>
 
                 <div class="yui-gf">

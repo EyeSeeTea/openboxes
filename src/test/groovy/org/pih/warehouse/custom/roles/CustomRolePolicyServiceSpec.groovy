@@ -137,6 +137,34 @@ class CustomRolePolicyServiceSpec extends Specification implements ServiceUnitTe
         permissions.canUseSuperuserPurchasingActions == true
     }
 
+    def "should deny product create action for read-only product policies"() {
+        when:
+        Map<String, Object> reportingUserAccess = service.evaluateRouteAccess(
+                mockUser([RoleType.ROLE_REPORTING_USER], [RoleType.ROLE_REPORTING_USER]),
+                'loc-1',
+                'product',
+                'create',
+                [:],
+                null
+        )
+        Map<String, Object> regionalWarehouseAccess = service.evaluateRouteAccess(
+                mockUser([RoleType.ROLE_REGIONAL_WAREHOUSE], [RoleType.ROLE_REGIONAL_WAREHOUSE]),
+                'loc-1',
+                'product',
+                'create',
+                [:],
+                null
+        )
+
+        then:
+        reportingUserAccess.hasPolicy
+        reportingUserAccess.denied
+        !reportingUserAccess.allowed
+        regionalWarehouseAccess.hasPolicy
+        regionalWarehouseAccess.denied
+        !regionalWarehouseAccess.allowed
+    }
+
     def "should preserve standard core role behavior without custom policy"() {
         given:
         User user = mockUser([RoleType.ROLE_ASSISTANT], [RoleType.ROLE_ASSISTANT])

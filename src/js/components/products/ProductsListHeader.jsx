@@ -8,7 +8,7 @@ import Button from 'components/form-elements/Button';
 import { PRODUCT_URL } from 'consts/applicationUrls';
 import Translate from 'utils/Translate';
 
-const ProductsListHeader = ({ isUserAdmin, customRolePermissions }) => {
+export const ProductsListHeader = ({ isUserAdmin, customRolePermissions }) => {
   const permissions = getCustomRolePermissions({ customRolePermissions });
   return (
     <div className="d-flex list-page-header">

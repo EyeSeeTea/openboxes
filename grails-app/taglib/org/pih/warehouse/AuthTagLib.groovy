@@ -88,6 +88,12 @@ class AuthTagLib {
             out << body()
         }
     }
+    def canManageProducts = { attrs, body ->
+        Map<String, Object> permissions = customRolePolicyService.getCustomRolePermissions(session?.user, session?.warehouse?.id)
+        if (userService.isUserAdmin(session?.user) || permissions.canManageProducts) {
+            out << body()
+        }
+    }
     def isUserManager = { attrs, body ->
         if (userService.isUserManager(session?.user))
             out << body()

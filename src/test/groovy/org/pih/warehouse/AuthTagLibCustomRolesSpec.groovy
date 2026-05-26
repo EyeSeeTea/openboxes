@@ -75,4 +75,36 @@ class AuthTagLibCustomRolesSpec extends Specification implements TagLibUnitTest<
         then:
         output == 'Allowed'
     }
+
+    def "canManageProducts should hide body for read-only product custom role"() {
+        given:
+        tagLib.userService = Stub(UserService) {
+            isUserAdmin(_) >> false
+        }
+        tagLib.customRolePolicyService = Stub(CustomRolePolicyService) {
+            getCustomRolePermissions(_, _) >> [canManageProducts: false]
+        }
+
+        when:
+        String output = applyTemplate('<g:canManageProducts>Allowed</g:canManageProducts>')
+
+        then:
+        output == ''
+    }
+
+    def "canManageProducts should render body when custom policy allows product management"() {
+        given:
+        tagLib.userService = Stub(UserService) {
+            isUserAdmin(_) >> false
+        }
+        tagLib.customRolePolicyService = Stub(CustomRolePolicyService) {
+            getCustomRolePermissions(_, _) >> [canManageProducts: true]
+        }
+
+        when:
+        String output = applyTemplate('<g:canManageProducts>Allowed</g:canManageProducts>')
+
+        then:
+        output == 'Allowed'
+    }
 }
