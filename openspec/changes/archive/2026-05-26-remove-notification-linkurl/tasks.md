@@ -35,4 +35,4 @@
 
 ## 7. Docs / spec
 
-- [ ] **7.1** On archive, sync the `in-app-notifications` capability spec (MODIFIED "In-app notification UI") and run `openspec validate --specs`.
+- [x] **7.1** On archive, sync the `in-app-notifications` capability spec (MODIFIED "In-app notification UI") and run `openspec validate --specs` (in-app-notifications passes; unrelated stock-transfer-documents failure pre-exists).

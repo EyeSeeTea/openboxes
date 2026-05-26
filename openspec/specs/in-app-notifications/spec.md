@@ -95,7 +95,7 @@ The system SHALL allow the authenticated user to mark a single notification or a
 
 ### Requirement: In-app notification UI
 
-The system SHALL render a notification bell in the main application header for authenticated users, showing an unread count and an interactive dropdown. The dropdown SHALL expose two tabs — "Unread" (default) and "All" — so users can review history without losing the unread-first scanning model.
+The system SHALL render a notification bell in the main application header for authenticated users, showing an unread count and an interactive dropdown. The dropdown SHALL expose two tabs — "Unread" (default) and "All" — so users can review history without losing the unread-first scanning model. Clicking a notification opens a detail modal showing its title and body; notifications do not carry a navigation link.
 
 #### Scenario: Unread badge reflects current state
 
@@ -121,17 +121,20 @@ The system SHALL render a notification bell in the main application header for a
 - **WHEN** the active tab is "All" and the user has no notifications at all
 - **THEN** the dropdown shows a "No notifications yet" empty state
 
-#### Scenario: Clicking an unread notification marks it read and navigates
+#### Scenario: Clicking an unread notification marks it read and opens its detail
 
 - **WHEN** the user clicks an unread notification row
-- **THEN** the client calls `PUT /api/custom/notifications/{id}/read`, the row's unread indicator clears
-- **AND** if the notification has a `link_url` that is a same-origin path (starts with `/`, not `//`), the user is navigated there via the SPA router; external or protocol-relative URLs are ignored for safety
+- **THEN** the client calls `PUT /api/custom/notifications/{id}/read`, the row's unread indicator clears, and the notification's detail modal opens showing its title and body
 
 #### Scenario: Clicking an already-read notification does not re-mark it
 
 - **WHEN** the user clicks a notification that is already read
-- **THEN** the client does NOT call `PUT /api/custom/notifications/{id}/read`
-- **AND** `link_url` navigation still applies if present and same-origin
+- **THEN** the client does NOT call `PUT /api/custom/notifications/{id}/read`, and the notification's detail modal still opens
+
+#### Scenario: Notification payload carries no navigation link
+
+- **WHEN** the client fetches `GET /api/custom/notifications`
+- **THEN** each notification object in `data` contains `id`, `type`, `title`, `body`, `read`, and `createdAt`, and SHALL NOT contain a `linkUrl` field
 
 #### Scenario: Mark-all-read action
 
