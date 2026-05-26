@@ -1,11 +1,12 @@
 import {
-  canCreateOutboundMovement,
   canCreateInboundFromPurchaseOrder,
   canCreateInboundMovement,
+  canCreateOutboundMovement,
   canManageProducts,
   canManagePurchasing,
   canManageStocklists,
   canSendStocklistEmail,
+  canUseSuperuserPurchasingActions,
   DEFAULT_CUSTOM_ROLE_PERMISSIONS,
   getCustomRolePermissions,
 } from 'custom/roles/customRolePermissions';
@@ -15,6 +16,9 @@ describe('customRolePermissions helper', () => {
     const permissions = getCustomRolePermissions({});
 
     expect(permissions).toEqual(DEFAULT_CUSTOM_ROLE_PERMISSIONS);
+    expect(canManageProducts({})).toBe(false);
+    expect(canManageStocklists({})).toBe(false);
+    expect(canUseSuperuserPurchasingActions({})).toBe(false);
   });
 
   it('returns backend-provided custom permissions', () => {
@@ -28,6 +32,7 @@ describe('customRolePermissions helper', () => {
         canManagePurchasing: false,
         canManageStocklists: false,
         canSendStocklistEmail: false,
+        canUseSuperuserPurchasingActions: false,
       },
     };
 
@@ -38,5 +43,16 @@ describe('customRolePermissions helper', () => {
     expect(canManagePurchasing(session)).toBe(false);
     expect(canManageStocklists(session)).toBe(false);
     expect(canSendStocklistEmail(session)).toBe(false);
+    expect(canUseSuperuserPurchasingActions(session)).toBe(false);
+  });
+
+  it('returns backend-provided elevated purchasing visibility', () => {
+    const session = {
+      customRolePermissions: {
+        canUseSuperuserPurchasingActions: true,
+      },
+    };
+
+    expect(canUseSuperuserPurchasingActions(session)).toBe(true);
   });
 });

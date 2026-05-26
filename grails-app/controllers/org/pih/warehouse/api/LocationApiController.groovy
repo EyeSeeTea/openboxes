@@ -61,17 +61,12 @@ class LocationApiController extends BaseDomainApiController {
         def isRequestor = userService.isUserRequestor(currentUser)
         def requestorInAnyLocation = userService.hasRoleRequestorInAnyLocations(currentUser)
         def inRoleBrowser = currentUser.hasDefaultRole(RoleType.ROLE_BROWSER)
-        def inRoleFacilityStorekeeper = currentUser.hasDefaultRole(RoleType.ROLE_FACILITY_STOREKEEPER)
-        def inRoleRegionalWarehouse = currentUser.hasDefaultRole(RoleType.ROLE_REGIONAL_WAREHOUSE)
-        def inRoleRpcSuperuser = currentUser.hasDefaultRole(RoleType.ROLE_RPC_SUPERUSER)
-        def inRoleReportingUser = currentUser.hasDefaultRole(RoleType.ROLE_REPORTING_USER)
-        def inRoleAssistant = currentUser.hasDefaultRole(RoleType.ROLE_ASSISTANT)
-        def inRoleManager = currentUser.hasDefaultRole(RoleType.ROLE_MANAGER)
-        def inRoleAdmin = currentUser.hasDefaultRole(RoleType.ROLE_ADMIN)
-        def inRoleSuperuser = currentUser.hasDefaultRole(RoleType.ROLE_SUPERUSER)
 
 
         def requiredRoles = RoleType.listRoleTypesForLocationChooser()
+        boolean hasDefaultLocationChooserRole = requiredRoles.any { roleType ->
+            currentUser.hasDefaultRole(roleType)
+        }
 
 
         if (params.locationChooser && isRequestor && !currentUser.locationRoles && !inRoleBrowser) {
@@ -85,7 +80,7 @@ class LocationApiController extends BaseDomainApiController {
                 locations += locationService.getRequestorLocations(currentUser)
             }
             // If a user doesn't have at least one of the requiredRoles by default, get locations where the user HAS any of those roles
-            if (params.locationChooser && !inRoleBrowser && !inRoleFacilityStorekeeper && !inRoleRegionalWarehouse && !inRoleRpcSuperuser && !inRoleReportingUser && !inRoleAssistant && !inRoleManager && !inRoleAdmin && !inRoleSuperuser) {
+            if (params.locationChooser && !inRoleBrowser && !hasDefaultLocationChooserRole) {
                 currentUser.locationRoles.each { LocationRole locationRole ->
                     if (requiredRoles.contains(locationRole.role.roleType)) {
                         locations += locationRole.location

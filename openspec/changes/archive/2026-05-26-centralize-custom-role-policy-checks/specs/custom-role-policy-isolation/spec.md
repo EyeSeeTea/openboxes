@@ -1,8 +1,5 @@
-# custom-role-policy-isolation Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change custom-roles-refactor. Update Purpose after archive.
-## Requirements
 ### Requirement: Custom role policy SHALL be isolated behind custom services and helpers
 The system SHALL keep custom-role authorization rules in custom backend services under `org.pih.warehouse.custom.*` and custom frontend helpers under `src/js/custom/*`. Upstream files SHALL only contain narrow delegation calls when required to connect existing OpenBoxes extension points to the custom policy. Controllers, GSPs, taglibs, and React components SHALL use reusable capability checks when a custom-role-sensitive business decision is needed, instead of duplicating direct custom role-name checks outside the canonical policy layer.
 
@@ -58,18 +55,3 @@ The system SHALL evaluate custom-role route access, menu visibility, page action
 - **THEN** custom-role capability checks and frontend permission helpers SHALL preserve existing standard-role behavior
 - **AND** the custom policy layer SHALL NOT remove access granted by the standard OpenBoxes authorization model
 - **AND** custom-only manage capabilities SHALL NOT grant product or stocklist write UI to standard users who lack the existing core-role access
-
-### Requirement: Custom role behavior SHALL have regression coverage
-The system SHALL include automated regression tests for custom-role policy resolution, menu visibility, page action visibility, direct controller/API enforcement, location chooser behavior, and frontend permission helpers.
-
-#### Scenario: Policy matrix is covered by fast tests
-- **WHEN** backend unit tests run for the custom-role policy service
-- **THEN** they SHALL verify the allowed and denied module/action decisions for Facility Storekeeper, Regional Warehouse User, RPC Superuser, and Reporting User
-
-#### Scenario: Direct access is covered by controller or integration tests
-- **WHEN** backend controller or integration tests run for restricted custom-role workflows
-- **THEN** they SHALL verify direct URL/API requests are denied even when the matching UI action is hidden
-
-#### Scenario: Frontend gates are covered by Jest tests
-- **WHEN** frontend tests run for custom-role permission helpers and representative action components
-- **THEN** they SHALL verify that restricted actions are hidden and allowed actions remain visible for the relevant custom-role permission payloads

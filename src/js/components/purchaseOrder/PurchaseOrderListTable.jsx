@@ -52,7 +52,7 @@ const PurchaseOrderListTable = ({
     onFetchHandler,
   } = usePurchaseOrderListTableData(filterParams);
   const permissions = getCustomRolePermissions({ customRolePermissions });
-  const effectiveHighestRole = permissions.activeCustomRolePolicy === 'ROLE_RPC_SUPERUSER'
+  const effectiveHighestRole = permissions.canUseSuperuserPurchasingActions
     ? 'Superuser'
     : highestRole;
 
@@ -405,6 +405,7 @@ PurchaseOrderListTable.propTypes = {
   customRolePermissions: PropTypes.shape({
     activeCustomRolePolicy: PropTypes.string,
     canManagePurchasing: PropTypes.bool,
+    canUseSuperuserPurchasingActions: PropTypes.bool,
   }),
   translate: PropTypes.func.isRequired,
   currencyCode: PropTypes.string.isRequired,

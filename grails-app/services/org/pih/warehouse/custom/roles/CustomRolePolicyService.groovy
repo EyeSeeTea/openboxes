@@ -268,19 +268,20 @@ class CustomRolePolicyService {
         RoleType activePolicy = getActivePolicy(user, locationId)
         return [
                 activeCustomRolePolicy          : activePolicy?.name(),
-                canCreateInboundMovement        : ![RoleType.ROLE_FACILITY_STOREKEEPER, RoleType.ROLE_REGIONAL_WAREHOUSE, RoleType.ROLE_REPORTING_USER].contains(activePolicy),
-                canCreateInboundFromPurchaseOrder: ![RoleType.ROLE_FACILITY_STOREKEEPER, RoleType.ROLE_REGIONAL_WAREHOUSE, RoleType.ROLE_REPORTING_USER].contains(activePolicy),
-                canCreateOutboundMovement       : ![RoleType.ROLE_FACILITY_STOREKEEPER, RoleType.ROLE_REPORTING_USER].contains(activePolicy),
-                canManageStocklists             : [RoleType.ROLE_REGIONAL_WAREHOUSE, RoleType.ROLE_RPC_SUPERUSER].contains(activePolicy),
-                canSendStocklistEmail           : [RoleType.ROLE_REGIONAL_WAREHOUSE, RoleType.ROLE_RPC_SUPERUSER].contains(activePolicy),
-                canManageProducts               : activePolicy == RoleType.ROLE_RPC_SUPERUSER,
-                canManagePurchasing             : ![RoleType.ROLE_FACILITY_STOREKEEPER, RoleType.ROLE_REGIONAL_WAREHOUSE, RoleType.ROLE_REPORTING_USER].contains(activePolicy),
+                canCreateInboundMovement        : policyAllowsCreateInboundMovement(activePolicy),
+                canCreateInboundFromPurchaseOrder: policyAllowsCreateInboundFromPurchaseOrder(activePolicy),
+                canCreateOutboundMovement       : policyAllowsCreateOutboundMovement(activePolicy),
+                canManageStocklists             : policyAllowsManageStocklists(activePolicy),
+                canSendStocklistEmail           : policyAllowsSendStocklistEmail(activePolicy),
+                canManageProducts               : policyAllowsManageProducts(activePolicy),
+                canManagePurchasing             : policyAllowsManagePurchasing(activePolicy),
+                canUseSuperuserPurchasingActions: policyAllowsSuperuserPurchasingActions(activePolicy),
         ]
     }
 
     boolean canManageStocklists(User user, String locationId) {
         RoleType activePolicy = getActivePolicy(user, locationId)
-        return [RoleType.ROLE_REGIONAL_WAREHOUSE, RoleType.ROLE_RPC_SUPERUSER].contains(activePolicy)
+        return policyAllowsManageStocklists(activePolicy)
     }
 
     boolean shouldHideStocklistEmail(User user, String locationId) {
@@ -366,6 +367,38 @@ class CustomRolePolicyService {
     private static boolean isRouteAllowed(Map<String, List<String>> allowedActions, String controllerName, String actionName) {
         List<String> controllerActions = allowedActions[controllerName] ?: []
         return controllerActions.contains('*') || controllerActions.contains(actionName)
+    }
+
+    private static boolean policyAllowsCreateInboundMovement(RoleType activePolicy) {
+        return !activePolicy || ![RoleType.ROLE_FACILITY_STOREKEEPER, RoleType.ROLE_REGIONAL_WAREHOUSE, RoleType.ROLE_REPORTING_USER].contains(activePolicy)
+    }
+
+    private static boolean policyAllowsCreateInboundFromPurchaseOrder(RoleType activePolicy) {
+        return !activePolicy || ![RoleType.ROLE_FACILITY_STOREKEEPER, RoleType.ROLE_REGIONAL_WAREHOUSE, RoleType.ROLE_REPORTING_USER].contains(activePolicy)
+    }
+
+    private static boolean policyAllowsCreateOutboundMovement(RoleType activePolicy) {
+        return !activePolicy || ![RoleType.ROLE_FACILITY_STOREKEEPER, RoleType.ROLE_REPORTING_USER].contains(activePolicy)
+    }
+
+    private static boolean policyAllowsManageStocklists(RoleType activePolicy) {
+        return [RoleType.ROLE_REGIONAL_WAREHOUSE, RoleType.ROLE_RPC_SUPERUSER].contains(activePolicy)
+    }
+
+    private static boolean policyAllowsSendStocklistEmail(RoleType activePolicy) {
+        return !activePolicy || [RoleType.ROLE_REGIONAL_WAREHOUSE, RoleType.ROLE_RPC_SUPERUSER].contains(activePolicy)
+    }
+
+    private static boolean policyAllowsManageProducts(RoleType activePolicy) {
+        return activePolicy == RoleType.ROLE_RPC_SUPERUSER
+    }
+
+    private static boolean policyAllowsManagePurchasing(RoleType activePolicy) {
+        return !activePolicy || ![RoleType.ROLE_FACILITY_STOREKEEPER, RoleType.ROLE_REGIONAL_WAREHOUSE, RoleType.ROLE_REPORTING_USER].contains(activePolicy)
+    }
+
+    private static boolean policyAllowsSuperuserPurchasingActions(RoleType activePolicy) {
+        return activePolicy == RoleType.ROLE_RPC_SUPERUSER
     }
 
     private static boolean isDeniedForFacilityStorekeeper(String controllerName, String actionName, Map params, def request) {

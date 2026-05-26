@@ -115,6 +115,7 @@ class CustomRolePolicyServiceSpec extends Specification implements ServiceUnitTe
         permissions.canManagePurchasing == false
         permissions.canManageStocklists == false
         permissions.canSendStocklistEmail == false
+        permissions.canUseSuperuserPurchasingActions == false
     }
 
     def "should build custom permission payload for rpc superuser"() {
@@ -133,6 +134,26 @@ class CustomRolePolicyServiceSpec extends Specification implements ServiceUnitTe
         permissions.canManagePurchasing == true
         permissions.canManageStocklists == true
         permissions.canSendStocklistEmail == true
+        permissions.canUseSuperuserPurchasingActions == true
+    }
+
+    def "should preserve standard core role behavior without custom policy"() {
+        given:
+        User user = mockUser([RoleType.ROLE_ASSISTANT], [RoleType.ROLE_ASSISTANT])
+
+        when:
+        Map<String, Object> permissions = service.getCustomRolePermissions(user, 'loc-1')
+
+        then:
+        permissions.activeCustomRolePolicy == null
+        permissions.canCreateInboundMovement == true
+        permissions.canCreateInboundFromPurchaseOrder == true
+        permissions.canCreateOutboundMovement == true
+        permissions.canManageProducts == false
+        permissions.canManagePurchasing == true
+        permissions.canManageStocklists == false
+        permissions.canSendStocklistEmail == true
+        permissions.canUseSuperuserPurchasingActions == false
     }
 
     def "should remove inbound create actions from regional warehouse menu"() {
