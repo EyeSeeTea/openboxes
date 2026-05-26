@@ -35,7 +35,7 @@ context:
     openspec/            # change proposals and archive (this directory)
     .claude/             # Claude Code tooling (tracked except .context/)
 
-  Custom code isolation (CRITICAL):
+  Custom code isolation (CRITICAL): |
     - Backend: org.pih.warehouse.custom.<feature>/
     - Frontend: src/js/custom/<feature>/
     - Migrations: grails-app/migrations/custom/ (or clearly-prefixed)
