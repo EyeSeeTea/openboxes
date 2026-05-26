@@ -3,11 +3,8 @@ import React, { useState } from 'react';
 import NotificationModal from 'custom/notifications/components/NotificationModal';
 import { formatDistanceToNow } from 'date-fns';
 import PropTypes from 'prop-types';
-import { useHistory } from 'react-router-dom';
 
 import Translate from 'utils/Translate';
-
-const isSameOriginPath = (url) => typeof url === 'string' && url.startsWith('/') && !url.startsWith('//');
 
 const formatRelative = (value) => {
   const date = new Date(value);
@@ -29,7 +26,6 @@ const NotificationDropdown = ({
   loadingMore,
   error,
 }) => {
-  const history = useHistory();
   const [selectedNotification, setSelectedNotification] = useState(null);
 
   const handleActivate = (notification) => {
@@ -41,12 +37,6 @@ const NotificationDropdown = ({
 
   const handleCloseModal = () => {
     setSelectedNotification(null);
-  };
-
-  const handleOpenLink = (linkUrl) => {
-    if (isSameOriginPath(linkUrl)) {
-      history.push(linkUrl);
-    }
   };
 
   return (
@@ -134,7 +124,6 @@ const NotificationDropdown = ({
       <NotificationModal
         notification={selectedNotification}
         onClose={handleCloseModal}
-        onOpenLink={handleOpenLink}
       />
     </div>
   );
@@ -147,7 +136,6 @@ NotificationDropdown.propTypes = {
       title: PropTypes.string.isRequired,
       createdAt: PropTypes.string.isRequired,
       read: PropTypes.bool.isRequired,
-      linkUrl: PropTypes.string,
     }),
   ).isRequired,
   unreadCount: PropTypes.number.isRequired,

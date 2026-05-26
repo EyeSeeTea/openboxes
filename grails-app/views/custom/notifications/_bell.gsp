@@ -64,11 +64,6 @@
                 </button>
             </div>
             <div class="custom-notification-bell__modal-body"></div>
-            <div class="custom-notification-bell__modal-footer" hidden>
-                <button type="button" class="custom-notification-bell__modal-open-link">
-                    ${message(code: 'notifications.modal.openLink', default: 'Open link')}
-                </button>
-            </div>
         </div>
     </div>
 </div>
@@ -129,11 +124,6 @@
 .custom-notification-bell__modal-body iframe { width: 100%; min-height: 320px; border: none; }
 .custom-notification-bell__modal-no-body { padding: 16px; margin: 0; color: #6c757d;
     font-style: italic; font-size: 13px; }
-.custom-notification-bell__modal-footer { display: flex; justify-content: flex-end;
-    padding: 10px 16px; border-top: 1px solid #e9ecef; background: #f8f9fa; }
-.custom-notification-bell__modal-open-link { padding: 6px 16px; font-size: 13px; font-weight: 500;
-    color: #fff; background: #007bff; border: none; border-radius: 4px; cursor: pointer; }
-.custom-notification-bell__modal-open-link:hover { background: #0069d9; }
 </style>
 
 <script>
@@ -163,8 +153,6 @@
     var modalTitle = root.querySelector('.custom-notification-bell__modal-title');
     var modalBody = root.querySelector('.custom-notification-bell__modal-body');
     var modalClose = root.querySelector('.custom-notification-bell__modal-close');
-    var modalFooter = root.querySelector('.custom-notification-bell__modal-footer');
-    var modalOpenLink = root.querySelector('.custom-notification-bell__modal-open-link');
     var noBodyText = modal.getAttribute('data-no-body');
     var emptyUnreadText = empty.getAttribute('data-empty-unread');
     var emptyAllText = empty.getAttribute('data-empty-all');
@@ -179,9 +167,6 @@
         dropdown.hidden = !open;
         root.setAttribute('aria-expanded', open ? 'true' : 'false');
         if (open) fetchPage();
-    }
-    function isSameOriginPath(url) {
-        return typeof url === 'string' && url.indexOf('/') === 0 && url.indexOf('//') !== 0;
     }
     function closeModal() {
         modal.hidden = true;
@@ -203,13 +188,6 @@
             p.className = 'custom-notification-bell__modal-no-body';
             p.textContent = noBodyText;
             modalBody.appendChild(p);
-        }
-        if (isSameOriginPath(n.linkUrl)) {
-            modalFooter.hidden = false;
-            modalOpenLink.onclick = function() { window.location.href = n.linkUrl; };
-        } else {
-            modalFooter.hidden = true;
-            modalOpenLink.onclick = null;
         }
         modal.hidden = false;
     }

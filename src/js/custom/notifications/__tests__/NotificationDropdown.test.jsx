@@ -3,7 +3,6 @@ import React from 'react';
 
 import { fireEvent, render, screen } from '@testing-library/react';
 import NotificationDropdown from 'custom/notifications/components/NotificationDropdown';
-import { MemoryRouter } from 'react-router-dom';
 
 import '@testing-library/jest-dom';
 
@@ -26,26 +25,24 @@ const NOTIFICATION_READ = {
   read: true,
 };
 
-const renderDropdown = (overrides = {}, { initialEntries = ['/'] } = {}) => {
+const renderDropdown = (overrides = {}) => {
   const onMarkRead = jest.fn();
   const onMarkAllRead = jest.fn();
   const onTabChange = jest.fn();
   const onLoadMore = jest.fn();
   const utils = render(
-    <MemoryRouter initialEntries={initialEntries}>
-      <NotificationDropdown
-        notifications={[]}
-        unreadCount={0}
-        activeTab="unread"
-        onTabChange={onTabChange}
-        onMarkRead={onMarkRead}
-        onMarkAllRead={onMarkAllRead}
-        onLoadMore={onLoadMore}
-        hasMore={false}
-        loadingMore={false}
-        {...overrides}
-      />
-    </MemoryRouter>,
+    <NotificationDropdown
+      notifications={[]}
+      unreadCount={0}
+      activeTab="unread"
+      onTabChange={onTabChange}
+      onMarkRead={onMarkRead}
+      onMarkAllRead={onMarkAllRead}
+      onLoadMore={onLoadMore}
+      hasMore={false}
+      loadingMore={false}
+      {...overrides}
+    />,
   );
   return {
     ...utils, onMarkRead, onMarkAllRead, onTabChange, onLoadMore,
@@ -155,22 +152,6 @@ describe('NotificationDropdown', () => {
       expect(screen.getByRole('dialog', { name: 'Low stock alert' })).toBeInTheDocument();
       fireEvent.click(screen.getByRole('button', { name: 'Close' }));
       expect(screen.queryByRole('dialog', { name: 'Low stock alert' })).not.toBeInTheDocument();
-    });
-  });
-
-  describe('linkUrl — modal shows Open link', () => {
-    it('shows "Open link" in the modal when notification has a same-origin linkUrl', () => {
-      const notification = { ...NOTIFICATION_UNREAD, linkUrl: '/openboxes/shipment/123' };
-      renderDropdown({ notifications: [notification], unreadCount: 1 });
-      fireEvent.click(screen.getByText('Low stock alert'));
-      expect(screen.getByRole('button', { name: 'Open link' })).toBeInTheDocument();
-    });
-
-    it('does not show "Open link" for external linkUrl', () => {
-      const notification = { ...NOTIFICATION_UNREAD, linkUrl: 'https://evil.example/x' };
-      renderDropdown({ notifications: [notification], unreadCount: 1 });
-      fireEvent.click(screen.getByText('Low stock alert'));
-      expect(screen.queryByRole('button', { name: 'Open link' })).not.toBeInTheDocument();
     });
   });
 

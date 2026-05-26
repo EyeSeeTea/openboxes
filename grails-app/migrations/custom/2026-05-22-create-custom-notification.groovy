@@ -19,9 +19,6 @@ databaseChangeLog = {
             column(name: 'body', type: 'text') {
                 constraints(nullable: true)
             }
-            column(name: 'link_url', type: 'varchar(2048)') {
-                constraints(nullable: true)
-            }
             column(name: 'is_read', type: 'boolean', defaultValueBoolean: false) {
                 constraints(nullable: false)
             }

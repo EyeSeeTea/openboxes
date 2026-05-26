@@ -12,28 +12,25 @@ const NOTIFICATION_BASE = {
   body: '<p>Stock is below threshold.</p>',
   createdAt: '2026-05-22T08:00:00Z',
   read: false,
-  linkUrl: null,
 };
 
 const renderModal = (props = {}) => {
   const onClose = jest.fn();
-  const onOpenLink = jest.fn();
   const utils = render(
     <NotificationModal
       notification={NOTIFICATION_BASE}
       onClose={onClose}
-      onOpenLink={onOpenLink}
       {...props}
     />,
   );
-  return { ...utils, onClose, onOpenLink };
+  return { ...utils, onClose };
 };
 
 describe('NotificationModal', () => {
   describe('null notification', () => {
     it('renders nothing when notification is null', () => {
       const { container } = render(
-        <NotificationModal notification={null} onClose={jest.fn()} onOpenLink={jest.fn()} />,
+        <NotificationModal notification={null} onClose={jest.fn()} />,
       );
       expect(container.firstChild).toBeNull();
     });
@@ -95,33 +92,4 @@ describe('NotificationModal', () => {
     });
   });
 
-  describe('Open link button', () => {
-    it('shows "Open link" button for same-origin linkUrl', () => {
-      renderModal({ notification: { ...NOTIFICATION_BASE, linkUrl: '/openboxes/shipment/123' } });
-      expect(screen.getByRole('button', { name: 'Open link' })).toBeInTheDocument();
-    });
-
-    it('calls onOpenLink with linkUrl when "Open link" is clicked', () => {
-      const { onOpenLink } = renderModal({
-        notification: { ...NOTIFICATION_BASE, linkUrl: '/openboxes/shipment/123' },
-      });
-      fireEvent.click(screen.getByRole('button', { name: 'Open link' }));
-      expect(onOpenLink).toHaveBeenCalledWith('/openboxes/shipment/123');
-    });
-
-    it('does not show "Open link" when linkUrl is null', () => {
-      renderModal({ notification: { ...NOTIFICATION_BASE, linkUrl: null } });
-      expect(screen.queryByRole('button', { name: 'Open link' })).not.toBeInTheDocument();
-    });
-
-    it('does not show "Open link" when linkUrl is external', () => {
-      renderModal({ notification: { ...NOTIFICATION_BASE, linkUrl: 'https://evil.example/x' } });
-      expect(screen.queryByRole('button', { name: 'Open link' })).not.toBeInTheDocument();
-    });
-
-    it('does not show "Open link" when linkUrl starts with //', () => {
-      renderModal({ notification: { ...NOTIFICATION_BASE, linkUrl: '//evil.example/x' } });
-      expect(screen.queryByRole('button', { name: 'Open link' })).not.toBeInTheDocument();
-    });
-  });
 });

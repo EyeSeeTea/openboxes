@@ -4,12 +4,9 @@ import PropTypes from 'prop-types';
 
 import Translate from 'utils/Translate';
 
-const isSameOriginPath = (url) => typeof url === 'string' && url.startsWith('/') && !url.startsWith('//');
-
 const NotificationModal = ({
   notification,
   onClose,
-  onOpenLink,
 }) => {
   useEffect(() => {
     if (!notification) return undefined;
@@ -36,11 +33,6 @@ const NotificationModal = ({
     if (e.target === e.currentTarget) {
       onClose();
     }
-  };
-
-  const handleOpenLink = () => {
-    onOpenLink(notification.linkUrl);
-    onClose();
   };
 
   return (
@@ -90,17 +82,6 @@ const NotificationModal = ({
             </p>
           )}
         </div>
-        {isSameOriginPath(notification.linkUrl) && (
-          <div className="notification-modal__footer">
-            <button
-              type="button"
-              className="notification-modal__open-link"
-              onClick={handleOpenLink}
-            >
-              <Translate id="notifications.modal.openLink" defaultMessage="Open link" />
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -113,10 +94,8 @@ NotificationModal.propTypes = {
     body: PropTypes.string,
     createdAt: PropTypes.string.isRequired,
     read: PropTypes.bool.isRequired,
-    linkUrl: PropTypes.string,
   }),
   onClose: PropTypes.func.isRequired,
-  onOpenLink: PropTypes.func.isRequired,
 };
 
 NotificationModal.defaultProps = {

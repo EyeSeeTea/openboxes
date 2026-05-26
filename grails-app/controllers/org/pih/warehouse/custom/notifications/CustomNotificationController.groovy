@@ -46,7 +46,6 @@ class CustomNotificationController {
                 type            : notification.notificationType,
                 title           : notification.title,
                 body            : notification.body,
-                linkUrl         : notification.linkUrl,
                 read            : notification.isRead,
                 createdAt       : notification.dateCreated,
             ]

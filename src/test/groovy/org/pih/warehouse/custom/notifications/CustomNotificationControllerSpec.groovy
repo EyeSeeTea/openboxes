@@ -37,7 +37,6 @@ class CustomNotificationControllerSpec extends Specification implements Controll
             notificationType: NotificationType.EMAIL_TRIGGER.name(),
             title           : 'Low stock',
             body            : '<p>hi</p>',
-            linkUrl         : '/openboxes/inventory',
             isRead          : false,
             dateCreated     : created,
         ]
@@ -58,12 +57,12 @@ class CustomNotificationControllerSpec extends Specification implements Controll
             type == 'EMAIL_TRIGGER'
             title == 'Low stock'
             body == '<p>hi</p>'
-            linkUrl == '/openboxes/inventory'
             read == false
             // The frontend reads `createdAt`, not the GORM `dateCreated` property.
             createdAt != null
             !containsKey('dateCreated')
             !containsKey('isRead')
+            !containsKey('linkUrl')
         }
     }
 

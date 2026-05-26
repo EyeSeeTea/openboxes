@@ -9,7 +9,6 @@ class CustomNotification {
     String notificationType
     String title
     String body
-    String linkUrl
     Boolean isRead = false
     Date readAt
     Date dateCreated
@@ -19,7 +18,6 @@ class CustomNotification {
         notificationType blank: false, maxSize: 64
         title blank: false, maxSize: 255
         body nullable: true
-        linkUrl nullable: true, maxSize: 2048
         readAt nullable: true
         user nullable: false
     }
@@ -34,6 +32,5 @@ class CustomNotification {
         dateCreated column: 'date_created'
         lastUpdated column: 'last_updated'
         notificationType column: 'notification_type'
-        linkUrl column: 'link_url'
     }
 }
