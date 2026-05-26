@@ -63,6 +63,8 @@ enum RoleType {
     ROLE_RECEIVER('Receiver', 50),
     ROLE_SHIPMENT_CLERK('Shipment Clerk', 50),
     ROLE_STOCKER('Stocker', 50),
+    // Custom policy roles: below Assistant and above Authenticated.
+    // They do not automatically inherit Assistant-level access; policy service grants explicit capabilities.
     ROLE_FACILITY_STOREKEEPER('Facility Storekeeper', 4),
     ROLE_REGIONAL_WAREHOUSE('Regional Warehouse User', 4),
     ROLE_RPC_SUPERUSER('RPC Superuser', 4),

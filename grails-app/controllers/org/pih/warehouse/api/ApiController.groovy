@@ -92,14 +92,9 @@ class ApiController {
         Map menuSectionsUrlParts = grailsApplication.config.openboxes.menuSectionsUrlParts
         User user = User.get(session?.user?.id)
 
-        Map<String, Boolean> customRolePolicyFlags = customRolePolicyService.getPolicyFlags(user, session?.warehouse?.id)
-        boolean hasFacilityStorekeeperPolicy = customRolePolicyFlags.hasFacilityStorekeeperPolicy
-        boolean hasRegionalWarehousePolicy = customRolePolicyFlags.hasRegionalWarehousePolicy
-        boolean hasRpcSuperuserPolicy = customRolePolicyFlags.hasRpcSuperuserPolicy
+        boolean hasCustomPolicy = customRolePolicyService.hasAnyCustomPolicy(user, session?.warehouse?.id)
         if (userService.hasHighestRole(user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED) &&
-                !hasFacilityStorekeeperPolicy &&
-                !hasRegionalWarehousePolicy &&
-                !hasRpcSuperuserPolicy) {
+                !hasCustomPolicy) {
             menuConfig = grailsApplication.config.openboxes.requestorMegamenu;
         }
         List translatedMenu = megamenuService.buildAndTranslateMenu(menuConfig, user, location)
@@ -170,11 +165,6 @@ class ApiController {
         // TODO: investigate why in isUserManager method in userService there is Assistant role included
         ArrayList<RoleType> managerRoles = [RoleType.ROLE_SUPERUSER, RoleType.ROLE_ADMIN, RoleType.ROLE_MANAGER]
         boolean isUserManager = userService.getEffectiveRoles(user).any { managerRoles.contains(it.roleType) }
-        Map<String, Boolean> customRolePolicyFlags = customRolePolicyService.getPolicyFlags(session?.user, session.warehouse?.id)
-        boolean hasFacilityStorekeeperPolicy = customRolePolicyFlags.hasFacilityStorekeeperPolicy
-        boolean hasRegionalWarehousePolicy = customRolePolicyFlags.hasRegionalWarehousePolicy
-        boolean hasRpcSuperuserPolicy = customRolePolicyFlags.hasRpcSuperuserPolicy
-        boolean hasReportingUserPolicy = customRolePolicyFlags.hasReportingUserPolicy
         Map<String, Object> customRolePermissions = customRolePolicyService.getCustomRolePermissions(session?.user, session.warehouse?.id)
         def supportedActivities = location.supportedActivities ?: location.locationType.supportedActivities
         boolean isImpersonated = session.impersonateUserId ? true : false
@@ -221,10 +211,6 @@ class ApiController {
                 isUserApprover                : isUserApprover,
                 isUserRequestApprover         : isUserRequestApprover,
                 isUserManager                 : isUserManager,
-                hasFacilityStorekeeperPolicy  : hasFacilityStorekeeperPolicy,
-                hasRegionalWarehousePolicy    : hasRegionalWarehousePolicy,
-                hasRpcSuperuserPolicy         : hasRpcSuperuserPolicy,
-                hasReportingUserPolicy        : hasReportingUserPolicy,
                 customRolePermissions         : customRolePermissions,
                 supportedActivities           : supportedActivities,
                 isImpersonated                : isImpersonated,

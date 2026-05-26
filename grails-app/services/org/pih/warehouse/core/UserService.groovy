@@ -323,6 +323,10 @@ class UserService {
         return Boolean.TRUE.equals(customRolePolicyService.hasCustomPolicy(u, locationId, RoleType.ROLE_REPORTING_USER))
     }
 
+    Boolean hasAnyCustomPolicy(User u, String locationId) {
+        return Boolean.TRUE.equals(customRolePolicyService.hasAnyCustomPolicy(u, locationId))
+    }
+
     // Checks if requestor role exist for any location - for location chooser purposes
     Boolean hasRoleRequestorInAnyLocations(User u) {
         if (u) {

@@ -189,6 +189,17 @@ class CustomRolePolicyServiceSpec extends Specification implements ServiceUnitTe
         service.hasLocationChooserRole(user)
     }
 
+    def "should recognize default custom role as location chooser role"() {
+        given:
+        User user = mockUser(
+                [RoleType.ROLE_REPORTING_USER],
+                [RoleType.ROLE_REPORTING_USER]
+        )
+
+        expect:
+        service.hasLocationChooserRole(user)
+    }
+
     def "should resolve detached user before evaluating custom role policy"() {
         given:
         User detachedUser = Stub(User) {
@@ -212,6 +223,47 @@ class CustomRolePolicyServiceSpec extends Specification implements ServiceUnitTe
         !flags.hasFacilityStorekeeperPolicy
         !flags.hasRpcSuperuserPolicy
         !flags.hasReportingUserPolicy
+    }
+
+    def "should expose hasAnyCustomPolicy for reporting user"() {
+        given:
+        User user = mockUser([RoleType.ROLE_REPORTING_USER], [RoleType.ROLE_REPORTING_USER])
+
+        expect:
+        service.hasAnyCustomPolicy(user, 'loc-1')
+    }
+
+    def "should allow rpc superuser to pass assistant minimum menu role in allowed sections"() {
+        given:
+        User user = mockUser([RoleType.ROLE_RPC_SUPERUSER], [RoleType.ROLE_RPC_SUPERUSER])
+        Location location = Stub(Location) {
+            getId() >> 'loc-1'
+        }
+
+        expect:
+        service.userHasMinimumMenuRole(user, location, [RoleType.ROLE_ASSISTANT], 'purchasing')
+    }
+
+    def "should deny reporting user assistant minimum menu role"() {
+        given:
+        User user = mockUser([RoleType.ROLE_REPORTING_USER], [RoleType.ROLE_REPORTING_USER])
+        Location location = Stub(Location) {
+            getId() >> 'loc-1'
+        }
+
+        expect:
+        !service.userHasMinimumMenuRole(user, location, [RoleType.ROLE_ASSISTANT], 'purchasing')
+    }
+
+    def "should allow rpc superuser supplemental menu role for purchasing section"() {
+        given:
+        User user = mockUser([RoleType.ROLE_RPC_SUPERUSER], [RoleType.ROLE_RPC_SUPERUSER])
+        Location location = Stub(Location) {
+            getId() >> 'loc-1'
+        }
+
+        expect:
+        service.userHasSupplementalMenuRole(user, location, [RoleType.ROLE_SUPERUSER], 'purchasing')
     }
 
     private User mockUser(List<RoleType> effectiveRoleTypes, List<RoleType> allRoleTypes) {

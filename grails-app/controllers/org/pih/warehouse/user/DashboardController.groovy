@@ -113,13 +113,9 @@ class DashboardController {
             redirect(controller: "mobile")
             return
         }
-        boolean hasFacilityStorekeeperPolicy = userService.hasFacilityStorekeeperPolicy(session?.user, session?.warehouse?.id)
-        boolean hasRegionalWarehousePolicy = userService.hasRegionalWarehousePolicy(session?.user, session?.warehouse?.id)
-        boolean hasRpcSuperuserPolicy = userService.hasRpcSuperuserPolicy(session?.user, session?.warehouse?.id)
+        boolean hasCustomPolicy = userService.hasAnyCustomPolicy(session?.user, session?.warehouse?.id)
         if (userService.hasHighestRole(session?.user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED) &&
-                !hasFacilityStorekeeperPolicy &&
-                !hasRegionalWarehousePolicy &&
-                !hasRpcSuperuserPolicy) {
+                !hasCustomPolicy) {
             redirect(controller: "stockMovement", action: "list", params: [direction: 'INBOUND'] )
             return
         }
@@ -176,13 +172,9 @@ class DashboardController {
         Map menuConfig = grailsApplication.config.openboxes.megamenu;
         User user = User.get(session?.user?.id)
 
-        boolean hasFacilityStorekeeperPolicy = userService.hasFacilityStorekeeperPolicy(user, session?.warehouse?.id)
-        boolean hasRegionalWarehousePolicy = userService.hasRegionalWarehousePolicy(user, session?.warehouse?.id)
-        boolean hasRpcSuperuserPolicy = userService.hasRpcSuperuserPolicy(user, session?.warehouse?.id)
+        boolean hasCustomPolicy = userService.hasAnyCustomPolicy(user, session?.warehouse?.id)
         if (userService.hasHighestRole(user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED) &&
-                !hasFacilityStorekeeperPolicy &&
-                !hasRegionalWarehousePolicy &&
-                !hasRpcSuperuserPolicy) {
+                !hasCustomPolicy) {
             menuConfig = grailsApplication.config.openboxes.requestorMegamenu;
         }
         List translatedMenu = megamenuService.buildAndTranslateMenu(menuConfig, user, location)
@@ -239,13 +231,9 @@ class DashboardController {
                 session.user = user
             }
 
-            boolean hasFacilityStorekeeperPolicy = userService.hasFacilityStorekeeperPolicy(session?.user, session?.warehouse?.id)
-            boolean hasRegionalWarehousePolicy = userService.hasRegionalWarehousePolicy(session?.user, session?.warehouse?.id)
-            boolean hasRpcSuperuserPolicy = userService.hasRpcSuperuserPolicy(session?.user, session?.warehouse?.id)
+            boolean hasCustomPolicy = userService.hasAnyCustomPolicy(session?.user, session?.warehouse?.id)
             if (userService.hasHighestRole(session?.user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED) &&
-                    !hasFacilityStorekeeperPolicy &&
-                    !hasRegionalWarehousePolicy &&
-                    !hasRpcSuperuserPolicy) {
+                    !hasCustomPolicy) {
                 redirect(controller: 'stockMovement', action: 'list' , params: [direction: 'INBOUND'])
                 return
             }

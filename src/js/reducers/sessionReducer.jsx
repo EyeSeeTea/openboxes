@@ -1,5 +1,5 @@
-import _ from 'lodash';
 import { DEFAULT_CUSTOM_ROLE_PERMISSIONS } from 'custom/roles/customRolePermissions';
+import _ from 'lodash';
 
 import {
   CHANGE_CURRENT_LOCALE,
@@ -25,10 +25,6 @@ const initialState = {
   isUserAdmin: false,
   isUserApprover: false,
   isUserRequestApprover: false,
-  hasFacilityStorekeeperPolicy: false,
-  hasRegionalWarehousePolicy: false,
-  hasRpcSuperuserPolicy: false,
-  hasReportingUserPolicy: false,
   customRolePermissions: DEFAULT_CUSTOM_ROLE_PERMISSIONS,
   supportedActivities: [],
   menuConfig: [],
@@ -93,7 +89,7 @@ const initialState = {
   maxUploadFileSize: 2097152,
 };
 
-export default function (state = initialState, action) {
+export default function sessionReducer(state = initialState, action) {
   switch (action.type) {
     case FETCH_SESSION_INFO:
       return {
@@ -105,10 +101,6 @@ export default function (state = initialState, action) {
         isUserApprover: _.get(action, 'payload.data.data.isUserApprover', false),
         isUserRequestApprover: _.get(action, 'payload.data.data.isUserRequestApprover', false),
         isUserManager: _.get(action, 'payload.data.data.isUserManager', false),
-        hasFacilityStorekeeperPolicy: _.get(action, 'payload.data.data.hasFacilityStorekeeperPolicy', false),
-        hasRegionalWarehousePolicy: _.get(action, 'payload.data.data.hasRegionalWarehousePolicy', false),
-        hasRpcSuperuserPolicy: _.get(action, 'payload.data.data.hasRpcSuperuserPolicy', false),
-        hasReportingUserPolicy: _.get(action, 'payload.data.data.hasReportingUserPolicy', false),
         customRolePermissions: _.get(action, 'payload.data.data.customRolePermissions', state.customRolePermissions),
         supportedActivities: _.get(action, 'payload.data.data.supportedActivities'),
         activeLanguage: _.get(action, 'payload.data.data.activeLanguage'),

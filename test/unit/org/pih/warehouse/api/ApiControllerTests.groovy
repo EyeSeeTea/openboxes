@@ -108,6 +108,21 @@ class ApiControllerTests extends ControllerUnitTestCase {
                 hasRolePurchaseApprover: { User user -> return true },
                 getEffectiveRoles: { User user -> return [] }
         ]
+        controller.customRolePolicyService = [
+                getCustomRolePermissions: { User user, String locationId ->
+                    [
+                            activeCustomRolePolicy: null,
+                            canCreateInboundMovement: true,
+                            canCreateInboundFromPurchaseOrder: true,
+                            canCreateOutboundMovement: true,
+                            canManageProducts: false,
+                            canManagePurchasing: true,
+                            canManageStocklists: false,
+                            canSendStocklistEmail: true,
+                            canUseSuperuserPurchasingActions: false,
+                    ]
+                }
+        ]
         controller.localizationService = [
                 getCurrentLocale: { -> return localeEn }
         ]
@@ -143,5 +158,12 @@ class ApiControllerTests extends ControllerUnitTestCase {
 
         assert jsonResponse.data.isHelpScoutEnabled
         assert jsonResponse.data.localizedHelpScoutKey == 'localized string'  // from what was GIVEN
+        assert jsonResponse.data.customRolePermissions
+        assert jsonResponse.data.customRolePermissions.canManagePurchasing == true
+        assert jsonResponse.data.customRolePermissions.canManageStocklists == false
+        assert !jsonResponse.data.containsKey('hasFacilityStorekeeperPolicy')
+        assert !jsonResponse.data.containsKey('hasRegionalWarehousePolicy')
+        assert !jsonResponse.data.containsKey('hasRpcSuperuserPolicy')
+        assert !jsonResponse.data.containsKey('hasReportingUserPolicy')
     }
 }

@@ -301,6 +301,24 @@ class CustomRolePolicyService {
                 roleTypes?.any { it in [RoleType.ROLE_SUPERUSER, RoleType.ROLE_ADMIN, RoleType.ROLE_REGIONAL_WAREHOUSE] }
     }
 
+    boolean userHasMinimumMenuRole(User user, Location location, Collection roleTypes, String sectionId = null) {
+        if (shouldAllowRpcSuperuserMenuMinRole(user, location?.id, sectionId, roleTypes)) {
+            return true
+        }
+        Set<String> acceptedRoleTypeNames = (RoleType.expand(roleTypes)*.name()) as Set<String>
+        Set<String> effectiveRoleNames = getEffectiveRoleNames(user, location?.id)
+        return effectiveRoleNames.any { acceptedRoleTypeNames.contains(it) }
+    }
+
+    boolean userHasSupplementalMenuRole(User user, Location location, Collection roleTypes, String sectionId = null) {
+        if (shouldAllowRpcSuperuserMenuSupplementalRole(user, location?.id, sectionId, roleTypes)) {
+            return true
+        }
+        Set<String> acceptedRoleTypeNames = (roleTypes*.name()) as Set<String>
+        Set<String> effectiveRoleNames = getEffectiveRoleNames(user, location?.id)
+        return effectiveRoleNames.any { acceptedRoleTypeNames.contains(it) }
+    }
+
     private RoleType getActivePolicy(User user, String locationId) {
         if (!user || !locationId) {
             return null

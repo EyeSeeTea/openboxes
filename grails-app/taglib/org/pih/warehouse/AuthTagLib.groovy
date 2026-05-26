@@ -141,24 +141,16 @@ class AuthTagLib {
     }
 
     def hasHighestRoleAuthenticated = { attrs, body ->
-        boolean hasFacilityStorekeeperPolicy = userService.hasFacilityStorekeeperPolicy(session?.user, session?.warehouse?.id)
-        boolean hasRegionalWarehousePolicy = userService.hasRegionalWarehousePolicy(session?.user, session?.warehouse?.id)
-        boolean hasRpcSuperuserPolicy = userService.hasRpcSuperuserPolicy(session?.user, session?.warehouse?.id)
+        boolean hasCustomPolicy = customRolePolicyService.hasAnyCustomPolicy(session?.user, session?.warehouse?.id)
         if (userService.hasHighestRole(session?.user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED) &&
-                !hasFacilityStorekeeperPolicy &&
-                !hasRegionalWarehousePolicy &&
-                !hasRpcSuperuserPolicy)
+                !hasCustomPolicy)
             out << body()
     }
 
     def hasHigherRoleThanAuthenticated = { attrs, body ->
-        boolean hasFacilityStorekeeperPolicy = userService.hasFacilityStorekeeperPolicy(session?.user, session?.warehouse?.id)
-        boolean hasRegionalWarehousePolicy = userService.hasRegionalWarehousePolicy(session?.user, session?.warehouse?.id)
-        boolean hasRpcSuperuserPolicy = userService.hasRpcSuperuserPolicy(session?.user, session?.warehouse?.id)
+        boolean hasCustomPolicy = customRolePolicyService.hasAnyCustomPolicy(session?.user, session?.warehouse?.id)
         if (!userService.hasHighestRole(session?.user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED) ||
-                hasFacilityStorekeeperPolicy ||
-                hasRegionalWarehousePolicy ||
-                hasRpcSuperuserPolicy)
+                hasCustomPolicy)
             out << body()
     }
 }

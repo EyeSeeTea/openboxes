@@ -43,4 +43,36 @@ class AuthTagLibCustomRolesSpec extends Specification implements TagLibUnitTest<
         then:
         output == 'Allowed'
     }
+
+    def "hasHighestRoleAuthenticated should hide body when any custom policy is active"() {
+        given:
+        tagLib.userService = Stub(UserService) {
+            hasHighestRole(_, _, _) >> true
+        }
+        tagLib.customRolePolicyService = Stub(CustomRolePolicyService) {
+            hasAnyCustomPolicy(_, _) >> true
+        }
+
+        when:
+        String output = applyTemplate('<g:hasHighestRoleAuthenticated>Allowed</g:hasHighestRoleAuthenticated>')
+
+        then:
+        output == ''
+    }
+
+    def "hasHigherRoleThanAuthenticated should render body when any custom policy is active"() {
+        given:
+        tagLib.userService = Stub(UserService) {
+            hasHighestRole(_, _, _) >> true
+        }
+        tagLib.customRolePolicyService = Stub(CustomRolePolicyService) {
+            hasAnyCustomPolicy(_, _) >> true
+        }
+
+        when:
+        String output = applyTemplate('<g:hasHigherRoleThanAuthenticated>Allowed</g:hasHigherRoleThanAuthenticated>')
+
+        then:
+        output == 'Allowed'
+    }
 }
