@@ -96,6 +96,10 @@ The Java/Spring rules in `.claude/rules/java/` apply with these Grails-specific 
 - API calls use Axios via existing API utilities (`src/js/utils/apiClient.js` and siblings).
 - Styling uses SCSS (Bootstrap 4.6 base).
 
+### Theming (colors & fonts)
+
+When working on UI, use the tokens in `grails-app/assets/stylesheets/custom/obTheme.css` — the single consolidated theme file, whose top comment documents the design intent, section layout, and the "what to retheme vs leave alone" rules. Never invent colors; only override `--ob-primary*` to retheme. Keep semantic/chart colors (green/red/amber/blue) as-is. Match existing OpenBoxes layouts 1:1 — retheme, don't redesign. The theme is delivered to both the React and GSP stacks via `custom/obTheme.css` injected into the layout heads (`react.gsp`, `custom.gsp`, `main.gsp`).
+
 ## Build & Run
 
 ```bash

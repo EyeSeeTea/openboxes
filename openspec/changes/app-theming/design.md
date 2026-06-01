@@ -1,125 +1,115 @@
 ## Context
 
 OpenBoxes serves two kinds of pages from one Grails app:
-- **React pages** — a `react` GSP layout shell whose Webpack bundle CSS is loaded in `<body>`
-  (`grails-app/views/common/react.gsp`). Color system lives in `src/css/colors.scss`, which
-  already defines a `:root { --blue-primary: …; --color-red: … }` block; newer components consume
-  `var(--blue-primary)`.
-- **GSP pages** — the `main` layout (`grails-app/views/layouts/main.gsp`) loading asset-pipeline
-  CSS (`grails-app/assets/stylesheets/*.css`), much of it hardcoded hex.
+- **React pages** — the `react` GSP layout (`grails-app/views/common/react.gsp`) whose Webpack
+  bundle CSS loads in `<body>`. The color system lives in `src/css/colors.scss`, which defines a
+  `:root { --blue-primary: …; --color-red: … }` block that newer components consume.
+- **GSP pages** — the `custom` and `main` layouts loading asset-pipeline CSS plus
+  `web-app/css/openboxes.css`, much of it hardcoded hex.
 
-A Claude-designed theme package now exists (`THEME.md` + `theme.css`, the "UNICEF Tajikistan
-Navy" theme inspired by moh.tj). `theme.css` is the canonical artifact: a `:root` block of `--ob-*`
-custom properties plus an `.ob-*` utility-class layer. `THEME.md` is the written source of truth —
-reskin, not redesign; override only `--ob-primary*` and `--ob-accent` to produce palette variants.
-
-There is no single brand source in the live app today. We want `theme.css` to be that source for
-both stacks, without modifying upstream stylesheets and without disturbing existing OB layouts.
+There is no single brand source in the live app. This change makes one file —
+`grails-app/assets/stylesheets/custom/obTheme.css` — that source for both stacks, without modifying
+upstream stylesheets or components and without disturbing existing OB layouts. The palette is the
+"UNICEF Tajikistan Navy" look (moh.tj-inspired): one brand color (`--ob-primary`) plus neutrals.
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Make `theme.css` the single in-code source of truth for colors + fonts, edited per customer branch.
+- One in-code file is the source of truth for colors + fonts, edited per customer branch.
 - Recolor **both** React and GSP pages from it.
-- Zero edits to upstream stylesheets (`colors.scss`, `main.scss`, `grails.css`, component `.scss`).
-- Custom code isolated under `custom/` paths; only surgical, documented upstream touches.
-- Reskin only — no change to DOM order, element positions, or copy on existing OB pages.
+- Zero edits to upstream stylesheets or React/Groovy components.
+- Custom code isolated under `custom/`; only surgical, documented upstream touches (layout-head links).
+- Reskin only — no change to DOM order, element positions, or copy.
 
 **Non-Goals:**
-- Migrating the ~30% hardcoded-hex values in upstream CSS to tokens.
+- Migrating the hardcoded-hex values in upstream CSS to tokens.
 - Runtime admin UI, DB-backed theme, or per-location theming.
-- External web fonts; new layout/IA; brand imagery beyond where the logo already lives.
+- Self-hosted/external web fonts; new layout/IA; brand imagery beyond the existing logo.
 
 ## Decisions
 
-**1. `theme.css` is the token + utility source; no Groovy token map, no token-generating taglib.**
-The dropped-in `theme.css` owns the `:root` `--ob-*` tokens and the `.ob-*` utilities. Retheming is
-editing its `--ob-primary*` / `--ob-accent` values — nothing is generated from code.
-- *Supersedes the earlier plan* of a `ThemeTokens.groovy` map + an `obtheme` taglib: redundant now
-  that a canonical CSS file exists.
+**1. One file, four parts.** `grails-app/assets/stylesheets/custom/obTheme.css` contains, in order:
+(1) `:root` `--ob-*` tokens + `.ob-*` utility classes (a toolkit for net-new themed markup — the live
+app does not use them); (2) the `:root:root` bridge; (3) navy header + sidebar + dropdown overrides;
+(4) Groovy selector + pagination overrides. Retheme = edit `--ob-primary*`. There is no `--ob-accent`
+(one brand color + neutrals) and no generated-from-code token map. The design intent and the
+"retheme-vs-leave-alone" rules live in the file's top comment — there is no separate `THEME.md`.
 
-**2. Deliver via the Grails asset pipeline, injected into both layout heads.**
-Place the theme CSS under `grails-app/assets/stylesheets/custom/` and inject a single
-`<asset:stylesheet>` line into the `<head>` of `main.gsp` (GSP pages) and `react.gsp` (React pages).
-Both are GSP layouts, so the asset link reaches both stacks; React needs no webpack import (the
-asset is served same-origin and loads on React pages too).
-- *Alternative — webpack `@import` of theme.css into the bundle:* rejected; would only reach React
-  and duplicate delivery.
+**2. Deliver via the Grails asset pipeline, injected into the layout heads.** One
+`<asset:stylesheet src="custom/obTheme.css"/>` line in the `<head>` of `custom.gsp` (most GSP pages),
+`react.gsp` (React pages), and `main.gsp`. All are GSP layouts, so the asset reaches both stacks;
+React needs no webpack import (served same-origin).
 
-**3. A small "bridge" file recolors existing OB chrome; uses a specificity bump so it always wins.**
-`theme.css` only defines `--ob-*`; existing OB components read `--blue-primary`, `--color-red`, etc.
-A companion `themeBridge.css` maps those to the new tokens and applies the base font:
+**3. A `:root:root` bridge recolors existing OB chrome via its own vars.** The tokens only define
+`--ob-*`; existing components read `--blue-primary`, `--color-red`, etc. The bridge maps them and
+applies the base font:
 ```css
 :root:root {            /* 0,2,0 beats the bundle's :root (0,1,0) regardless of load order */
   --blue-primary: var(--ob-primary);
-  --blue-500:     var(--ob-primary);
   --blue-700:     var(--ob-primary-dark);
   --color-red:    var(--ob-red);
   --color-green:  var(--ob-green);
   --color-yellow: var(--ob-amber);
+  --page-background: var(--ob-bg);
 }
-html body { font-family: var(--ob-font); }   /* beats upstream `body {…}` without !important */
+html body { font-family: var(--ob-font); }
 ```
 The React bundle's `:root` defaults load in `<body>` after the head, so the bump is what makes the
-override win — without editing `colors.scss`/`main.scss`/`grails.css` or using `!important`.
+override win — without editing `colors.scss`/`main.scss` or using `!important`.
 
-**4. Do NOT blanket-apply `theme.css`'s global reset/body rules to existing pages.**
-`theme.css` was authored for standalone mocks and includes `*,*::before,*::after{box-sizing}` and a
-full `body{…}` restyle. Bootstrap 4.6 already sets `box-sizing: border-box`, so that is a no-op; the
-`body` background/color/size could shift existing pages. To honor "reskin, not redesign," the live
-wiring loads the **tokens** (`:root`), the **`.ob-*` utilities** (new namespace, inert on existing
-markup), and the **bridge** (recolors via OB's own vars). Any opinionated global `body`/reset rules
-from the mock are scoped or omitted at apply time, verified against real OB pages.
+**4. Chrome that doesn't read those vars is recolored by class override — still no component edits.**
+The header, dashboard sidebar (`.configs-left-nav`), nav/settings dropdowns (`.dropdown-menu-content`
+/ `.subsection-section-item`), Choose-Location modal, and Groovy Chosen/Select2 selectors are restyled
+by targeting their existing classes from `obTheme.css`. React rules are anchored on
+`.navbar.main-wrapper` and GSP rules on `#main-wrapper`: the extra class out-specifies
+`HeaderStyles.scss` (which nests its rules under `.main-wrapper {}` and loads after this head sheet),
+so `!important` + the anchor are required there. No edits to `Header.jsx`, `HeaderStyles.scss`,
+`Dashboard.scss`, `LocationChooserModal.scss`, or the GSP/megamenu markup.
 
-**5. Curated self-hosted fonts: Inter + JetBrains Mono.**
-`theme.css` references `"Inter"` (UI) and `"JetBrains Mono"` (IDs/lots). `@font-face` for both lives
-in `grails-app/assets/stylesheets/custom/themeFonts.css` with woff2 under
-`grails-app/assets/fonts/custom/theme/`, served same-origin so both stacks use them. Inter is also
-bundled on React via `@fontsource/inter` today; self-hosting unifies it for GSP without an external
-request.
+**5. Do NOT apply the design mock's global reset/body rules.** The upstream design mock set
+`*,*::before,*::after{box-sizing}`, a body `margin/padding` reset, and base `font-size`/`line-height`.
+Only `box-sizing` (a Bootstrap no-op), body color/bg/font, and the link retheme are kept; the
+margin/padding reset and base size/line-height are omitted so existing OB pages don't reflow.
 
-**Bundling:** an asset manifest `grails-app/assets/stylesheets/custom/obTheme.css` uses
-`//= require` to pull in `themeFonts`, `theme`, and `themeBridge`, so each layout head needs only one
-`<asset:stylesheet src="custom/obTheme.css"/>` line.
+**6. Fonts: family only, no self-hosting.** The theme sets `--ob-font` (Inter UI) / `--ob-font-mono`
+(JetBrains Mono for IDs) via the bridge, relying on the system-font fallback chain plus React's
+existing `@fontsource/inter`. No `@font-face` / woff2 is added.
 
 ## Risks / Trade-offs
 
-- **Mock `theme.css` global rules disturb existing layouts** → Load tokens + utilities + bridge;
-  scope/omit the mock's `body`/reset; verify real OB pages render unchanged in structure (Decision 4).
-- **Specificity-bump fragility** → If upstream ever sets a brand var at higher specificity than
-  `:root:root`, the bridge could lose. Low risk (vars live at `:root`); documented in `themeBridge.css`.
-- **GSP hardcoded-hex unaffected** → Pages using literal hex won't recolor. Accepted per scope.
-- **Upstream layout-head edits are merge points** → One `<asset:stylesheet>` line each in
-  `main.gsp`/`react.gsp`; listed below for the merge hitlist.
+- **Specificity-bump / anchor fragility** → if upstream sets a brand var at higher specificity than
+  `:root:root`, or restructures `HeaderStyles.scss`, the relevant override could lose. Low risk; the
+  rationale is documented in the `obTheme.css` comments.
+- **GSP hardcoded-hex unaffected** → pages using literal hex won't recolor. Accepted per scope.
+- **Layout-head + class-override edits are merge points** → the three `<asset:stylesheet>` lines are
+  the only upstream touches; the class-override selectors depend on upstream class names staying
+  stable, so re-verify after an upstream UI bump.
 
 ## Migration Plan
 
-Additive; no DB, no data migration. Deploy = ship the new custom asset files + the two layout
-one-liners. Rollback = remove the two `<asset:stylesheet>` lines (pages fall back to upstream
-`colors.scss` defaults) and delete the custom assets. No persisted state to unwind.
+Additive; no DB, no data migration. Deploy = ship `obTheme.css` + the three layout one-liners.
+Rollback = remove the `<asset:stylesheet>` lines (pages fall back to upstream defaults) and delete the
+file. No persisted state.
 
 ## Upstream touch points
 
 | File | Edit | Reason |
 |---|---|---|
-| `grails-app/views/layouts/main.gsp` | add one `<asset:stylesheet src="custom/obTheme.css"/>` in `<head>` (after `application.css`) | load theme on all GSP pages |
+| `grails-app/views/layouts/custom.gsp` | add one `<asset:stylesheet src="custom/obTheme.css"/>` in `<head>` | load theme on most GSP pages (the `layout="custom"` pages) |
 | `grails-app/views/layouts/react.gsp` | add one `<asset:stylesheet src="custom/obTheme.css"/>` in `<head>` | load theme on all React pages |
+| `grails-app/views/layouts/main.gsp` | add one `<asset:stylesheet src="custom/obTheme.css"/>` in `<head>` (after `application.css`) | load theme on GSP pages using the `main` layout |
+| `CLAUDE.md` | UI-conventions pointer to `obTheme.css` | docs |
 
 Optional (only if needed): same line in `bootstrap.gsp`, `mobile.gsp`, `print.gsp`, `email.gsp`.
-No other upstream files are modified. `THEME.md` and `theme.css` move from this change folder to
-their runtime homes (`theme.css` → `grails-app/assets/stylesheets/custom/`; `THEME.md` → repo root
-or `.claude/docs/`, referenced from `CLAUDE.md` UI conventions).
+No upstream stylesheets or React/Groovy components are modified.
 
 ## Deploy status
 
-- Implemented on: `release/est/tjk/0.9.7` (pending).
+- Implemented on: `feat/custom-app-theming` (current working branch).
 - Replayed onto other customer branches: none yet.
 - Submitted upstream: no.
 
 ## Open Questions
 
-- Final home for `THEME.md` (repo root vs `.claude/docs/`) and how it's referenced from `CLAUDE.md`.
-- Which of `theme.css`'s global `body`/reset rules (if any) are safe to apply app-wide vs must be
-  scoped to `.ob-*` containers — resolved by visual diff against real OB pages during apply.
-- Whether to promote the mechanism to the EST shared layer with a neutral default theme, leaving
-  only token values per customer branch.
+- Whether to promote the mechanism to the EST shared layer with a neutral default theme, leaving only
+  `--ob-primary*` values per customer branch.

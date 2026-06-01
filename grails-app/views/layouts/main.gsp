@@ -16,6 +16,7 @@
     <asset:link rel="icon" href="favicon.ico" type="image/x-ico"/>
 
     <asset:stylesheet src="application.css"/>
+    <asset:stylesheet src="custom/obTheme.css"/>
 
     <g:layoutHead/>
 </head>
