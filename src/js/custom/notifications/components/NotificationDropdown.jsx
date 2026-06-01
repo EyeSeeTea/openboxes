@@ -1,18 +1,14 @@
 import React, { useState } from 'react';
 
 import NotificationModal from 'custom/notifications/components/NotificationModal';
-import { formatDistanceToNow } from 'date-fns';
+import { NOTIFICATION_INBOX_URL } from 'custom/notifications/constants';
+import { formatRelative } from 'custom/notifications/utils/dateFilters';
 import PropTypes from 'prop-types';
+import { RiInboxLine, RiMailOpenLine } from 'react-icons/ri';
+import { getTranslate } from 'react-localize-redux';
+import { useSelector } from 'react-redux';
 
-import Translate from 'utils/Translate';
-
-const formatRelative = (value) => {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return '';
-  }
-  return formatDistanceToNow(date, { addSuffix: true });
-};
+import Translate, { translateWithDefaultMessage } from 'utils/Translate';
 
 const NotificationDropdown = ({
   notifications,
@@ -27,6 +23,9 @@ const NotificationDropdown = ({
   error,
 }) => {
   const [selectedNotification, setSelectedNotification] = useState(null);
+  const translate = useSelector(
+    (state) => translateWithDefaultMessage(getTranslate(state.localize)),
+  );
 
   const handleActivate = (notification) => {
     if (!notification.read) {
@@ -39,19 +38,44 @@ const NotificationDropdown = ({
     setSelectedNotification(null);
   };
 
+  let emptyMessage = (
+    <Translate id="react.notification.bell.empty" defaultMessage="No notifications yet" />
+  );
+  if (error) {
+    emptyMessage = (
+      <Translate id="react.notification.bell.error" defaultMessage="Could not load notifications" />
+    );
+  } else if (activeTab === 'unread') {
+    emptyMessage = (
+      <Translate id="react.notification.bell.emptyUnread" defaultMessage="No unread notifications" />
+    );
+  }
+
   return (
     <div className="notification-dropdown" role="dialog" aria-label="Notifications">
       <div className="notification-dropdown__header">
-        <h6><Translate id="notifications.bell.title" defaultMessage="Notifications" /></h6>
-        {unreadCount > 0 && (
-        <button
-          type="button"
-          className="notification-dropdown__mark-all"
-          onClick={onMarkAllRead}
-        >
-          <Translate id="notifications.bell.markAllRead" defaultMessage="Mark all as read" />
-        </button>
-        )}
+        <h6><Translate id="react.notification.bell.title" defaultMessage="Notifications" /></h6>
+        <div className="notification-dropdown__header-actions">
+          {unreadCount > 0 && (
+            <button
+              type="button"
+              className="notification-dropdown__icon-btn"
+              onClick={onMarkAllRead}
+              title={translate('react.notification.bell.markAllRead', 'Mark all as read')}
+              aria-label={translate('react.notification.bell.markAllRead', 'Mark all as read')}
+            >
+              <RiMailOpenLine />
+            </button>
+          )}
+          <a
+            href={NOTIFICATION_INBOX_URL}
+            className="notification-dropdown__icon-btn"
+            title={translate('react.notification.inbox.viewAll', 'View all notifications')}
+            aria-label={translate('react.notification.inbox.viewAll', 'View all notifications')}
+          >
+            <RiInboxLine />
+          </a>
+        </div>
       </div>
       <div className="notification-dropdown__tabs" role="tablist">
         <button
@@ -61,7 +85,7 @@ const NotificationDropdown = ({
           className={`notification-dropdown__tab${activeTab === 'unread' ? ' notification-dropdown__tab--active' : ''}`}
           onClick={() => onTabChange('unread')}
         >
-          <Translate id="notifications.bell.tabUnread" defaultMessage="Unread" />
+          <Translate id="react.notification.bell.tabUnread" defaultMessage="Unread" />
           {unreadCount > 0 && (
           <span className="notification-dropdown__tab-count">{unreadCount > 99 ? '99+' : unreadCount}</span>
           )}
@@ -73,21 +97,11 @@ const NotificationDropdown = ({
           className={`notification-dropdown__tab${activeTab === 'all' ? ' notification-dropdown__tab--active' : ''}`}
           onClick={() => onTabChange('all')}
         >
-          <Translate id="notifications.bell.tabAll" defaultMessage="All" />
+          <Translate id="react.notification.bell.tabAll" defaultMessage="All" />
         </button>
       </div>
-      {error && notifications.length === 0 ? (
-        <p className="notification-dropdown__empty">
-          <Translate id="notifications.bell.error" defaultMessage="Could not load notifications" />
-        </p>
-      ) : notifications.length === 0 ? (
-        <p className="notification-dropdown__empty">
-          {activeTab === 'unread' ? (
-            <Translate id="notifications.bell.emptyUnread" defaultMessage="No unread notifications" />
-          ) : (
-            <Translate id="notifications.bell.empty" defaultMessage="No notifications yet" />
-          )}
-        </p>
+      {notifications.length === 0 ? (
+        <p className="notification-dropdown__empty">{emptyMessage}</p>
       ) : (
         <ul className="notification-dropdown__list">
           {notifications.map((notification) => (
@@ -118,7 +132,7 @@ const NotificationDropdown = ({
           onClick={onLoadMore}
           disabled={loadingMore}
         >
-          <Translate id="notifications.bell.loadMore" defaultMessage="Load more" />
+          <Translate id="react.notification.bell.loadMore" defaultMessage="Load more" />
         </button>
       )}
       <NotificationModal

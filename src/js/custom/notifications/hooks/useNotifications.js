@@ -2,30 +2,18 @@ import {
   useCallback, useEffect, useRef, useState,
 } from 'react';
 
-import * as Sentry from '@sentry/react';
 import {
   getNotifications,
   getUnreadCount,
   markAllRead as apiMarkAllRead,
   markRead as apiMarkRead,
 } from 'custom/notifications/api/notificationsApi';
-
-const reportError = (err, tag) => {
-  // 401 is expected when the session has expired; the apiClient response
-  // interceptor handles the redirect — don't double-report.
-  if (err?.response?.status === 401) return;
-  Sentry.captureException(err, { tags: { custom_notifications: tag } });
-};
+import { extractItems, reportError } from 'custom/notifications/utils/fetchHelpers';
 
 const POLL_INTERVAL_MS = 30000;
 const PAGE_SIZE = 20;
 
 const extractCount = (data) => (typeof data?.unreadCount === 'number' ? data.unreadCount : 0);
-
-const extractItems = (data) => {
-  const items = Array.isArray(data) ? data : (data?.data || []);
-  return items;
-};
 
 const useNotifications = ({ unreadOnly = true, open = false, limit = PAGE_SIZE } = {}) => {
   const [notifications, setNotifications] = useState([]);

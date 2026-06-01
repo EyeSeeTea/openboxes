@@ -86,6 +86,50 @@ li.notification-bell {
     }
   }
 
+  &__header-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  &__icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+    color: #6c757d;
+    background: none;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+
+    // Explicit fill on SVG to avoid currentColor inheritance issues in some browser/layout combos
+    svg {
+      width: 16px;
+      height: 16px;
+      fill: #6c757d;
+      flex-shrink: 0;
+      display: block;
+    }
+
+    &:hover {
+      color: #007bff;
+      background-color: #eef5ff;
+
+      svg {
+        fill: #007bff;
+      }
+    }
+
+    &:focus {
+      outline: 2px solid #007bff;
+      outline-offset: 2px;
+    }
+  }
+
   &__mark-all {
     font-size: 12px;
     color: #007bff;

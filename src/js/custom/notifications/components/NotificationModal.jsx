@@ -58,7 +58,7 @@ const NotificationModal = ({
             onClick={onClose}
             aria-label="Close"
           >
-            <Translate id="notifications.modal.close" defaultMessage="Close" />
+            <Translate id="react.notification.modal.close" defaultMessage="Close" />
           </button>
         </div>
         <div className="notification-modal__meta">
@@ -78,7 +78,7 @@ const NotificationModal = ({
             />
           ) : (
             <p className="notification-modal__no-body">
-              <Translate id="notifications.modal.noBody" defaultMessage="No additional details" />
+              <Translate id="react.notification.modal.noBody" defaultMessage="No additional details" />
             </p>
           )}
         </div>

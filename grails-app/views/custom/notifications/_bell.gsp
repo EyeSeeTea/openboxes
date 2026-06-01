@@ -10,7 +10,7 @@
 --%>
 <div class="menu-icon position-relative custom-notification-bell"
      data-testid="navbar-icon"
-     aria-label="${message(code: 'notifications.bell.title', default: 'Notifications')}"
+     aria-label="${message(code: 'react.notification.bell.title', default: 'Notifications')}"
      data-list-url="${createLink(uri: '/api/custom/notifications')}"
      data-count-url="${createLink(uri: '/api/custom/notifications/unread-count')}"
      data-mark-all-url="${createLink(uri: '/api/custom/notifications/read-all')}"
@@ -18,49 +18,59 @@
     <div class="tooltip2">
         <i class="ri-notification-3-line custom-notification-bell__icon"></i>
         <span class="tooltiptext2">
-            ${message(code: 'notifications.bell.title', default: 'Notifications')}
+            ${message(code: 'react.notification.bell.title', default: 'Notifications')}
         </span>
     </div>
     <span class="custom-notification-bell__badge" hidden></span>
     <div class="custom-notification-bell__dropdown" role="dialog" hidden
-         aria-label="${message(code: 'notifications.bell.title', default: 'Notifications')}">
+         aria-label="${message(code: 'react.notification.bell.title', default: 'Notifications')}">
         <div class="custom-notification-bell__header">
-            <strong>${message(code: 'notifications.bell.title', default: 'Notifications')}</strong>
-            <button type="button" class="custom-notification-bell__mark-all" hidden>
-                ${message(code: 'notifications.bell.markAllRead', default: 'Mark all as read')}
-            </button>
+            <strong>${message(code: 'react.notification.bell.title', default: 'Notifications')}</strong>
+            <div class="custom-notification-bell__header-actions">
+                <button type="button" class="custom-notification-bell__icon-btn custom-notification-bell__mark-all"
+                        hidden title="${message(code: 'react.notification.bell.markAllRead', default: 'Mark all as read')}"
+                        aria-label="${message(code: 'react.notification.bell.markAllRead', default: 'Mark all as read')}">
+                    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24" height="16" width="16" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g><path fill="none" d="M0 0h24v24H0z"></path><path d="M2.243 6.854L11.49 1.31a1 1 0 0 1 1.029 0l9.238 5.545a.5.5 0 0 1 .243.429V20a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7.283a.5.5 0 0 1 .243-.429zM4 8.133V19h16V8.132l-7.996-4.8L4 8.132zm8.06 5.565l5.296-4.463 1.288 1.53-6.57 5.537-6.71-5.53 1.272-1.544 5.424 4.47z"></path></g></svg>
+                </button>
+                <a href="${createLink(uri: '/notification/inbox')}"
+                   class="custom-notification-bell__icon-btn"
+                   title="${message(code: 'react.notification.inbox.viewAll', default: 'View all notifications')}"
+                   aria-label="${message(code: 'react.notification.inbox.viewAll', default: 'View all notifications')}">
+                    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24" height="16" width="16" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g><path fill="none" d="M0 0h24v24H0z"></path><path d="M3 3h18a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm17 11h-3.416a5.001 5.001 0 0 1-9.168 0H4v5h16v-5zm0-2V5H4v7h5a3 3 0 0 0 6 0h5z"></path></g></svg>
+                </a>
+            </div>
         </div>
         <div class="custom-notification-bell__tabs" role="tablist">
             <button type="button" role="tab"
                     class="custom-notification-bell__tab custom-notification-bell__tab--active"
                     data-tab="unread" aria-selected="true">
-                ${message(code: 'notifications.bell.tabUnread', default: 'Unread')}
+                ${message(code: 'react.notification.bell.tabUnread', default: 'Unread')}
             </button>
             <button type="button" role="tab"
                     class="custom-notification-bell__tab"
                     data-tab="all" aria-selected="false">
-                ${message(code: 'notifications.bell.tabAll', default: 'All')}
+                ${message(code: 'react.notification.bell.tabAll', default: 'All')}
             </button>
         </div>
         <ul class="custom-notification-bell__list"></ul>
         <button type="button" class="custom-notification-bell__load-more" hidden>
-            ${message(code: 'notifications.bell.loadMore', default: 'Load more')}
+            ${message(code: 'react.notification.bell.loadMore', default: 'Load more')}
         </button>
         <p class="custom-notification-bell__empty"
-           data-empty-unread="${message(code: 'notifications.bell.emptyUnread', default: 'No unread notifications')}"
-           data-empty-all="${message(code: 'notifications.bell.empty', default: 'No notifications yet')}">
-            ${message(code: 'notifications.bell.emptyUnread', default: 'No unread notifications')}
+           data-empty-unread="${message(code: 'react.notification.bell.emptyUnread', default: 'No unread notifications')}"
+           data-empty-all="${message(code: 'react.notification.bell.empty', default: 'No notifications yet')}">
+            ${message(code: 'react.notification.bell.emptyUnread', default: 'No unread notifications')}
         </p>
     </div>
     <div class="custom-notification-bell__modal" role="dialog" aria-modal="true" hidden
-         data-no-body="${message(code: 'notifications.modal.noBody', default: 'No additional details')}">
+         data-no-body="${message(code: 'react.notification.modal.noBody', default: 'No additional details')}">
         <div class="custom-notification-bell__modal-backdrop"></div>
         <div class="custom-notification-bell__modal-dialog">
             <div class="custom-notification-bell__modal-header">
                 <strong class="custom-notification-bell__modal-title"></strong>
                 <button type="button" class="custom-notification-bell__modal-close"
-                        aria-label="${message(code: 'notifications.modal.close', default: 'Close')}">
-                    ${message(code: 'notifications.modal.close', default: 'Close')}
+                        aria-label="${message(code: 'react.notification.modal.close', default: 'Close')}">
+                    ${message(code: 'react.notification.modal.close', default: 'Close')}
                 </button>
             </div>
             <div class="custom-notification-bell__modal-body"></div>
@@ -79,9 +89,14 @@
     font-size: 13px; text-align: left; color: #212529; }
 .custom-notification-bell__header { display: flex; align-items: center; justify-content: space-between;
     padding: 10px 14px; border-bottom: 1px solid #e9ecef; background: #f8f9fa; }
-.custom-notification-bell__mark-all { font-size: 12px; color: #007bff; background: none;
-    border: none; padding: 0; cursor: pointer; }
-.custom-notification-bell__mark-all:hover { text-decoration: underline; }
+.custom-notification-bell__header-actions { display: flex; align-items: center; gap: 4px; }
+.custom-notification-bell__icon-btn { display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; font-size: 16px; color: #6c757d; background: none; border: none;
+    border-radius: 4px; cursor: pointer; text-decoration: none; }
+.custom-notification-bell__icon-btn svg { width: 16px; height: 16px; fill: #6c757d; display: block; flex-shrink: 0; }
+.custom-notification-bell__icon-btn:hover { color: #007bff; background-color: #eef5ff; }
+.custom-notification-bell__icon-btn:hover svg { fill: #007bff; }
+.custom-notification-bell__mark-all { /* hidden by default; shown via JS when there are unread */ }
 .custom-notification-bell__tabs { display: flex; border-bottom: 1px solid #e9ecef; }
 .custom-notification-bell__tab { flex: 1; padding: 8px 0; font-size: 12px; font-weight: 600;
     color: #6c757d; background: none; border: none; border-bottom: 2px solid transparent;

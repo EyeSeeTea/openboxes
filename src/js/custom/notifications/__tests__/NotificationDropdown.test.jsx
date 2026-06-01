@@ -9,8 +9,15 @@ import '@testing-library/jest-dom';
 jest.mock('date-fns', () => ({
   formatDistanceToNow: () => '2 hours ago',
 }));
-
-jest.mock('dompurify', () => ({ sanitize: (html) => html }));
+jest.mock('react-redux', () => ({
+  useSelector: () => (id, defaultMessage) => defaultMessage || id,
+}));
+jest.mock('utils/Translate', () => {
+  const React = require('react');
+  const Translate = ({ defaultMessage }) => React.createElement('span', null, defaultMessage);
+  Translate.translateWithDefaultMessage = (translate) => translate;
+  return Translate;
+});
 
 const NOTIFICATION_UNREAD = {
   id: 'n-1',
