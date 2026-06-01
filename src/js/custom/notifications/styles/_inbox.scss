@@ -1,0 +1,373 @@
+// Inbox-specific overrides — layout chrome comes from list-page-main / list-page-list-section
+
+.notification-inbox {
+  // list-page-main provides: padding 0 32px, gray background
+  // list-page-list-section provides: white card, border-radius 4px
+
+  // Fill the content area exactly (mirrors .content-wrap's min-height in main.scss:
+  // 110px header+menu+breadcrumbs, 3.5vh footer, 65px margins) so the PAGE never
+  // scrolls — the list and detail panels scroll internally instead. Using flex here
+  // (rather than a magic per-section pixel offset) keeps it robust when the filter
+  // bar expands/collapses: header + filters take their natural height and __content
+  // flexes into whatever remains.
+  height: calc(100vh - 110px - 3.5vh - 65px);
+  overflow: hidden;
+
+  &__mark-all-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #007bff;
+    background: none;
+    border: 1px solid #007bff;
+    border-radius: 4px;
+    cursor: pointer;
+
+    svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+
+    &:hover {
+      color: #fff;
+      background-color: #007bff;
+    }
+
+    &:focus {
+      outline: 2px solid #007bff;
+      outline-offset: 2px;
+    }
+  }
+
+  // Outer wrapper: white card, flex column so pagination sticks to the bottom.
+  // flex:1 + min-height:0 lets it fill the page height left over by the header
+  // and filter bar, and lets its scrollable children shrink correctly.
+  &__content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  &__layout {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  &__list-panel {
+    width: 340px;
+    min-width: 260px;
+    flex-shrink: 0;
+    border-right: 1px solid #dee2e6;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    flex: 1;
+  }
+
+  &__item-wrapper {
+    border-bottom: 1px solid #dde3ea;
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 10px 14px;
+    background: #fff;
+    border: none;
+    border-left: 3px solid transparent;
+    text-align: left;
+    cursor: pointer;
+    font-size: 13px;
+
+    &:hover {
+      background: #f5f5f5;
+    }
+
+    &--unread {
+      background: #eef5ff;
+      border-left-color: #007bff;
+
+      .notification-inbox__item-title {
+        font-weight: 700;
+      }
+
+      &:hover {
+        background: #dceeff;
+      }
+    }
+
+    &--selected {
+      background: #d0e8ff !important;
+    }
+  }
+
+  &__item-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__item-title {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 2px;
+  }
+
+  &__item-meta {
+    display: flex;
+    gap: 8px;
+    font-size: 11px;
+    color: #6c757d;
+  }
+
+  &__item-type {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.3px;
+  }
+
+  &__unread-dot {
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #007bff;
+    margin-left: 8px;
+  }
+
+  // TablePagination styles live in DataTable.scss scoped under `.app-react-table`,
+  // which only loads with the DataTable component. We render TablePagination on its
+  // own, so replicate the pager chrome here to match the inbound list page.
+  &__pagination {
+    flex-shrink: 0;
+    border-top: 1px solid #e9ecef;
+
+    .table-pagination {
+      color: var(--gray-600);
+      background-color: #fbfcfc;
+      font-size: 12px;
+
+      &__btn-previous,
+      &__btn-next {
+        font-size: 28px;
+        color: var(--gray-300);
+        padding: 0;
+        background-color: transparent;
+        border: none;
+
+        &:disabled {
+          color: var(--gray-100);
+        }
+
+        &:focus,
+        &:active {
+          outline: none;
+        }
+      }
+
+      input {
+        background-color: #fff;
+        padding: 4px 8px;
+        border: 1px solid var(--gray-200);
+        border-radius: 2px;
+        width: 60px;
+        color: var(--gray-600);
+
+        &:focus {
+          outline: none;
+        }
+      }
+
+      &-select {
+        width: 100px;
+
+        &__indicator-separator {
+          display: none;
+        }
+
+        &__control {
+          border-radius: 2px;
+          border: 1px solid var(--gray-200);
+          color: var(--gray-600);
+          height: 28px;
+          min-height: 28px;
+
+          & > * {
+            height: 28px;
+          }
+        }
+      }
+    }
+  }
+
+  &__loading,
+  &__error,
+  &__empty {
+    padding: 24px 14px;
+    text-align: center;
+    color: #6c757d;
+    font-size: 13px;
+  }
+
+  &__error {
+    color: #dc3545;
+  }
+
+  &__detail-panel {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    // Reason: the iframe fills the panel and scrolls its own content, so the
+    // panel itself must never scroll — hidden prevents a second scrollbar.
+    overflow: hidden;
+  }
+
+  &__detail {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+
+    &--empty {
+      align-items: center;
+      justify-content: center;
+      color: #6c757d;
+      font-size: 14px;
+    }
+  }
+
+  &__detail-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+  }
+
+  &__detail-heading {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__detail-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 6px;
+  }
+
+  &__detail-meta {
+    display: flex;
+    gap: 10px;
+    font-size: 12px;
+    color: #6c757d;
+    margin-bottom: 6px;
+  }
+
+  &__detail-type {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.3px;
+  }
+
+  &__detail-action {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    color: #6c757d;
+    background: none;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+
+    svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    &:hover {
+      color: #007bff;
+      background-color: #eef5ff;
+    }
+
+    &:focus {
+      outline: 2px solid #007bff;
+      outline-offset: 2px;
+    }
+  }
+
+  &__detail-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+  }
+
+  &__detail-frame {
+    width: 100%;
+    height: 100%;
+    min-height: 320px;
+    border: none;
+  }
+
+  &__no-body {
+    color: #6c757d;
+    font-style: italic;
+    font-size: 13px;
+    margin: 0;
+  }
+
+  @media (max-width: 768px) {
+    // On small screens, let the page scroll normally instead of the fixed
+    // viewport-height split layout.
+    height: auto;
+    overflow: visible;
+
+    &__layout {
+      flex-direction: column;
+      min-height: unset;
+    }
+
+    &__list-panel {
+      width: 100%;
+      border-right: none;
+      border-bottom: 1px solid #dee2e6;
+      max-height: 320px;
+    }
+
+    &__detail-panel {
+      overflow-y: visible;
+    }
+
+    &__pagination {
+      font-size: 12px;
+    }
+  }
+}

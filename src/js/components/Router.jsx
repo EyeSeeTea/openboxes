@@ -88,6 +88,11 @@ const AsyncInvoiceList = Loadable({
   loading: Loading,
 });
 
+const AsyncNotificationInbox = Loadable({
+  loader: () => import('custom/notifications/pages/NotificationInbox'),
+  loading: Loading,
+});
+
 const AsyncStockTransfer = Loadable({
   loader: () => import('components/stock-transfer/StockTransferWizard'),
   loading: Loading,
@@ -270,6 +275,7 @@ const Router = () => {
             <MainLayoutRoute path="**/stocklistManagement/index/:productId?" component={AsyncManagement} />
             <MainLayoutRoute path="**/invoice/create/:invoiceId?" component={AsyncInvoice} />
             <MainLayoutRoute path="**/invoice/list" component={AsyncInvoiceList} />
+            <MainLayoutRoute path="**/notification/inbox" component={AsyncNotificationInbox} />
             <MainLayoutRoute path="**/stockTransfer/create/:stockTransferId?" component={AsyncStockTransfer} />
             <MainLayoutRoute path="**/stockTransfer/createOutboundReturn/:outboundReturnId?" component={AsyncOutboundReturns} />
             <MainLayoutRoute path="**/stockTransfer/createInboundReturn/:inboundReturnId?" component={AsyncInboundReturns} />
