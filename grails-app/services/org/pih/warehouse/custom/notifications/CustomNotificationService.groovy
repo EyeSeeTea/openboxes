@@ -48,10 +48,22 @@ class CustomNotificationService {
         return !trimmed ? '(no subject)' : (trimmed.size() > 255 ? trimmed[0..251] + '...' : trimmed)
     }
 
-    List<CustomNotification> listForUser(User user, Boolean unreadOnly = false, Integer limit = 20, Integer offset = 0, Date since = null, Date updatedSince = null) {
+    List<CustomNotification> listForUser(User user, Map params = [:]) {
+        Boolean unreadOnly = params.containsKey('unreadOnly') ? params.unreadOnly as Boolean : false
+        Boolean read = params.read != null ? params.read as Boolean : null
+        Integer limit = params.containsKey('limit') ? (params.limit as Integer) : 20
+        Integer offset = params.containsKey('offset') ? (params.offset as Integer) : 0
+        Date since = params.since as Date
+        Date updatedSince = params.updatedSince as Date
+        String type = params.type as String
+        Date before = params.before as Date
+
         CustomNotification.createCriteria().list(max: limit, offset: offset) {
             eq('user', user)
-            if (unreadOnly) {
+            // Explicit read/unread filter takes precedence over the legacy unreadOnly flag.
+            if (read != null) {
+                eq('isRead', read)
+            } else if (unreadOnly) {
                 eq('isRead', false)
             }
             if (since) {
@@ -60,8 +72,28 @@ class CustomNotificationService {
             if (updatedSince) {
                 ge('lastUpdated', updatedSince)
             }
+            if (type) {
+                eq('notificationType', type)
+            }
+            if (before) {
+                le('dateCreated', before)
+            }
             order('dateCreated', 'desc')
         }
+    }
+
+    @Transactional
+    Boolean markUnread(String notificationId, User user) {
+        CustomNotification notification = CustomNotification.get(notificationId)
+        if (!notification || notification.user?.id != user.id) {
+            return false
+        }
+        notification.isRead = false
+        notification.readAt = null
+        // failOnError: a genuine persistence failure throws (→ 500), keeping it
+        // distinct from the ownership miss above (→ false → 404). Never report success.
+        notification.save(flush: true, failOnError: true)
+        return true
     }
 
     @Transactional
@@ -72,7 +104,7 @@ class CustomNotificationService {
         }
         notification.isRead = true
         notification.readAt = new Date()
-        notification.save(flush: true)
+        notification.save(flush: true, failOnError: true)
         return true
     }
 
@@ -86,5 +118,30 @@ class CustomNotificationService {
 
     Integer countUnread(User user) {
         CustomNotification.countByUserAndIsRead(user, false)
+    }
+
+    Integer countForUser(User user, Map params = [:]) {
+        Boolean unreadOnly = params.containsKey('unreadOnly') ? params.unreadOnly as Boolean : false
+        Boolean read = params.read != null ? params.read as Boolean : null
+        String type = params.type as String
+        Date since = params.since as Date
+        Date before = params.before as Date
+        CustomNotification.createCriteria().count() {
+            eq('user', user)
+            if (read != null) {
+                eq('isRead', read)
+            } else if (unreadOnly) {
+                eq('isRead', false)
+            }
+            if (since) {
+                ge('dateCreated', since)
+            }
+            if (type) {
+                eq('notificationType', type)
+            }
+            if (before) {
+                le('dateCreated', before)
+            }
+        }
     }
 }
