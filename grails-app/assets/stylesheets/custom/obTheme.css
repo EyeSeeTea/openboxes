@@ -308,3 +308,89 @@ span.currentStep {
 #inventoryBrowserTable thead th a:hover {
   color: #fff !important;
 }
+
+
+/* ============================================================
+   SECTION 6 — Stock card + linked Groovy page chrome.
+   Covers: stock card, record stock, edit product, view bin
+   location, and any other page using the stockCard/custom
+   layout with .box section headers and jQuery UI tabs.
+   Additive; no upstream edits.
+   ============================================================ */
+
+/* --- .box h2 section headers (Status / Details / Auditing /
+   Record Stock / Line Items / etc.) → solid navy, white text.
+   Applies across all custom-layout Groovy pages that use the
+   standard .box + h2 pattern. Overrides the grey gradient in
+   openboxes.css — !important + higher specificity needed. --- */
+.box h2 {
+  background: var(--ob-primary) !important;
+  background-image: none !important;
+  border-color: var(--ob-primary-dark) !important;
+  color: #fff !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+/* --- jQuery UI tabs (stock card right panel + product edit).
+   Active tab → navy text + navy bottom indicator.
+   Inactive tab → muted grey instead of the default #c0c0c0.
+   Overrides openboxes.css `.tabs .ui-state-active a {#459E00}`. */
+.tabs .ui-state-active a,
+.tabs.tabs-ui .ui-state-active a {
+  color: var(--ob-primary) !important;
+  font-weight: 600;
+}
+.tabs .ui-state-active,
+.tabs.tabs-ui .ui-state-active {
+  border-bottom: 2px solid var(--ob-primary) !important;
+}
+.tabs .ui-state-default a,
+.tabs.tabs-ui .ui-state-default a {
+  color: var(--ob-muted) !important;
+}
+.tabs .ui-state-default a:hover,
+.tabs.tabs-ui .ui-state-default a:hover {
+  color: var(--ob-primary) !important;
+}
+
+/* --- Stock card table headers (current stock, record stock
+   line items, stock history, etc.) → navy with white text.
+   Targets thead th inside .box so it only applies to content
+   tables, not to the page header/nav. --- */
+.box table thead th,
+.box table thead tr.odd th {
+  background-color: var(--ob-primary) !important;
+  background-image: none !important;
+  color: #fff !important;
+  border-top: none !important;
+  border-bottom: 1px solid var(--ob-primary-dark) !important;
+}
+.box table thead th a:link,
+.box table thead th a:visited,
+.box table thead th a:hover {
+  color: #fff !important;
+}
+
+
+/* ============================================================
+   SECTION 7 — React bundle button overrides.
+   The Webpack bundle CSS (bundle.*.css) loads in <body> after
+   this <head> stylesheet, so Bootstrap's compiled btn-outline-primary
+   (#007bff) wins on source order. !important is required to beat it.
+   ============================================================ */
+.btn-outline-primary {
+  color: var(--ob-primary) !important;
+  border-color: var(--ob-primary) !important;
+}
+.btn-outline-primary:hover,
+.btn-outline-primary:not(:disabled):not(.disabled):active,
+.btn-outline-primary:not(:disabled):not(.disabled).active {
+  background-color: var(--ob-primary) !important;
+  border-color: var(--ob-primary) !important;
+  color: #fff !important;
+}
+.btn-outline-primary:focus,
+.btn-outline-primary.focus {
+  box-shadow: 0 0 0 3px rgba(31, 79, 168, 0.3) !important;
+}
