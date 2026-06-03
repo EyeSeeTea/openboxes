@@ -147,7 +147,7 @@ class RoleInterceptor {
 
             Boolean isUserInRole = true
             if (session.user && supplementalRoles.size() > 0) {
-                isUserInRole = userService.hasAnyRoles(session.user, supplementalRoles)
+                isUserInRole = userService.isUserInRole(session.user, supplementalRoles)
             }
 
             if (isAnonymous || (session.user && isMinimumRequiredRole && isUserInRole)) {
