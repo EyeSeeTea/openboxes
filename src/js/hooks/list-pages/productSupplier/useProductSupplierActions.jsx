@@ -1,8 +1,8 @@
 import React, { useCallback } from 'react';
 
+import { getCustomRolePermissions } from 'custom/roles/customRolePermissions';
 import { RiDeleteBinLine, RiPencilLine } from 'react-icons/ri';
 import { useSelector } from 'react-redux';
-import { getCustomRolePermissions } from 'custom/roles/customRolePermissions';
 
 import productSupplierApi from 'api/services/ProductSupplierApi';
 import { PRODUCT_SUPPLIER_EXPORT } from 'api/urls';

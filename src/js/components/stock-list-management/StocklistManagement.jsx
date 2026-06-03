@@ -223,7 +223,9 @@ class StocklistManagement extends Component {
 
   render() {
     const { data } = this.state;
-    const permissions = getCustomRolePermissions({ customRolePermissions: this.props.customRolePermissions });
+    const permissions = getCustomRolePermissions({
+      customRolePermissions: this.props.customRolePermissions,
+    });
     const canWriteStocklists = this.props.isUserAdmin || permissions.canManageStocklists;
     return (
       <div className="main-container">
