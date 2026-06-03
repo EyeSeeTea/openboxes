@@ -184,6 +184,18 @@ class CustomRolePolicyServiceSpec extends Specification implements ServiceUnitTe
         permissions.canUseSuperuserPurchasingActions == false
     }
 
+    def "should allow reporting user to export visible csv data"() {
+        given:
+        User user = mockUser([RoleType.ROLE_REPORTING_USER], [RoleType.ROLE_REPORTING_USER])
+
+        when:
+        Map<String, Object> access = service.evaluateRouteAccess(user, 'loc-1', 'stockMovement', 'exportAsCsv')
+
+        then:
+        access.hasPolicy
+        !access.denied
+    }
+
     def "should remove inbound create actions from regional warehouse menu"() {
         given:
         User user = mockUser([RoleType.ROLE_REGIONAL_WAREHOUSE], [RoleType.ROLE_REGIONAL_WAREHOUSE])

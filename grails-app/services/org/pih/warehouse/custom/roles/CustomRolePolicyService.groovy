@@ -35,7 +35,6 @@ class CustomRolePolicyService {
             'cancel',
             'change',
             'toggle',
-            'exportAsCsv',
             'importOutboundStockMovement',
     ]
     private static final List<String> CHANGE_CONTROLLERS = ['createProductFromTemplate']
