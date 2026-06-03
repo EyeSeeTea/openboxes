@@ -201,6 +201,15 @@
       &-select {
         width: 100px;
 
+        // The inbox page is overflow:hidden (fixed-height split layout), which
+        // clips this menu when react-select opens it downward from the bottom
+        // pager. Flip it above the control into the unclipped area.
+        &__menu {
+          top: auto;
+          bottom: calc(100% + 2px);
+          z-index: 5;
+        }
+
         &__indicator-separator {
           display: none;
         }
