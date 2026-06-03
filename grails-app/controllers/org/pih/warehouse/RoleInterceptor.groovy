@@ -147,7 +147,6 @@ class RoleInterceptor {
 
             Boolean isUserInRole = true
             if (session.user && supplementalRoles.size() > 0) {
-                // Supplemental roles are exact capability flags, not hierarchy roles.
                 isUserInRole = userService.hasAnyRoles(session.user, supplementalRoles)
             }
 
