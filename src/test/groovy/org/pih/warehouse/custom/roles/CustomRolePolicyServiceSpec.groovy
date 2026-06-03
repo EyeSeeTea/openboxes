@@ -184,6 +184,33 @@ class CustomRolePolicyServiceSpec extends Specification implements ServiceUnitTe
         permissions.canUseSuperuserPurchasingActions == false
     }
 
+    def "should fall through to standard rbac when route has no custom policy"() {
+        given:
+        User user = mockUser([RoleType.ROLE_ASSISTANT], [RoleType.ROLE_ASSISTANT])
+
+        when:
+        Map<String, Object> access = service.evaluateRouteAccess(user, 'loc-1', 'stockMovement', 'createInbound')
+
+        then:
+        !access.hasPolicy
+        !access.denied
+        !access.allowed
+    }
+
+    def "should return no custom policy when location is null"() {
+        given:
+        User user = mockUser([RoleType.ROLE_REPORTING_USER], [RoleType.ROLE_REPORTING_USER])
+
+        when:
+        Map<String, Object> access = service.evaluateRouteAccess(user, null, 'stockMovement', 'list')
+
+        then:
+        !access.hasPolicy
+        !access.denied
+        !access.allowed
+        !service.hasAnyCustomPolicy(user, null)
+    }
+
     def "should allow reporting user to export visible csv data"() {
         given:
         User user = mockUser([RoleType.ROLE_REPORTING_USER], [RoleType.ROLE_REPORTING_USER])

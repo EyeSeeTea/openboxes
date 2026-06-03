@@ -12,14 +12,16 @@ package org.pih.warehouse.api
 import grails.converters.JSON
 import grails.test.ControllerUnitTestCase
 import org.codehaus.groovy.grails.commons.DefaultGrailsApplication
+import org.pih.warehouse.core.ActivityCode
 import org.pih.warehouse.core.Location
 import org.pih.warehouse.core.LocationGroup
 import org.pih.warehouse.core.LocationType
+import org.pih.warehouse.core.RoleType
 import org.pih.warehouse.core.User
 
 class ApiControllerTests extends ControllerUnitTestCase {
 
-    User user = new User(username: "John", password: "password", passwordConfirm: "password", firstName: "Test", lastName: "User",)
+    User user = new User(id: "userId", username: "John", password: "password", passwordConfirm: "password", firstName: "Test", lastName: "User",)
     Locale localeEn = new Locale("en", "US")
     Locale localeFr = new Locale("fr")
     LocationType depot = new LocationType(id: "1", name: "Depot")
@@ -38,6 +40,8 @@ class ApiControllerTests extends ControllerUnitTestCase {
         controller.grailsApplication.metadata.'app.grails.version' = "1.3.9"
         controller.grailsApplication.metadata.'app.version' = "0.8.9"
         controller.grailsApplication.config.openboxes.megamenu = "test"
+        controller.grailsApplication.config.openboxes.requestorMegamenu = "requestor"
+        controller.grailsApplication.config.openboxes.menuSectionsUrlParts = [inbound: "/stockMovement"]
 
         JSON.registerObjectMarshaller(Location) { Location location ->
             [
@@ -121,7 +125,8 @@ class ApiControllerTests extends ControllerUnitTestCase {
                             canSendStocklistEmail: true,
                             canUseSuperuserPurchasingActions: false,
                     ]
-                }
+                },
+                hasAnyCustomPolicy: { User user, String locationId -> false }
         ]
         controller.localizationService = [
                 getCurrentLocale: { -> return localeEn }
@@ -165,5 +170,34 @@ class ApiControllerTests extends ControllerUnitTestCase {
         assert !jsonResponse.data.containsKey('hasRegionalWarehousePolicy')
         assert !jsonResponse.data.containsKey('hasRpcSuperuserPolicy')
         assert !jsonResponse.data.containsKey('hasReportingUserPolicy')
+    }
+
+    void testGetMenuConfigUsesDefaultMenuForAuthenticatedUserWithCustomPolicy() {
+        // GIVEN
+        location.supportedActivities = [ActivityCode.MANAGE_INVENTORY.id] as Set
+        controller.grailsApplication.config.openboxes.megamenu = [id: "default"]
+        controller.grailsApplication.config.openboxes.requestorMegamenu = [id: "requestor"]
+        controller.session.user = user
+        controller.session.warehouse = location
+        controller.userService = [
+                hasHighestRole: { User user, String locationId, RoleType roleType -> true }
+        ]
+        controller.customRolePolicyService = [
+                hasAnyCustomPolicy: { User user, String locationId -> true }
+        ]
+        controller.megamenuService = [
+                buildAndTranslateMenu: { def menuConfig, User user, Location location ->
+                    assert menuConfig.id == "default"
+                    return [[id: "custom-role-menu"]]
+                }
+        ]
+
+        // WHEN
+        controller.getMenuConfig()
+
+        // THEN
+        def jsonResponse = JSON.parse(controller.response.contentAsString)
+        assertEquals("custom-role-menu", jsonResponse.data.menuConfig[0].id)
+        assertEquals("/stockMovement", jsonResponse.data.menuSectionsUrlParts.inbound)
     }
 }
