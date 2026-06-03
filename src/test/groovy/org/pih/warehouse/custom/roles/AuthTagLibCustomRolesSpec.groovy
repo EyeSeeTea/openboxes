@@ -1,7 +1,7 @@
-package org.pih.warehouse
+package org.pih.warehouse.custom.roles
 
 import grails.testing.web.taglib.TagLibUnitTest
-import org.pih.warehouse.custom.roles.CustomRolePolicyService
+import org.pih.warehouse.AuthTagLib
 import org.pih.warehouse.core.User
 import org.pih.warehouse.core.UserService
 import spock.lang.Specification

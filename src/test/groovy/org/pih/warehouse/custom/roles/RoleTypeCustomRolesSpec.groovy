@@ -1,5 +1,6 @@
-package org.pih.warehouse.core
+package org.pih.warehouse.custom.roles
 
+import org.pih.warehouse.core.RoleType
 import spock.lang.Specification
 
 class RoleTypeCustomRolesSpec extends Specification {
