@@ -1,3 +1,18 @@
-# intentionally empty — overrides come from env vars / application.yml
+# Local per-client override configuration.
 # see openboxes.client-template.yml for available keys
 ---
+openboxes:
+    # -------------------------------------------------------------------------
+    # DHIS2 OAuth2 SSO
+    # Client registered in DHIS2 during dhis2-oauth-spike.
+    # Redirect URI must match exactly what is registered in DHIS2 OAuth2 Clients.
+    # -------------------------------------------------------------------------
+    dhis2:
+        oauth:
+            enabled: true
+            clientId: openboxes
+            clientSecret: <client-secret>
+            authorizeUrl: https://dev.eyeseetea.com/play/uaa/oauth/authorize
+            tokenUrl: https://dev.eyeseetea.com/play/uaa/oauth/token
+            userUrl: https://dev.eyeseetea.com/play/api/me
+            redirectUri: http://localhost:9090/openboxes/oauth/dhis2/callback
