@@ -4,8 +4,6 @@ services:
       extends: 
         file: docker-compose-base.yml
         service: app
-      ports:
-        - "9090:8080"
       volumes:
         - ./openboxes.yml:/app/.grails/openboxes.yml:ro
       depends_on: 
