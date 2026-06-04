@@ -207,6 +207,12 @@ should be expected here:
 - `grails-app/i18n/messages.properties` — appended `dhis2auth.*` keys (must
   live in the root bundle; Grails 3.3 only globs `messages*.properties` at
   the root).
+- `docker/docker-compose.yml` — single `ports: 9090:8080` mapping on the `app`
+  service so the OAuth `redirectUri` (`http://localhost:9090/...`) resolves in
+  local dev. Dev-compose only; no production impact.
+- `docker/openboxes.yml` — per-deployment external config (not a code file).
+  Carries the `dhis2.oauth.*` block for the local/test env. Treated as a
+  reference template here; deployments override it.
 
 Config: `dhis2.oauth.*` is supplied via the per-deployment external config
 file `docker/openboxes.yml` (see `docker/openboxes.client-template.yml` for
