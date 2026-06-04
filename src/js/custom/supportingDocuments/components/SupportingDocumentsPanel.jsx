@@ -3,8 +3,9 @@ import React, {
 } from 'react';
 
 import {
-  fetchStockTransferDocuments,
-  uploadStockTransferDocument,
+  buildDocumentsUrl,
+  fetchDocuments,
+  uploadDocument,
 } from 'custom/stockTransferDocuments/utils/api';
 import M from 'custom/stockTransferDocuments/utils/messages';
 import PropTypes from 'prop-types';
@@ -12,9 +13,9 @@ import Dropzone from 'react-dropzone';
 
 import Translate from 'utils/Translate';
 
-import 'custom/stockTransferDocuments/components/StockTransferDocumentsPanel.scss';
+import 'custom/stockTransferDocuments/components/SupportingDocumentsPanel.scss';
 
-const BLOCK = 'custom-stock-transfer-documents';
+const BLOCK = 'custom-supporting-documents';
 
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
@@ -44,8 +45,10 @@ Warning.propTypes = {
   defaultMessage: PropTypes.string.isRequired,
 };
 
-const StockTransferDocumentsPanel = ({
-  stockTransferId,
+const SupportingDocumentsPanel = ({
+  entityId,
+  apiBasePath,
+  requiredWarning,
   disabled,
   onCanCompleteChange,
 }) => {
@@ -70,8 +73,8 @@ const StockTransferDocumentsPanel = ({
   }, [onCanCompleteChange]);
 
   const loadDocuments = useCallback(() => {
-    if (!stockTransferId) return;
-    fetchStockTransferDocuments(stockTransferId)
+    if (!entityId) return;
+    fetchDocuments(apiBasePath, entityId)
       .then((response) => {
         if (!isMountedRef.current) return;
         const payload = response?.data?.data ?? {};
@@ -87,7 +90,7 @@ const StockTransferDocumentsPanel = ({
         setFetchError(true);
         if (onCanCompleteChange) onCanCompleteChange(false);
       });
-  }, [stockTransferId, reportCanComplete, onCanCompleteChange]);
+  }, [apiBasePath, entityId, reportCanComplete, onCanCompleteChange]);
 
   useEffect(() => {
     loadDocuments();
@@ -125,7 +128,7 @@ const StockTransferDocumentsPanel = ({
   }, []);
 
   const uploadPendingFiles = useCallback(async () => {
-    if (pendingFiles.length === 0 || !stockTransferId) return;
+    if (pendingFiles.length === 0 || !entityId) return;
     const attempted = pendingFiles;
     setUploading(true);
     setUploadErrorMessage(null);
@@ -135,7 +138,7 @@ const StockTransferDocumentsPanel = ({
     const failed = await attempted.reduce(
       (chain, file) => chain.then(async (acc) => {
         try {
-          await uploadStockTransferDocument(stockTransferId, file);
+          await uploadDocument(apiBasePath, entityId, file);
           return acc;
         } catch {
           return [...acc, file];
@@ -158,7 +161,7 @@ const StockTransferDocumentsPanel = ({
     if (failed.length < attempted.length) {
       loadDocuments();
     }
-  }, [pendingFiles, stockTransferId, loadDocuments]);
+  }, [apiBasePath, pendingFiles, entityId, loadDocuments]);
 
   const showRequiredWarning = documentRequired && documents.length === 0;
 
@@ -175,7 +178,7 @@ const StockTransferDocumentsPanel = ({
       >
         <h4 className={`${BLOCK}__title`}>
           <span className={`${BLOCK}__toggle-icon`}>
-            {collapsed ? '\u25B6' : '\u25BC'}
+            {collapsed ? '▶' : '▼'}
           </span>
           <Translate id={M.panelTitle.id} defaultMessage={M.panelTitle.defaultMessage} />
           {documentRequired && (
@@ -190,8 +193,8 @@ const StockTransferDocumentsPanel = ({
         <>
           {showRequiredWarning && (
             <Warning
-              messageKey={M.requiredWarning.id}
-              defaultMessage={M.requiredWarning.defaultMessage}
+              messageKey={requiredWarning.id}
+              defaultMessage={requiredWarning.defaultMessage}
             />
           )}
 
@@ -295,16 +298,22 @@ const StockTransferDocumentsPanel = ({
   );
 };
 
-StockTransferDocumentsPanel.propTypes = {
-  stockTransferId: PropTypes.string,
+SupportingDocumentsPanel.propTypes = {
+  entityId: PropTypes.string,
+  apiBasePath: PropTypes.string.isRequired,
+  requiredWarning: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    defaultMessage: PropTypes.string.isRequired,
+  }).isRequired,
   disabled: PropTypes.bool,
   onCanCompleteChange: PropTypes.func,
 };
 
-StockTransferDocumentsPanel.defaultProps = {
-  stockTransferId: null,
+SupportingDocumentsPanel.defaultProps = {
+  entityId: null,
   disabled: false,
   onCanCompleteChange: null,
 };
 
-export default StockTransferDocumentsPanel;
+export { buildDocumentsUrl };
+export default SupportingDocumentsPanel;

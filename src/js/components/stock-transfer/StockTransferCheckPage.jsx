@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 
-import StockTransferDocumentsPanel from 'custom/stockTransferDocuments/components/StockTransferDocumentsPanel';
+import SupportingDocumentsPanel from 'custom/stockTransferDocuments/components/SupportingDocumentsPanel';
 import _ from 'lodash';
 import PropTypes from 'prop-types';
 import { confirmAlert } from 'react-confirm-alert';
@@ -309,8 +309,14 @@ class StockTransferSecondPage extends Component {
             )
             : null
         }
-        <StockTransferDocumentsPanel
-          stockTransferId={this.state.stockTransfer.id || this.props.match?.params?.stockTransferId}
+        <SupportingDocumentsPanel
+          entityId={this.state.stockTransfer.id || this.props.match?.params?.stockTransferId}
+          apiBasePath="/api/custom/stockTransfers"
+          requiredWarning={{
+            id: 'react.custom.stockTransferDocuments.required.warning',
+            defaultMessage:
+              'A document must be attached before this stock transfer can be completed',
+          }}
           disabled={this.state.stockTransfer.status === 'COMPLETED'}
           onCanCompleteChange={this.handleCanCompleteChange}
         />

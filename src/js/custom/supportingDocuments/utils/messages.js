@@ -35,11 +35,6 @@ const STOCK_TRANSFER_DOCUMENTS_MESSAGES = {
     id: 'react.custom.stockTransferDocuments.fetch.error',
     defaultMessage: 'Unable to load documents. Please refresh to try again.',
   },
-  requiredWarning: {
-    id: 'react.custom.stockTransferDocuments.required.warning',
-    defaultMessage:
-      'A document must be attached before this stock transfer can be completed',
-  },
   invalidTypeError: {
     id: 'react.custom.stockTransferDocuments.upload.invalidType.error',
     defaultMessage: 'Unsupported file type. Allowed: PDF, image, Word, Excel, CSV, ZIP.',
