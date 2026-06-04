@@ -7,12 +7,13 @@ openboxes:
     # Client registered in DHIS2 during dhis2-oauth-spike.
     # Redirect URI must match exactly what is registered in DHIS2 OAuth2 Clients.
     # -------------------------------------------------------------------------
-    dhis2:
-        oauth:
-            enabled: false
-            clientId: openboxes
-            clientSecret: <client-secret>
-            authorizeUrl: https://dev.eyeseetea.com/play/uaa/oauth/authorize
-            tokenUrl: https://dev.eyeseetea.com/play/uaa/oauth/token
-            userUrl: https://dev.eyeseetea.com/play/api/me
-            redirectUri: http://localhost:8080/openboxes/oauth/dhis2/callback
+    custom: 
+        dhis2:
+            oauth:
+                enabled: false
+                clientId: openboxes
+                clientSecret: <client-secret>
+                authorizeUrl: https://dev.eyeseetea.com/play/uaa/oauth/authorize
+                tokenUrl: https://dev.eyeseetea.com/play/uaa/oauth/token
+                userUrl: https://dev.eyeseetea.com/play/api/me
+                redirectUri: http://localhost:8080/openboxes/oauth/dhis2/callback
