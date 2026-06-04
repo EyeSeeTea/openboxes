@@ -96,7 +96,7 @@ class Dhis2OAuthService {
     }
 
     private ConfigObject getConfig() {
-        grailsApplication.config.openboxes.dhis2.oauth
+        grailsApplication.config.openboxes.custom.dhis2.oauth
     }
 
     private static String basicAuth(String clientId, String clientSecret) {

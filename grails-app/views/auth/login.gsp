@@ -62,7 +62,7 @@
                                     </td>
                                 </tr>
 
-                                <g:if test="${grailsApplication.config.openboxes.dhis2.oauth.enabled}">
+                                <g:if test="${grailsApplication.config.openboxes.custom.dhis2.oauth.enabled}">
                                 <tr>
                                     <td class="middle center">
                                         <g:link controller="dhis2OAuth" action="initiate" class="button big" style="display:inline-block;width:100%;">

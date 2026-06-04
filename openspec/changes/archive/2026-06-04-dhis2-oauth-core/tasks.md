@@ -28,7 +28,7 @@ All under `src/main/groovy/org/pih/warehouse/custom/dhis2auth/`,
 `grails-app/controllers/org/pih/warehouse/custom/dhis2auth/`.
 
 - [x] **2.1** Config keys documented in `docker/openboxes.client-template.yml`
-      under `openboxes.dhis2.oauth.*` (`enabled`, `clientId`, `clientSecret`,
+      under `openboxes.custom.dhis2.oauth.*` (`enabled`, `clientId`, `clientSecret`,
       `authorizeUrl`, `tokenUrl`, `userUrl`, `redirectUri` — explicit endpoint
       URLs rather than a single `baseUrl`). No touch to `application.yml` —
       feature is disabled by default (missing config evaluates to falsy in

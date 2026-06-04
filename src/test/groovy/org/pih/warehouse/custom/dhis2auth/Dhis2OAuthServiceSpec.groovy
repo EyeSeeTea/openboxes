@@ -9,10 +9,10 @@ class Dhis2OAuthServiceSpec extends Specification implements ServiceUnitTest<Dhi
     @Unroll
     void "buildAuthorizeUrl builds an exact URL when scopes=#scopes and state=#state"() {
         given:
-        grailsApplication.config.openboxes.dhis2.oauth.authorizeUrl = 'https://dhis2.example.com/uaa/oauth/authorize'
-        grailsApplication.config.openboxes.dhis2.oauth.clientId = 'my client'
-        grailsApplication.config.openboxes.dhis2.oauth.redirectUri = 'https://ob.example.com/oauth/dhis2/callback'
-        grailsApplication.config.openboxes.dhis2.oauth.scopes = scopes
+        grailsApplication.config.openboxes.custom.dhis2.oauth.authorizeUrl = 'https://dhis2.example.com/uaa/oauth/authorize'
+        grailsApplication.config.openboxes.custom.dhis2.oauth.clientId = 'my client'
+        grailsApplication.config.openboxes.custom.dhis2.oauth.redirectUri = 'https://ob.example.com/oauth/dhis2/callback'
+        grailsApplication.config.openboxes.custom.dhis2.oauth.scopes = scopes
 
         when:
         String url = service.buildAuthorizeUrl(state)

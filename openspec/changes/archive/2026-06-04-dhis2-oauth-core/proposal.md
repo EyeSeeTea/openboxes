@@ -66,7 +66,7 @@ the local TLS dev stack are out of scope here — see `dhis2-iframe-embedding`.
     only if needed (see design D1.1): extract the smallest possible reusable
     session-setup method so the OAuth callback can call it.
   - Login GSP — add a single "Sign in with DHIS2" button, conditionally
-    rendered when `dhis2.oauth.enabled = true`.
+    rendered when `custom.dhis2.oauth.enabled = true`.
   - User-admin list controller/view — add a "Pending DHIS2 access" filter
     option.
 - **Dependencies**: no new Grails plugins. OAuth client is hand-rolled

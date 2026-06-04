@@ -6,11 +6,11 @@ Code flow when DHIS2 OAuth is configured. The existing username/password login
 SHALL continue to function unchanged for users with local credentials.
 
 #### Scenario: DHIS2 button shown when configured
-- **WHEN** an unauthenticated user opens the login page and `dhis2.oauth.enabled = true`
+- **WHEN** an unauthenticated user opens the login page and `custom.dhis2.oauth.enabled = true`
 - **THEN** the page displays a "Sign in with DHIS2" button alongside the username/password form
 
 #### Scenario: DHIS2 button hidden when not configured
-- **WHEN** `dhis2.oauth.enabled = false` (default)
+- **WHEN** `custom.dhis2.oauth.enabled = false` (default)
 - **THEN** the login page renders unchanged from upstream — no DHIS2 button
 
 #### Scenario: Authorization Code flow completes

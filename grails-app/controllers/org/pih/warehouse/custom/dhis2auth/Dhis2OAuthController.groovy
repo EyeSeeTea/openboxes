@@ -74,6 +74,6 @@ class Dhis2OAuthController {
     }
 
     private boolean isOauthEnabled() {
-        grailsApplication.config.openboxes.dhis2.oauth.enabled as boolean
+        grailsApplication.config.openboxes.custom.dhis2.oauth.enabled as boolean
     }
 }

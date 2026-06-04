@@ -34,7 +34,7 @@ class Dhis2OAuthFlowIntegrationSpec extends IntegrationSpec {
         server.createContext('/api/me', { HttpExchange ex -> respond(ex, meBody) } as HttpHandler)
         server.start()
 
-        grailsApplication.config.openboxes.dhis2.oauth.with {
+        grailsApplication.config.openboxes.custom.dhis2.oauth.with {
             clientId = 'openboxes'
             clientSecret = 'test-secret'
             tokenUrl = "${baseUrl}/uaa/oauth/token"

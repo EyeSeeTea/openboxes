@@ -202,15 +202,16 @@ openboxes:
     # OAuth2 Clients. Inject clientSecret via env var — never commit the value.
     # Standard DHIS2 endpoint paths are shown; adjust only for non-default installs.
     # -------------------------------------------------------------------------
-    # dhis2:
-    #     oauth:
-    #         enabled: false
-    #         clientId: openboxes
-    #         clientSecret: CHANGE_ME   # 36-char UUID required by DHIS2
-    #         authorizeUrl: https://dhis2.example.com/uaa/oauth/authorize
-    #         tokenUrl: https://dhis2.example.com/uaa/oauth/token
-    #         userUrl: https://dhis2.example.com/api/me
-    #         redirectUri: https://openboxes.example.com/oauth/dhis2/callback
+    # custom:                          # fork-custom config namespace (EST)
+    #     dhis2:
+    #         oauth:
+    #             enabled: false
+    #             clientId: openboxes
+    #             clientSecret: CHANGE_ME   # 36-char UUID required by DHIS2
+    #             authorizeUrl: https://dhis2.example.com/uaa/oauth/authorize
+    #             tokenUrl: https://dhis2.example.com/uaa/oauth/token
+    #             userUrl: https://dhis2.example.com/api/me
+    #             redirectUri: https://openboxes.example.com/oauth/dhis2/callback
 
     # -------------------------------------------------------------------------
     # Iframe embedding / CSP frame-ancestors (dhis2-iframe-embedding)

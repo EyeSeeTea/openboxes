@@ -153,7 +153,7 @@ to register.
 ### D4: Login-page button is a single conditional GSP edit
 
 The "Sign in with DHIS2" button is rendered conditionally based on
-`grailsApplication.config.openboxes.dhis2.oauth.enabled`. Single Groovy expression in
+`grailsApplication.config.openboxes.custom.dhis2.oauth.enabled`. Single Groovy expression in
 the existing login GSP at the path confirmed by spike task 1.6.
 
 ## Risks / Trade-offs
@@ -172,13 +172,13 @@ the existing login GSP at the path confirmed by spike task 1.6.
 
 ## Migration Plan
 
-1. Land code with `dhis2.oauth.enabled = false` defaults — zero behavior
+1. Land code with `custom.dhis2.oauth.enabled = false` defaults — zero behavior
    change for existing deployments.
 2. Run Liquibase changeset (creates empty `custom_dhis2_user_link` table) — no
    impact on existing data.
 3. Per-deployment opt-in: set DHIS2 client id/secret/URLs in env-specific
    config.
-4. Rollback: set `dhis2.oauth.enabled = false`. Existing local logins keep
+4. Rollback: set `custom.dhis2.oauth.enabled = false`. Existing local logins keep
    working. Liquibase changeset is additive and can stay (no rollback
    migration needed).
 
@@ -201,17 +201,17 @@ should be expected here:
   `Dhis2AdminService.findPendingDhis2Users`.
 - `grails-app/views/auth/login.gsp` — single conditional `<g:if>` block
   rendering the "Sign in with DHIS2" button when
-  `openboxes.dhis2.oauth.enabled` is true.
+  `openboxes.custom.dhis2.oauth.enabled` is true.
 - `grails-app/views/user/list.gsp` — single filter-link addition for the
   pending-users view.
 - `grails-app/i18n/messages.properties` — appended `dhis2auth.*` keys (must
   live in the root bundle; Grails 3.3 only globs `messages*.properties` at
   the root).
 - `docker/openboxes.yml` — per-deployment external config (not a code file).
-  Carries the `dhis2.oauth.*` block for the local/test env. Treated as a
+  Carries the `custom.dhis2.oauth.*` block for the local/test env. Treated as a
   reference template here; deployments override it.
 
-Config: `dhis2.oauth.*` is supplied via the per-deployment external config
+Config: `custom.dhis2.oauth.*` is supplied via the per-deployment external config
 file `docker/openboxes.yml` (see `docker/openboxes.client-template.yml` for
 the canonical key list). No touch to `grails-app/conf/application.yml` — the
 external file is loaded by the existing config loader, so no upstream edit
@@ -225,7 +225,7 @@ Everything else lives under `org.pih.warehouse.custom.dhis2auth` and
 - Implemented on `feature/dhis2-oauth`. Not yet replayed onto any
   `release/est/*` or customer branch. Not submitted upstream (fork-custom SSO).
 - Feature ships disabled by default; enabled per-deployment via
-  `docker/openboxes.yml` (`openboxes.dhis2.oauth.enabled`).
+  `docker/openboxes.yml` (`openboxes.custom.dhis2.oauth.enabled`).
 
 ## Confidence: 9/10
 
