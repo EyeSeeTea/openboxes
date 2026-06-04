@@ -9,10 +9,10 @@ openboxes:
     # -------------------------------------------------------------------------
     dhis2:
         oauth:
-            enabled: true
+            enabled: false
             clientId: openboxes
             clientSecret: <client-secret>
             authorizeUrl: https://dev.eyeseetea.com/play/uaa/oauth/authorize
             tokenUrl: https://dev.eyeseetea.com/play/uaa/oauth/token
             userUrl: https://dev.eyeseetea.com/play/api/me
-            redirectUri: http://localhost:9090/openboxes/oauth/dhis2/callback
+            redirectUri: http://localhost:8080/openboxes/oauth/dhis2/callback
