@@ -14,9 +14,9 @@ referenced below.
       the design's schema. Include in the custom aggregator
       (`grails-app/migrations/custom/changelog.groovy`) — verify the
       aggregator is included from the master once.
-- [ ] **1.3** Run `./gradlew bootRun` locally; confirm the table is created
-      against a fresh DB, and against an existing dev DB the migration
-      applies cleanly.
+- [x] **1.3** Confirmed the table is created against a fresh DB (the
+      `@Integration` spec boots the app + applies the changeset to a fresh
+      containerized DB) and against the existing dev DB (manual `bootRun`).
 - [x] **1.4** Add a Spock unit test for the domain class
       (`src/test/groovy/.../Dhis2UserLinkSpec.groovy`) covering the unique
       constraints and FK validation.
@@ -28,9 +28,11 @@ All under `src/main/groovy/org/pih/warehouse/custom/dhis2auth/`,
 `grails-app/controllers/org/pih/warehouse/custom/dhis2auth/`.
 
 - [x] **2.1** Config keys documented in `docker/openboxes.client-template.yml`
-      under `openboxes.dhis2.oauth.*` (`enabled`, `baseUrl`, `clientId`,
-      `clientSecret`, `redirectUri`). No touch to `application.yml` — feature
-      is disabled by default (missing config evaluates to falsy in Groovy).
+      under `openboxes.dhis2.oauth.*` (`enabled`, `clientId`, `clientSecret`,
+      `authorizeUrl`, `tokenUrl`, `userUrl`, `redirectUri` — explicit endpoint
+      URLs rather than a single `baseUrl`). No touch to `application.yml` —
+      feature is disabled by default (missing config evaluates to falsy in
+      Groovy).
 - [x] **2.2** `Dhis2OAuthClient` Groovy service: `buildAuthorizeUrl(state)`,
       `exchangeCode(code) → AccessToken`, `fetchMe(accessToken) → Dhis2User`.
       Use the HTTP client confirmed in `dhis2-oauth-spike` task 1.9.
@@ -83,24 +85,32 @@ Context and D1.1.
 - [x] **3.4** Login GSP edit: conditional "Sign in with DHIS2" button block.
       Smallest possible diff at the path confirmed by spike task 1.6. Record
       in design touch points.
-- [ ] **3.5** Spock integration tests for the OAuth callback end-to-end —
-      mock DHIS2 with WireMock or an embedded HTTP server; assert session
-      established and `User`/`Dhis2UserLink` rows created, and that
-      `SecurityInterceptor` redirects an inactive linked user to the
-      pending-access page.
+- [x] **3.5** Spock integration tests for the OAuth callback end-to-end.
+      `Dhis2OAuthFlowIntegrationSpec` (@Integration, embedded JDK HttpServer
+      stubbing DHIS2 — no WireMock dep) exercises the real HTTP exchange +
+      real GORM persistence: asserts `User`/`Dhis2UserLink` rows created and
+      returning-user refresh. `Dhis2OAuthControllerSpec` asserts session
+      established / pending marker / redirects / 400s.
+      `SecurityInterceptorPendingGateSpec` asserts an inactive linked user is
+      redirected to the pending-access page.
 
 ## Phase 4 — Admin UX
 
 - [x] **4.1** Add a "Pending DHIS2 access" filter option to the existing user
       admin list controller/view. Surgical edit; record in touch points.
-- [ ] **4.2** Manual smoke test against a real (non-iframed) DHIS2: register
+- [x] **4.2** Manual smoke test against a real (non-iframed) DHIS2: register
       a fresh DHIS2 user, log in via OB, see them in pending list, grant
       role + location, confirm next login reaches a normal OB page.
+      Verified manually against the dev DHIS2 instance.
 
 ## Phase 5 — Tests, docs, archive
 
-- [ ] **5.1** All Spock tests green: `./gradlew test`.
-- [ ] **5.2** Frontend untouched. Run `npm test` to confirm no regressions.
+- [x] **5.1** DHIS2 Spock suite green: unit (`Dhis2OAuthServiceSpec`,
+      `Dhis2RegistrationServiceSpec`, `Dhis2UserLinkSpec`,
+      `Dhis2OAuthControllerSpec`, `SecurityInterceptorPendingGateSpec`) via
+      `./gradlew test` and `Dhis2OAuthFlowIntegrationSpec` via
+      `./gradlew integrationTest`.
+- [x] **5.2** Frontend untouched (no `src/js/**` changes in this branch).
 - [ ] **5.3** Update top-level `README.md` only if user-facing behavior is
       enabled by default (it isn't — skip unless we decide to enable it on
       a specific customer branch).

@@ -223,6 +223,13 @@ is required.
 Everything else lives under `org.pih.warehouse.custom.dhis2auth` and
 `grails-app/migrations/custom/`.
 
+## Deploy status
+
+- Implemented on `feature/dhis2-oauth`. Not yet replayed onto any
+  `release/est/*` or customer branch. Not submitted upstream (fork-custom SSO).
+- Feature ships disabled by default; enabled per-deployment via
+  `docker/openboxes.yml` (`openboxes.dhis2.oauth.enabled`).
+
 ## Confidence: 9/10
 
 Re-scored after `dhis2-oauth-spike` validation artifacts landed.
