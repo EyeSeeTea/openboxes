@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 
+import { renderAvailableCell } from 'custom/outboundExpiryRestrictions/utils/expiryHelpers';
 import arrayMutators from 'final-form-arrays';
 import update from 'immutability-helper';
 import _ from 'lodash';
@@ -52,7 +53,7 @@ const AD_HOCK_FIELDS = {
     rowComponent: TableRowWithSubfields,
     getDynamicRowAttr: ({ rowValues, showOnlyErroredItems, itemFilter }) => {
       let className = rowValues.statusCode === 'SUBSTITUTED' ? 'crossed-out ' : '';
-      if (rowValues.quantityAvailable < rowValues.quantityRequested) {
+      if ((rowValues.quantityPickable ?? rowValues.quantityAvailable) < rowValues.quantityRequested) {
         className += 'font-weight-bold';
       }
       const filterOutItems = itemFilter && !(
@@ -196,18 +197,18 @@ const AD_HOCK_FIELDS = {
         defaultMessage: 'Available',
         flexWidth: '1',
         fieldKey: '',
-        getDynamicAttr: ({ fieldValue }) => {
+        getDynamicAttr: ({ fieldValue, translate }) => {
           let className = '';
-          if (fieldValue && (!fieldValue.quantityAvailable
-              || fieldValue.quantityAvailable < fieldValue.quantityRequested)) {
+          if (fieldValue && (!fieldValue.quantityPickable
+              || fieldValue.quantityPickable < fieldValue.quantityRequested)) {
             className += 'text-danger';
           }
           return {
             className,
+            formatValue: renderAvailableCell(translate),
           };
         },
         attributes: {
-          formatValue: (value) => (value.quantityAvailable ? (value.quantityAvailable.toLocaleString('en-US')) : value.quantityAvailable),
           numberField: true,
         },
       },
@@ -364,7 +365,7 @@ const STOCKLIST_FIELDS_PUSH_TYPE = {
     rowComponent: TableRowWithSubfields,
     getDynamicRowAttr: ({ rowValues, showOnlyErroredItems, itemFilter }) => {
       let className = rowValues.statusCode === 'SUBSTITUTED' ? 'crossed-out ' : '';
-      if (rowValues.quantityAvailable < rowValues.quantityRequested) {
+      if ((rowValues.quantityPickable ?? rowValues.quantityAvailable) < rowValues.quantityRequested) {
         className += 'font-weight-bold';
       }
       const filterOutItems = itemFilter && !(
@@ -496,18 +497,18 @@ const STOCKLIST_FIELDS_PUSH_TYPE = {
         defaultMessage: 'Available',
         flexWidth: '1',
         fieldKey: '',
-        getDynamicAttr: ({ fieldValue }) => {
+        getDynamicAttr: ({ fieldValue, translate }) => {
           let className = '';
-          if (fieldValue && (!fieldValue.quantityAvailable
-              || fieldValue.quantityAvailable < fieldValue.quantityRequested)) {
+          if (fieldValue && (!fieldValue.quantityPickable
+              || fieldValue.quantityPickable < fieldValue.quantityRequested)) {
             className += 'text-danger';
           }
           return {
             className,
+            formatValue: renderAvailableCell(translate),
           };
         },
         attributes: {
-          formatValue: (value) => (value.quantityAvailable ? (value.quantityAvailable.toLocaleString('en-US')) : value.quantityAvailable),
           numberField: true,
         },
       },
@@ -664,7 +665,7 @@ const STOCKLIST_FIELDS_PULL_TYPE = {
     rowComponent: TableRowWithSubfields,
     getDynamicRowAttr: ({ rowValues, showOnlyErroredItems, itemFilter }) => {
       let className = rowValues.statusCode === 'SUBSTITUTED' ? 'crossed-out ' : '';
-      if (rowValues.quantityAvailable < rowValues.quantityRequested) {
+      if ((rowValues.quantityPickable ?? rowValues.quantityAvailable) < rowValues.quantityRequested) {
         className += 'font-weight-bold';
       }
       const filterOutItems = itemFilter && !(
@@ -796,18 +797,18 @@ const STOCKLIST_FIELDS_PULL_TYPE = {
         defaultMessage: 'Available',
         flexWidth: '1',
         fieldKey: '',
-        getDynamicAttr: ({ fieldValue }) => {
+        getDynamicAttr: ({ fieldValue, translate }) => {
           let className = '';
-          if (fieldValue && (!fieldValue.quantityAvailable
-              || fieldValue.quantityAvailable < fieldValue.quantityRequested)) {
+          if (fieldValue && (!fieldValue.quantityPickable
+              || fieldValue.quantityPickable < fieldValue.quantityRequested)) {
             className += 'text-danger';
           }
           return {
             className,
+            formatValue: renderAvailableCell(translate),
           };
         },
         attributes: {
-          formatValue: (value) => (value.quantityAvailable ? (value.quantityAvailable.toLocaleString('en-US')) : value.quantityAvailable),
           numberField: true,
         },
       },
@@ -1095,7 +1096,7 @@ class EditItemsPage extends Component {
     const errors = validateForSave(values);
 
     _.forEach(values.editPageItems, (item, key) => {
-      if (_.isNil(item.quantityRevised) && (item.quantityRequested > item.quantityAvailable) && (item.statusCode !== 'SUBSTITUTED')) {
+      if (_.isNil(item.quantityRevised) && (item.quantityRequested > (item.quantityPickable ?? item.quantityAvailable)) && (item.statusCode !== 'SUBSTITUTED')) {
         errors.editPageItems[key] = { quantityRevised: 'react.stockMovement.errors.lowerQty.label' };
       }
     });
