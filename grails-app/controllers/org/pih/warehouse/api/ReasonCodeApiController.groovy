@@ -17,6 +17,7 @@ import org.pih.warehouse.core.ReasonCode
 class ReasonCodeApiController {
 
     def locationService
+    def customReasonCodeService
     def messageSource
     def localizationService
 
@@ -30,7 +31,7 @@ class ReasonCodeApiController {
         } else if (ActivityCode.MODIFY_REQUISITION_ITEM in activityCodes) {
             reasonCodes.addAll(getReasonCodes(ReasonCode.listRequisitionQuantityChangeReasonCodes()))
         } else if (ActivityCode.ADJUST_INVENTORY in activityCodes) {
-            reasonCodes.addAll(getReasonCodes(ReasonCode.listInventoryAdjustmentReasonCodes()))
+            reasonCodes.addAll(getReasonCodes(customReasonCodeService.listInventoryAdjustmentReasonCodes()))
         } else if (ActivityCode.CYCLE_COUNT in activityCodes) {
             reasonCodes.addAll(getReasonCodes(ReasonCode.listCycleCountReasonCodes()))
         } else {

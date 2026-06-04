@@ -26,6 +26,11 @@ openboxes:
     expirationDate:
       minValue: "01/01/2026"
 
+    custom:
+        adjustments:
+            damaged:
+                enabled: false
+
     jobs:
         sendStockAlertsJob:
             enabled: true

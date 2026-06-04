@@ -57,6 +57,7 @@ class SelectTagLib {
     def shipmentService
     def requisitionService
     def organizationService
+    def customReasonCodeService
     CategoryService categoryService
 
     /**
@@ -227,7 +228,7 @@ class SelectTagLib {
     }
 
     def selectInventoryAdjustmentReasonCode = { attrs, body ->
-        attrs.from = ReasonCode.listInventoryAdjustmentReasonCodes()
+        attrs.from = customReasonCodeService.listInventoryAdjustmentReasonCodes()
         attrs.optionValue = { format.metadata(obj: it) }
         out << g.select(attrs)
     }
@@ -669,6 +670,9 @@ class SelectTagLib {
         if (!disabledTransactionTypes.empty) {
             disabledTransactionTypes = transactionTypes.findAll { it.id in disabledTransactionTypes }
             transactionTypes.removeAll(disabledTransactionTypes)
+        }
+        if (!customReasonCodeService.damagedEnabled) {
+            transactionTypes.removeAll { it.id == Constants.DAMAGE_TRANSACTION_TYPE_ID }
         }
 
         attrs.from = transactionTypes

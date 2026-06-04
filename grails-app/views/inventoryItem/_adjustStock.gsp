@@ -66,9 +66,8 @@
             <tr class="prop">
                 <td valign="top" class="name"><label><warehouse:message code="default.reasonCode.label" default="Reason Code"/></label></td>
                 <td valign="top" class="">
-                    <g:select name="reasonCode"
+                    <g:selectInventoryAdjustmentReasonCode name="reasonCode"
                               value="${params.reasonCode}"
-                              from="${org.pih.warehouse.core.ReasonCode.listInventoryAdjustmentReasonCodes()}"
                               noSelection="['':'']"
                               data-placeholder="${g.message(code: 'default.selectAnOption.label', default: 'Select an Option')}"
                               class="chzn-select-deselect"/>
