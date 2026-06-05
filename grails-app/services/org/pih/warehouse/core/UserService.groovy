@@ -26,6 +26,7 @@ import org.grails.plugins.web.taglib.ApplicationTagLib
 class UserService {
 
     def authService
+    def customRolePolicyService
     def dataSource
     GrailsApplication grailsApplication
 
@@ -194,9 +195,22 @@ class UserService {
 
     Boolean canUserBrowse(User u) {
         if (u) {
-            def user = User.get(u.id)
-            def roles = [RoleType.ROLE_SUPERUSER, RoleType.ROLE_ADMIN, RoleType.ROLE_MANAGER, RoleType.ROLE_BROWSER, RoleType.ROLE_ASSISTANT]
-            return getEffectiveRoles(user).any { roles.contains(it.roleType) }
+            User user = resolveUser(u)
+            Set<String> roleNames = [
+                    RoleType.ROLE_SUPERUSER.name(),
+                    RoleType.ROLE_ADMIN.name(),
+                    RoleType.ROLE_MANAGER.name(),
+                    RoleType.ROLE_BROWSER.name(),
+                    RoleType.ROLE_ASSISTANT.name(),
+                    RoleType.ROLE_FACILITY_STOREKEEPER.name(),
+                    RoleType.ROLE_REGIONAL_WAREHOUSE.name(),
+                    RoleType.ROLE_RPC_SUPERUSER.name(),
+                    RoleType.ROLE_REPORTING_USER.name()
+            ] as Set<String>
+            Set<String> effectiveRoleNames = (getEffectiveRoles(user)*.roleType*.name()).findAll { it } as Set<String>
+            Set<String> allRoleNames = (user?.getAllRoles()*.roleType*.name()).findAll { it } as Set<String>
+            Set<String> combinedRoleNames = (effectiveRoleNames + allRoleNames) as Set<String>
+            return combinedRoleNames.any { roleNames.contains(it) }
         }
         return false
     }
@@ -254,6 +268,58 @@ class UserService {
             return getEffectiveRoles(user).any { Role role -> roleTypes.contains(role.roleType) }
         }
         return false
+    }
+
+    Boolean hasRoleFacilityStorekeeper(User u) {
+        if (u) {
+            def user = User.get(u.id)
+            return getEffectiveRoles(user).any { Role role -> role.roleType?.name() == RoleType.ROLE_FACILITY_STOREKEEPER.name() }
+        }
+        return false
+    }
+
+    Boolean hasRoleRegionalWarehouse(User u) {
+        if (u) {
+            def user = User.get(u.id)
+            return getEffectiveRoles(user).any { Role role -> role.roleType?.name() == RoleType.ROLE_REGIONAL_WAREHOUSE.name() }
+        }
+        return false
+    }
+
+    Boolean hasRoleRpcSuperuser(User u) {
+        if (u) {
+            def user = User.get(u.id)
+            return getEffectiveRoles(user).any { Role role -> role.roleType?.name() == RoleType.ROLE_RPC_SUPERUSER.name() }
+        }
+        return false
+    }
+
+    Boolean hasRoleReportingUser(User u) {
+        if (u) {
+            def user = User.get(u.id)
+            return getEffectiveRoles(user).any { Role role -> role.roleType?.name() == RoleType.ROLE_REPORTING_USER.name() }
+        }
+        return false
+    }
+
+    Boolean hasFacilityStorekeeperPolicy(User u, String locationId) {
+        return Boolean.TRUE.equals(customRolePolicyService.hasCustomPolicy(u, locationId, RoleType.ROLE_FACILITY_STOREKEEPER))
+    }
+
+    Boolean hasRegionalWarehousePolicy(User u, String locationId) {
+        return Boolean.TRUE.equals(customRolePolicyService.hasCustomPolicy(u, locationId, RoleType.ROLE_REGIONAL_WAREHOUSE))
+    }
+
+    Boolean hasRpcSuperuserPolicy(User u, String locationId) {
+        return Boolean.TRUE.equals(customRolePolicyService.hasCustomPolicy(u, locationId, RoleType.ROLE_RPC_SUPERUSER))
+    }
+
+    Boolean hasReportingUserPolicy(User u, String locationId) {
+        return Boolean.TRUE.equals(customRolePolicyService.hasCustomPolicy(u, locationId, RoleType.ROLE_REPORTING_USER))
+    }
+
+    Boolean hasAnyCustomPolicy(User u, String locationId) {
+        return Boolean.TRUE.equals(customRolePolicyService.hasAnyCustomPolicy(u, locationId))
     }
 
     // Checks if requestor role exist for any location - for location chooser purposes
@@ -453,7 +519,15 @@ class UserService {
     }
 
     public def getEffectiveRoles(User user, Location location) {
-        return user.getEffectiveRoles(location)
+        User persistentUser = resolveUser(user)
+        return persistentUser?.getEffectiveRoles(location) ?: []
+    }
+
+    private User resolveUser(User user) {
+        if (!user?.id) {
+            return user
+        }
+        return User.get(user.id) ?: user
     }
 
 

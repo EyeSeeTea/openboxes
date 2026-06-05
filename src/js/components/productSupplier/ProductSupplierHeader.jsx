@@ -1,5 +1,8 @@
 import React from 'react';
 
+import { getCustomRolePermissions } from 'custom/roles/customRolePermissions';
+import { useSelector } from 'react-redux';
+
 import Button from 'components/form-elements/Button';
 import ListTitle from 'components/listPagesUtils/ListTitle';
 import { PRODUCT_SUPPLIER_URL } from 'consts/applicationUrls';
@@ -9,10 +12,13 @@ import HeaderButtonsWrapper from 'wrappers/HeaderButtonsWrapper';
 import HeaderWrapper from 'wrappers/HeaderWrapper';
 
 const ProductSupplierHeader = () => {
-  const canManageProducts = useUserHasPermissions({
+  const customRolePermissions = useSelector((state) => state.session.customRolePermissions);
+  const hasProductManagerPermissions = useUserHasPermissions({
     minRequiredRole: RoleType.ROLE_ADMIN,
     supplementalRoles: [RoleType.ROLE_PRODUCT_MANAGER],
   });
+  const permissions = getCustomRolePermissions({ customRolePermissions });
+  const canManageProducts = hasProductManagerPermissions || permissions.canManageProducts;
 
   return (
     <HeaderWrapper>

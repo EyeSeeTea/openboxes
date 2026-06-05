@@ -98,6 +98,12 @@ The Java/Spring rules in `.claude/rules/java/` apply with these Grails-specific 
 
 ## Build & Run
 
+Before running frontend commands (`npm test`, `npm run watch`, `npm run bundle`, or Gradle tasks that invoke frontend bundling), use Node 14 in your shell:
+
+```bash
+nvm use 14
+```
+
 ```bash
 # Backend
 ./gradlew bootRun

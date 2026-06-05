@@ -1,0 +1,110 @@
+package org.pih.warehouse.custom.roles
+
+import grails.testing.web.taglib.TagLibUnitTest
+import org.pih.warehouse.AuthTagLib
+import org.pih.warehouse.core.User
+import org.pih.warehouse.core.UserService
+import spock.lang.Specification
+
+class AuthTagLibCustomRolesSpec extends Specification implements TagLibUnitTest<AuthTagLib> {
+
+    def setup() {
+        session.user = Stub(User) {
+            getId() >> 'user-1'
+        }
+        session.warehouse = [id: 'loc-1']
+    }
+
+    def "canSendStocklistEmail should hide body for restricted custom roles"() {
+        given:
+        tagLib.customRolePolicyService = Stub(CustomRolePolicyService) {
+            shouldHideStocklistEmail(_, _) >> true
+        }
+
+        when:
+        String output = applyTemplate('<g:canSendStocklistEmail>Email</g:canSendStocklistEmail>')
+
+        then:
+        output == ''
+    }
+
+    def "canManageStocklists should render body when custom policy allows stocklist management"() {
+        given:
+        tagLib.userService = Stub(UserService) {
+            isUserAdmin(_) >> false
+        }
+        tagLib.customRolePolicyService = Stub(CustomRolePolicyService) {
+            canManageStocklists(_, _) >> true
+        }
+
+        when:
+        String output = applyTemplate('<g:canManageStocklists>Allowed</g:canManageStocklists>')
+
+        then:
+        output == 'Allowed'
+    }
+
+    def "hasHighestRoleAuthenticated should hide body when any custom policy is active"() {
+        given:
+        tagLib.userService = Stub(UserService) {
+            hasHighestRole(_, _, _) >> true
+        }
+        tagLib.customRolePolicyService = Stub(CustomRolePolicyService) {
+            hasAnyCustomPolicy(_, _) >> true
+        }
+
+        when:
+        String output = applyTemplate('<g:hasHighestRoleAuthenticated>Allowed</g:hasHighestRoleAuthenticated>')
+
+        then:
+        output == ''
+    }
+
+    def "hasHigherRoleThanAuthenticated should render body when any custom policy is active"() {
+        given:
+        tagLib.userService = Stub(UserService) {
+            hasHighestRole(_, _, _) >> true
+        }
+        tagLib.customRolePolicyService = Stub(CustomRolePolicyService) {
+            hasAnyCustomPolicy(_, _) >> true
+        }
+
+        when:
+        String output = applyTemplate('<g:hasHigherRoleThanAuthenticated>Allowed</g:hasHigherRoleThanAuthenticated>')
+
+        then:
+        output == 'Allowed'
+    }
+
+    def "canManageProducts should hide body for read-only product custom role"() {
+        given:
+        tagLib.userService = Stub(UserService) {
+            isUserAdmin(_) >> false
+        }
+        tagLib.customRolePolicyService = Stub(CustomRolePolicyService) {
+            getCustomRolePermissions(_, _) >> [canManageProducts: false]
+        }
+
+        when:
+        String output = applyTemplate('<g:canManageProducts>Allowed</g:canManageProducts>')
+
+        then:
+        output == ''
+    }
+
+    def "canManageProducts should render body when custom policy allows product management"() {
+        given:
+        tagLib.userService = Stub(UserService) {
+            isUserAdmin(_) >> false
+        }
+        tagLib.customRolePolicyService = Stub(CustomRolePolicyService) {
+            getCustomRolePermissions(_, _) >> [canManageProducts: true]
+        }
+
+        when:
+        String output = applyTemplate('<g:canManageProducts>Allowed</g:canManageProducts>')
+
+        then:
+        output == 'Allowed'
+    }
+}

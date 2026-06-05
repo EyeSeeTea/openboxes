@@ -46,27 +46,28 @@
                         <td><g:formatDate date="${productAssociation.dateCreated}" /></td>
 
                         <td>
+                            <g:canManageProducts>
+                                <g:link controller="productAssociation" action="edit" id="${productAssociation.id}" class="button" params="[isFromProductEditPage: true]">
+                                    <g:message code="default.button.edit.label"/>
+                                </g:link>
 
-                            <g:link controller="productAssociation" action="edit" id="${productAssociation.id}" class="button" params="[isFromProductEditPage: true]">
-                                <g:message code="default.button.edit.label"/>
-                            </g:link>
-
-                            <g:if test="${productAssociation?.mutualAssociation}">
-                                <button type="button"
-                                        class="button"
-                                        onclick="$('#product-association-delete-dialog')
-                                          .data('productAssociationId', `${productAssociation?.id}`)
-                                          .data('reload', true)
-                                          .dialog('open')">
-                                    ${warehouse.message(code: 'default.button.delete.label', default: 'Delete')}
-                                </button>
-                            </g:if>
-                            <g:else>
-                                <button class="button"
-                                        onclick="deleteSingleProductAssociation('${productAssociation?.id}')">
-                                    <g:message code="default.button.delete.label"/>
-                                </button>
-                            </g:else>
+                                <g:if test="${productAssociation?.mutualAssociation}">
+                                    <button type="button"
+                                            class="button"
+                                            onclick="$('#product-association-delete-dialog')
+                                              .data('productAssociationId', `${productAssociation?.id}`)
+                                              .data('reload', true)
+                                              .dialog('open')">
+                                        ${warehouse.message(code: 'default.button.delete.label', default: 'Delete')}
+                                    </button>
+                                </g:if>
+                                <g:else>
+                                    <button class="button"
+                                            onclick="deleteSingleProductAssociation('${productAssociation?.id}')">
+                                        <g:message code="default.button.delete.label"/>
+                                    </button>
+                                </g:else>
+                            </g:canManageProducts>
                         </td>
 
                     </tr>
@@ -85,12 +86,14 @@
                 <tr>
                     <td colspan="8">
                         <div class="center">
-                            <button class="button btn-show-dialog"
-                                    data-title="${g.message(code: 'default.create.label', args: [g.message(code:'productAssociation.label')])}"
-                                    data-url="${request.contextPath}/productAssociation/dialog?product.id=${productInstance?.id}">
-                                <img src="${resource(dir: 'images/icons/silk', file:'add.png')}" />
-                                ${g.message(code: 'default.create.label', args: [g.message(code:'productAssociation.label')])}
-                            </button>
+                            <g:canManageProducts>
+                                <button class="button btn-show-dialog"
+                                        data-title="${g.message(code: 'default.create.label', args: [g.message(code:'productAssociation.label')])}"
+                                        data-url="${request.contextPath}/productAssociation/dialog?product.id=${productInstance?.id}">
+                                    <img src="${resource(dir: 'images/icons/silk', file:'add.png')}" />
+                                    ${g.message(code: 'default.create.label', args: [g.message(code:'productAssociation.label')])}
+                                </button>
+                            </g:canManageProducts>
                         </div>
                     </td>
                 </tr>

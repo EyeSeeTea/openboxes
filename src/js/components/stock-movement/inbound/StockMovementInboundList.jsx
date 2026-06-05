@@ -24,7 +24,10 @@ const StockMovementInboundList = (props) => {
 
   return (
     <div className="d-flex flex-column list-page-main">
-      <StockMovementInboundHeader showMyStockMovements={selectFiltersForMyStockMovements} />
+      <StockMovementInboundHeader
+        showMyStockMovements={selectFiltersForMyStockMovements}
+        customRolePermissions={props.customRolePermissions}
+      />
       <StockMovementInboundFilters
         defaultValues={defaultFilterValues}
         setFilterParams={setFilterValues}
@@ -43,6 +46,7 @@ const mapStateToProps = (state) => ({
   shipmentStatuses: state.shipmentStatuses.data,
   isShipmentStatusesFetched: state.shipmentStatuses.fetched,
   shipmentTypes: state.stockMovementCommon.shipmentTypes,
+  customRolePermissions: state.session.customRolePermissions,
 });
 
 export default withRouter(connect(mapStateToProps, {
@@ -62,4 +66,13 @@ StockMovementInboundList.propTypes = {
     label: PropTypes.string,
     description: PropTypes.string,
   })).isRequired,
+  customRolePermissions: PropTypes.shape({
+    activeCustomRolePolicy: PropTypes.string,
+    canCreateInboundMovement: PropTypes.bool,
+    canCreateInboundFromPurchaseOrder: PropTypes.bool,
+  }),
+};
+
+StockMovementInboundList.defaultProps = {
+  customRolePermissions: undefined,
 };

@@ -11,15 +11,13 @@ package org.pih.warehouse
 
 import org.pih.warehouse.core.ActivityCode
 import org.pih.warehouse.core.Location
-import org.pih.warehouse.core.Role
 import org.pih.warehouse.core.RoleType
-import org.pih.warehouse.core.User
-import org.pih.warehouse.core.Location
 import org.pih.warehouse.core.User
 
 class AuthTagLib {
 
     def userService
+    def customRolePolicyService
 
     def supports = { attrs, body ->
         def warehouseInstance = Location.get(attrs.location ?: session.warehouse.id)
@@ -66,6 +64,35 @@ class AuthTagLib {
     def isUserAdmin = { attrs, body ->
         if (userService.isUserAdmin(session?.user))
             out << body()
+    }
+    def canManageStocklists = { attrs, body ->
+        if (userService.isUserAdmin(session?.user) ||
+                customRolePolicyService.canManageStocklists(session?.user, session?.warehouse?.id)) {
+            out << body()
+        }
+    }
+    def canSendStocklistEmail = { attrs, body ->
+        if (!customRolePolicyService.shouldHideStocklistEmail(session?.user, session?.warehouse?.id)) {
+            out << body()
+        }
+    }
+    def canCreateInboundMovement = { attrs, body ->
+        Map<String, Object> permissions = customRolePolicyService.getCustomRolePermissions(session?.user, session?.warehouse?.id)
+        if (permissions.canCreateInboundMovement) {
+            out << body()
+        }
+    }
+    def canCreateInboundFromPurchaseOrder = { attrs, body ->
+        Map<String, Object> permissions = customRolePolicyService.getCustomRolePermissions(session?.user, session?.warehouse?.id)
+        if (permissions.canCreateInboundFromPurchaseOrder) {
+            out << body()
+        }
+    }
+    def canManageProducts = { attrs, body ->
+        Map<String, Object> permissions = customRolePolicyService.getCustomRolePermissions(session?.user, session?.warehouse?.id)
+        if (userService.isUserAdmin(session?.user) || permissions.canManageProducts) {
+            out << body()
+        }
     }
     def isUserManager = { attrs, body ->
         if (userService.isUserManager(session?.user))
@@ -120,12 +147,16 @@ class AuthTagLib {
     }
 
     def hasHighestRoleAuthenticated = { attrs, body ->
-        if (userService.hasHighestRole(session?.user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED))
+        boolean hasCustomPolicy = customRolePolicyService.hasAnyCustomPolicy(session?.user, session?.warehouse?.id)
+        if (userService.hasHighestRole(session?.user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED) &&
+                !hasCustomPolicy)
             out << body()
     }
 
     def hasHigherRoleThanAuthenticated = { attrs, body ->
-        if (!userService.hasHighestRole(session?.user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED))
+        boolean hasCustomPolicy = customRolePolicyService.hasAnyCustomPolicy(session?.user, session?.warehouse?.id)
+        if (!userService.hasHighestRole(session?.user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED) ||
+                hasCustomPolicy)
             out << body()
     }
 }

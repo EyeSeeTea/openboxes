@@ -34,15 +34,17 @@
 
                         </td>
                         <td class="middle">
-                            <g:link controller="productGroup" action="edit" id="${productGroup.id}" class="button">
-                                <img src="${resource(dir: 'images/icons/silk', file:'pencil.png')}" />&nbsp;
-                                <warehouse:message code="default.button.edit.label"/>
-                            </g:link>
-                            <g:remoteLink controller="product" action="removeFromProductGroups" update="productGroups" class="button"
-                                          id="${productGroup.id}" params="[productId:productInstance.id]">
-                                <img src="${resource(dir: 'images/icons/silk', file:'link_break.png')}" />&nbsp;
-                                <warehouse:message code="default.button.unlink.label" default="Unlink"/>
-                            </g:remoteLink>
+                            <g:canManageProducts>
+                                <g:link controller="productGroup" action="edit" id="${productGroup.id}" class="button">
+                                    <img src="${resource(dir: 'images/icons/silk', file:'pencil.png')}" />&nbsp;
+                                    <warehouse:message code="default.button.edit.label"/>
+                                </g:link>
+                                <g:remoteLink controller="product" action="removeFromProductGroups" update="productGroups" class="button"
+                                              id="${productGroup.id}" params="[productId:productInstance.id]">
+                                    <img src="${resource(dir: 'images/icons/silk', file:'link_break.png')}" />&nbsp;
+                                    <warehouse:message code="default.button.unlink.label" default="Unlink"/>
+                                </g:remoteLink>
+                            </g:canManageProducts>
                         </td>
                     </tr>
                 </g:each>
@@ -54,29 +56,29 @@
                     </tr>
                 </g:unless>
             </tbody>
-            <tfoot>
-                <tr>
-                    <td colspan="4">
-                        <g:formRemote id="addProductGroupToProduct" name="addProductGroupToProduct"
-                                      update="productGroups" onSuccess="onSuccess(data,textStatus)" onComplete="onComplete()"
-                                      url="[controller: 'product', action:'addProductGroupToProduct']">
-                            <input name="id" type="hidden" value="${productInstance?.id}" />
-                            <g:autoSuggestString id="productGroup" name="productGroup" size="80" class="medium text"
-                                                 jsonUrl="${request.contextPath}/json/autoSuggestProductGroups"
-                                                 value=""
-                                                 placeholder="${warehouse.message(code:'product.addProductGroup.label', default: 'Enter product group name')}"/>
+            <g:canManageProducts>
+                <tfoot>
+                    <tr>
+                        <td colspan="4">
+                            <g:formRemote id="addProductGroupToProduct" name="addProductGroupToProduct"
+                                          update="productGroups" onSuccess="onSuccess(data,textStatus)" onComplete="onComplete()"
+                                          url="[controller: 'product', action:'addProductGroupToProduct']">
+                                <input name="id" type="hidden" value="${productInstance?.id}" />
+                                <g:autoSuggestString id="productGroup" name="productGroup" size="80" class="medium text"
+                                                     jsonUrl="${request.contextPath}/json/autoSuggestProductGroups"
+                                                     value=""
+                                                     placeholder="${warehouse.message(code:'product.addProductGroup.label', default: 'Enter product group name')}"/>
 
-                            <button  class="button">
-                                <img src="${resource(dir: 'images/icons/silk', file:'add.png')}" />&nbsp;
-                                ${warehouse.message(code:'default.button.add.label')}
-                            </button>
-                        </g:formRemote>
+                                <button  class="button">
+                                    <img src="${resource(dir: 'images/icons/silk', file:'add.png')}" />&nbsp;
+                                    ${warehouse.message(code:'default.button.add.label')}
+                                </button>
+                            </g:formRemote>
+                        </td>
+                    </tr>
 
-
-                    </td>
-                </tr>
-
-            </tfoot>
+                </tfoot>
+            </g:canManageProducts>
         </table>
     </div>
 </div>

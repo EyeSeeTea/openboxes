@@ -28,6 +28,7 @@ const StockMovementOutboundList = (props) => {
       <StockMovementOutboundHeader
         isRequestsOpen={isRequestsList}
         showMyStockMovements={selectFiltersForMyStockMovements}
+        customRolePermissions={props.customRolePermissions}
       />
       <StockMovementOutboundFilters
         defaultValues={defaultFilterValues}
@@ -54,6 +55,7 @@ const mapStateToProps = (state) => ({
   isRequisitionStatusesFetched: state.requisitionStatuses.fetched,
   shipmentTypes: state.stockMovementCommon.shipmentTypes,
   approvers: state.approvers.data,
+  customRolePermissions: state.session.customRolePermissions,
 });
 
 export default withRouter(connect(mapStateToProps, {
@@ -80,4 +82,12 @@ StockMovementOutboundList.propTypes = {
     label: PropTypes.string,
     value: PropTypes.string,
   })).isRequired,
+  customRolePermissions: PropTypes.shape({
+    activeCustomRolePolicy: PropTypes.string,
+    canCreateOutboundMovement: PropTypes.bool,
+  }),
+};
+
+StockMovementOutboundList.defaultProps = {
+  customRolePermissions: undefined,
 };

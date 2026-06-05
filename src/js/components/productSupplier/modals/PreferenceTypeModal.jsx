@@ -1,9 +1,11 @@
 import React, { useEffect } from 'react';
 
+import { getCustomRolePermissions } from 'custom/roles/customRolePermissions';
 import _ from 'lodash';
 import PropTypes from 'prop-types';
 import { RiCloseFill } from 'react-icons/all';
 import Modal from 'react-modal';
+import { useSelector } from 'react-redux';
 
 import Button from 'components/form-elements/Button';
 import { PRODUCT_SUPPLIER_URL } from 'consts/applicationUrls';
@@ -17,10 +19,13 @@ const PreferenceTypeModal = ({
   modalData,
   productSupplierId,
 }) => {
-  const canManageProducts = useUserHasPermissions({
+  const customRolePermissions = useSelector((state) => state.session.customRolePermissions);
+  const hasProductManagerPermissions = useUserHasPermissions({
     minRequiredRole: RoleType.ROLE_ADMIN,
     supplementalRoles: [RoleType.ROLE_PRODUCT_MANAGER],
   });
+  const permissions = getCustomRolePermissions({ customRolePermissions });
+  const canManageProducts = hasProductManagerPermissions || permissions.canManageProducts;
 
   useEffect(() => {
     if (isOpen) {

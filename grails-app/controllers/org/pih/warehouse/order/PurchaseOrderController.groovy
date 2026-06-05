@@ -18,6 +18,7 @@ class PurchaseOrderController {
 
 
     def orderService
+    def userService
 
     def index() {
         redirect(action: "create")
@@ -29,6 +30,9 @@ class PurchaseOrderController {
 
 
     def create() {
+        if (userService.hasFacilityStorekeeperPolicy(session.user, session?.warehouse?.id)) {
+            throw new UnsupportedOperationException("${warehouse.message(code: 'errors.noPermissions.label')}")
+        }
         Location currentLocation = Location.get(session.warehouse.id)
         User user = User.get(session.user.id)
         if (!currentLocation.supports(ActivityCode.PLACE_ORDER)) {
@@ -65,6 +69,9 @@ class PurchaseOrderController {
             return
         }
         Order order = params.order?.id ? Order.get(params.order.id) : new Order()
+        if (userService.hasFacilityStorekeeperPolicy(session.user, session?.warehouse?.id) && !order?.id) {
+            throw new UnsupportedOperationException("${warehouse.message(code: 'errors.noPermissions.label')}")
+        }
 
         if (order.orderItems && order.origin.id != params.origin.id) {
             order.errors.reject("purchaseOrder.supplierError.label", "Cannot change the supplier for a PO with item lines.")

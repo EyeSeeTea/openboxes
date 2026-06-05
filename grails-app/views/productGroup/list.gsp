@@ -24,10 +24,12 @@
                     <img src="${resource(dir:'images/icons/silk',file:'application_view_list.png')}"/>&nbsp;
                     <warehouse:message code="default.list.label" args="[warehouse.message(code:'productGroups.label')]"/>
                 </g:link>
-                <g:link class="button" action="create">
-                    <img src="${resource(dir:'images/icons/silk',file:'add.png')}"/>&nbsp;
-                    <warehouse:message code="default.add.label" args="[warehouse.message(code:'productGroup.label')]"/>
-                </g:link>
+                <g:canManageProducts>
+                    <g:link class="button" action="create">
+                        <img src="${resource(dir:'images/icons/silk',file:'add.png')}"/>&nbsp;
+                        <warehouse:message code="default.add.label" args="[warehouse.message(code:'productGroup.label')]"/>
+                    </g:link>
+                </g:canManageProducts>
             </div>
 
             <div class="yui-gf">

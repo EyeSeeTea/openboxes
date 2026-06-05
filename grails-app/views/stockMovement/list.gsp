@@ -83,16 +83,28 @@
                     <warehouse:message code="default.open.label" args="[warehouse.message(code: 'requests.label')]"/>
                 </g:link>
             </g:if>
-            <g:link controller="stockMovement" action="create" class="button" params="[direction:params.direction]">
-                <img src="${resource(dir: 'images/icons/silk', file: 'add.png')}" />&nbsp;
-                <warehouse:message code="default.create.label" args="[warehouse.message(code: 'stockMovement.label')]" />
-            </g:link>
-            <g:if test="${params.direction as StockMovementDirection == StockMovementDirection.INBOUND}">
-                <g:link controller="stockMovement" action="createCombinedShipments" class="button" params="[direction:'INBOUND']">
-                    <img src="${resource(dir: 'images/icons/silk', file: 'add.png')}" />&nbsp;
-                    <warehouse:message code="default.create.label" args="[warehouse.message(code: 'shipmentFromPO.label')]"/>
-                </g:link>
-            </g:if>
+	            <g:if test="${params.direction as StockMovementDirection == StockMovementDirection.INBOUND}">
+	                <g:canCreateInboundMovement>
+	                    <g:link controller="stockMovement" action="create" class="button" params="[direction:params.direction]">
+	                        <img src="${resource(dir: 'images/icons/silk', file: 'add.png')}" />&nbsp;
+	                        <warehouse:message code="default.create.label" args="[warehouse.message(code: 'stockMovement.label')]" />
+	                    </g:link>
+	                </g:canCreateInboundMovement>
+	            </g:if>
+	            <g:else>
+	                <g:link controller="stockMovement" action="create" class="button" params="[direction:params.direction]">
+	                    <img src="${resource(dir: 'images/icons/silk', file: 'add.png')}" />&nbsp;
+	                    <warehouse:message code="default.create.label" args="[warehouse.message(code: 'stockMovement.label')]" />
+	                </g:link>
+	            </g:else>
+	            <g:if test="${params.direction as StockMovementDirection == StockMovementDirection.INBOUND}">
+	                <g:canCreateInboundFromPurchaseOrder>
+	                    <g:link controller="stockMovement" action="createCombinedShipments" class="button" params="[direction:'INBOUND']">
+	                        <img src="${resource(dir: 'images/icons/silk', file: 'add.png')}" />&nbsp;
+	                        <warehouse:message code="default.create.label" args="[warehouse.message(code: 'shipmentFromPO.label')]"/>
+	                    </g:link>
+	                </g:canCreateInboundFromPurchaseOrder>
+	            </g:if>
         </div>
 
 
