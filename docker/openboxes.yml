@@ -36,3 +36,11 @@ openboxes:
             enabled: true
             daysUntilExpiry: 90
             cronExpression: 0 0 0 * * ?
+
+        # Gates our InventorySnapshotEtlService — restores Phase 2 of OBPIH-3280
+        # so stock alerts actually have data (openboxes/openboxes#4742).
+        # Already defaults to true in upstream application.yml; set explicitly
+        # here so the fix survives if upstream eventually removes the orphan key
+        # during housekeeping.
+        refreshInventorySnapshotAfterTransactionJob:
+            enabled: true
