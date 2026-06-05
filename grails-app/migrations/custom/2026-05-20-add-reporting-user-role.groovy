@@ -1,0 +1,15 @@
+databaseChangeLog = {
+    changeSet(author: "codex", id: "202605201400-0") {
+        preConditions(onFail: "MARK_RAN") {
+            sqlCheck(expectedResult: "0", "select count(*) from role where role_type = 'ROLE_REPORTING_USER'")
+        }
+
+        insert(tableName: "role") {
+            column(name: "id", value: "ROLE_REPORTING_USER")
+            column(name: "version", valueNumeric: "0")
+            column(name: "description", value: "Role for reporting users with dashboard/reporting and read-only access to inventory, inbound, outbound, products, and stocklists")
+            column(name: "role_type", value: "ROLE_REPORTING_USER")
+            column(name: "name", value: "Reporting User")
+        }
+    }
+}

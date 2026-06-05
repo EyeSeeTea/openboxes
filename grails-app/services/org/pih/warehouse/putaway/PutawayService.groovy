@@ -37,6 +37,7 @@ class PutawayService {
     LocationService locationService
     InventoryService inventoryService
     def productAvailabilityService
+    def customPutawayDocumentService
     GrailsApplication grailsApplication
 
     def getPutawayCandidates(Location location) {
@@ -136,6 +137,7 @@ class PutawayService {
 
 
     Order completePutaway(Putaway putaway) {
+        customPutawayDocumentService.validateForCompletion(putaway)
         validatePutaway(putaway)
 
         // Save the putaway as a transfer order

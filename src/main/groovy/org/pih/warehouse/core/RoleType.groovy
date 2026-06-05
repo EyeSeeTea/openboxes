@@ -63,6 +63,12 @@ enum RoleType {
     ROLE_RECEIVER('Receiver', 50),
     ROLE_SHIPMENT_CLERK('Shipment Clerk', 50),
     ROLE_STOCKER('Stocker', 50),
+    // Custom policy roles: below Assistant and above Authenticated.
+    // They do not automatically inherit Assistant-level access; policy service grants explicit capabilities.
+    ROLE_FACILITY_STOREKEEPER('Facility Storekeeper', 4),
+    ROLE_REGIONAL_WAREHOUSE('Regional Warehouse User', 4),
+    ROLE_RPC_SUPERUSER('RPC Superuser', 4),
+    ROLE_REPORTING_USER('Reporting User', 4),
     ROLE_WORKER('Worker', 50),
 
     // Pharmacy roles
@@ -114,6 +120,10 @@ enum RoleType {
         [
                 ROLE_AUTHENTICATED,
                 ROLE_BROWSER,
+                ROLE_FACILITY_STOREKEEPER,
+                ROLE_REGIONAL_WAREHOUSE,
+                ROLE_RPC_SUPERUSER,
+                ROLE_REPORTING_USER,
                 ROLE_ASSISTANT,
                 ROLE_MANAGER,
                 ROLE_ADMIN,
@@ -161,6 +171,10 @@ enum RoleType {
         [
                 ROLE_AUTHENTICATED,
                 ROLE_BROWSER,
+                ROLE_FACILITY_STOREKEEPER,
+                ROLE_REGIONAL_WAREHOUSE,
+                ROLE_RPC_SUPERUSER,
+                ROLE_REPORTING_USER,
                 ROLE_ASSISTANT,
                 ROLE_MANAGER,
                 ROLE_ADMIN,
@@ -188,6 +202,10 @@ enum RoleType {
     static listRoleTypesForLocationChooser() {
         return [
                 ROLE_ASSISTANT,
+                ROLE_FACILITY_STOREKEEPER,
+                ROLE_REGIONAL_WAREHOUSE,
+                ROLE_RPC_SUPERUSER,
+                ROLE_REPORTING_USER,
                 ROLE_MANAGER,
                 ROLE_ADMIN,
                 ROLE_SUPERUSER,

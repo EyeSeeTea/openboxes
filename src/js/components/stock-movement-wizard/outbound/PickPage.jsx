@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 
+import EditPickModal from 'custom/outboundExpiryRestrictions/components/ExpiryAwareEditPickModal';
 import arrayMutators from 'final-form-arrays';
 import update from 'immutability-helper';
 import _ from 'lodash';
@@ -22,7 +23,6 @@ import ButtonField from 'components/form-elements/ButtonField';
 import FilterInput from 'components/form-elements/FilterInput';
 import LabelField from 'components/form-elements/LabelField';
 import TableRowWithSubfields from 'components/form-elements/TableRowWithSubfields';
-import EditPickModal from 'components/stock-movement-wizard/modals/EditPickModal';
 import { STOCK_MOVEMENT_URL } from 'consts/applicationUrls';
 import DateFormat from 'consts/dateFormat';
 import { OutboundWorkflowState } from 'consts/StockMovementState';

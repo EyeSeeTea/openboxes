@@ -88,12 +88,14 @@
 				<warehouse:message code="inventory.inventoryExpired.label" />
 			</g:link>
 		</div>
+		<g:if test="${grailsApplication.config.openboxes.custom.adjustments.damaged.enabled != false}">
 		<div class="action-menu-item">
 			<g:link controller="inventory" action="createDamaged" params="['product.id':productInstance?.id]">
 				<img src="${resource(dir:'images/icons/silk',file:'package_delete.png')}"/>&nbsp;
 				<warehouse:message code="inventory.inventoryDamaged.label" />
 			</g:link>
 		</div>
+		</g:if>
 		<div class="action-menu-item">
 			<hr />
 		</div>

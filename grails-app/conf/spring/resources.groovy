@@ -1,5 +1,6 @@
 package spring
 
+import org.pih.warehouse.custom.outboundExpiryRestrictions.service.StockMovementServiceWithExpiryFilter
 import org.pih.warehouse.product.ProductValidator
 import org.springframework.boot.web.servlet.FilterRegistrationBean
 import org.springframework.core.Ordered
@@ -19,4 +20,10 @@ beans = {
         order = Ordered.HIGHEST_PRECEDENCE + 1
     }
     productValidator(ProductValidator)
+
+    // outboundExpiryRestrictions: replace stockMovementService with a subclass that
+    // filters expired AvailableItems from autopick suggestions.
+    stockMovementService(StockMovementServiceWithExpiryFilter) { bean ->
+        bean.autowire = 'byName'
+    }
 }

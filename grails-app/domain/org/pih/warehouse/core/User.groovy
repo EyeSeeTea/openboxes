@@ -96,16 +96,18 @@ class User extends Person {
     }
 
     boolean hasPrimaryRole(Location currentLocation) {
-        def roles = getEffectiveRoles(currentLocation)
-        return roles.roleType.find { RoleType.listPrimaryRoleTypes().contains(it) }
+        def roleNames = getEffectiveRoles(currentLocation)*.roleType*.name().findAll { it } as Set<String>
+        def primaryRoleNames = RoleType.listPrimaryRoleTypes()*.name() as Set<String>
+        return roleNames.any { primaryRoleNames.contains(it) }
     }
 
     /**
      * @return does user have exact roles, either specified as global or location based
      */
     boolean hasRoles(Location location, List<RoleType> roleTypes) {
-        List userRoles = getEffectiveRoles(location)?.collect { it.roleType }
-        return roleTypes?.every { userRoles.contains(it) }
+        Set<String> userRoleNames = (getEffectiveRoles(location)?.collect { it.roleType?.name() }?.findAll { it } ?: []) as Set<String>
+        Set<String> requiredRoleNames = (roleTypes?.collect { it?.name() }?.findAll { it } ?: []) as Set<String>
+        return requiredRoleNames.every { userRoleNames.contains(it) }
     }
 
     /**

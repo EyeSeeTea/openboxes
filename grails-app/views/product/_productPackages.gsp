@@ -60,15 +60,17 @@
                     </g:hasRoleFinance>
                 </td>
                 <td class="right">
-                    <a href="javascript:void(0);" dialog-id="editProductPackage-${pkg?.id }" class="open-dialog button">
-                        <img src="${resource(dir:'images/icons/silk', file:'pencil.png')}" />
-                        <warehouse:message code="default.button.edit.label" />
-                    </a>
-                    <g:link controller="product" action="removePackage" id="${pkg.id }"
-                            params="['product.id':productInstance.id]" class="button">
-                        <img src="${resource(dir:'images/icons/silk', file:'delete.png')}" />
-                        <warehouse:message code="default.button.delete.label" />
-                    </g:link>
+                    <g:canManageProducts>
+                        <a href="javascript:void(0);" dialog-id="editProductPackage-${pkg?.id }" class="open-dialog button">
+                            <img src="${resource(dir:'images/icons/silk', file:'pencil.png')}" />
+                            <warehouse:message code="default.button.edit.label" />
+                        </a>
+                        <g:link controller="product" action="removePackage" id="${pkg.id }"
+                                params="['product.id':productInstance.id]" class="button">
+                            <img src="${resource(dir:'images/icons/silk', file:'delete.png')}" />
+                            <warehouse:message code="default.button.delete.label" />
+                        </g:link>
+                    </g:canManageProducts>
                 </td>
 
             </tr>
@@ -87,21 +89,25 @@
             <tr>
                 <td colspan="7">
                     <div class="right">
-                        <a href="javascript:void(0);" class="open-dialog create button" dialog-id="uom-dialog">
-                            <img src="${resource(dir:'images/icons/silk', file:'add.png')}" />&nbsp;
-                            <warehouse:message code="default.add.label" args="[g.message(code:'unitOfMeasure.label')]"/>
-                        </a>
-                        <a href="javascript:void(0);" class="open-dialog create button" dialog-id="uom-class-dialog">
-                            <img src="${resource(dir:'images/icons/silk', file:'add.png')}" />
-                            <warehouse:message code="default.add.label" args="[g.message(code:'unitOfMeasureClass.label')]"/>
-                        </a>
+                        <g:canManageProducts>
+                            <a href="javascript:void(0);" class="open-dialog create button" dialog-id="uom-dialog">
+                                <img src="${resource(dir:'images/icons/silk', file:'add.png')}" />&nbsp;
+                                <warehouse:message code="default.add.label" args="[g.message(code:'unitOfMeasure.label')]"/>
+                            </a>
+                            <a href="javascript:void(0);" class="open-dialog create button" dialog-id="uom-class-dialog">
+                                <img src="${resource(dir:'images/icons/silk', file:'add.png')}" />
+                                <warehouse:message code="default.add.label" args="[g.message(code:'unitOfMeasureClass.label')]"/>
+                            </a>
+                        </g:canManageProducts>
                     </div>
                     <div class="left">
-                        <a href="javascript:void(0);" class="open-dialog create button"
-                           dialog-id="product-package-dialog">
-                            <img src="${resource(dir:'images/icons/silk', file:'add.png')}" />&nbsp;
-                            <warehouse:message code="default.create.label" args="[g.message(code:'productPackage.label')]"/>
-                        </a>
+                        <g:canManageProducts>
+                            <a href="javascript:void(0);" class="open-dialog create button"
+                               dialog-id="product-package-dialog">
+                                <img src="${resource(dir:'images/icons/silk', file:'add.png')}" />&nbsp;
+                                <warehouse:message code="default.create.label" args="[g.message(code:'productPackage.label')]"/>
+                            </a>
+                        </g:canManageProducts>
                     </div>
                 </td>
             </tr>

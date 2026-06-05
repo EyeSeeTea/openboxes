@@ -195,6 +195,17 @@ openboxes:
     #             secretKey: CHANGE_ME
 
     # -------------------------------------------------------------------------
+    # Custom: damaged stock adjustments
+    # Default (key absent): user-initiated damaged adjustments are enabled.
+    # Set to false to disable the Adjust Stock / Create Damaged Transaction paths
+    # and require the transfer-to-Damaged-bin workflow instead.
+    # -------------------------------------------------------------------------
+    # custom:
+    #     adjustments:
+    #         damaged:
+    #             enabled: false
+
+    # -------------------------------------------------------------------------
     # LDAP (optional — enable only for clients using corporate auth)
     # -------------------------------------------------------------------------
     # ldap:

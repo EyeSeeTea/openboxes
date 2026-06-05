@@ -27,10 +27,12 @@
         <img src="${resource(dir: 'images/icons/silk', file: 'application_side_list.png')}" />&nbsp;
         <warehouse:message code="default.list.label" args="[g.message(code: 'tags.label')]" />
     </g:link>
-    <g:link class="button" action="create" controller="tag">
-        <img src="${resource(dir: 'images/icons/silk', file: 'add.png')}" />&nbsp;
-        <warehouse:message code="default.create.label" args="[g.message(code: 'tag.label')]" />
-    </g:link>
+    <g:canManageProducts>
+        <g:link class="button" action="create" controller="tag">
+            <img src="${resource(dir: 'images/icons/silk', file: 'add.png')}" />&nbsp;
+            <warehouse:message code="default.create.label" args="[g.message(code: 'tag.label')]" />
+        </g:link>
+    </g:canManageProducts>
     <g:if test="${tagInstance?.id && tagInstance?.products?.size() > 0}">
         <div class="right">
             <g:link class="button right" controller="productApi" action="list" params="[tagId: tagInstance?.id, format: 'csv', fileName: tagInstance?.tag]">

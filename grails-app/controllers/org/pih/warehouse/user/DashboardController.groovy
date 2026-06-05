@@ -113,7 +113,9 @@ class DashboardController {
             redirect(controller: "mobile")
             return
         }
-        if (userService.hasHighestRole(session?.user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED)) {
+        boolean hasCustomPolicy = userService.hasAnyCustomPolicy(session?.user, session?.warehouse?.id)
+        if (userService.hasHighestRole(session?.user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED) &&
+                !hasCustomPolicy) {
             redirect(controller: "stockMovement", action: "list", params: [direction: 'INBOUND'] )
             return
         }
@@ -170,7 +172,9 @@ class DashboardController {
         Map menuConfig = grailsApplication.config.openboxes.megamenu;
         User user = User.get(session?.user?.id)
 
-        if (userService.hasHighestRole(user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED)) {
+        boolean hasCustomPolicy = userService.hasAnyCustomPolicy(user, session?.warehouse?.id)
+        if (userService.hasHighestRole(user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED) &&
+                !hasCustomPolicy) {
             menuConfig = grailsApplication.config.openboxes.requestorMegamenu;
         }
         List translatedMenu = megamenuService.buildAndTranslateMenu(menuConfig, user, location)
@@ -227,7 +231,9 @@ class DashboardController {
                 session.user = user
             }
 
-            if (userService.hasHighestRole(session?.user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED)) {
+            boolean hasCustomPolicy = userService.hasAnyCustomPolicy(session?.user, session?.warehouse?.id)
+            if (userService.hasHighestRole(session?.user, session?.warehouse?.id, RoleType.ROLE_AUTHENTICATED) &&
+                    !hasCustomPolicy) {
                 redirect(controller: 'stockMovement', action: 'list' , params: [direction: 'INBOUND'])
                 return
             }

@@ -47,6 +47,7 @@ import org.pih.warehouse.core.StockMovementItemParamsCommand
 import org.pih.warehouse.core.StockMovementItemsParamsCommand
 import org.pih.warehouse.core.User
 import org.pih.warehouse.core.UserService
+import org.pih.warehouse.custom.outboundExpiryRestrictions.support.ExpiryRule
 import org.pih.warehouse.data.DataService
 import org.pih.warehouse.forecasting.ForecastingService
 import org.pih.warehouse.importer.CSVUtils
@@ -1031,6 +1032,7 @@ class StockMovementService {
                 .getAllAvailableBinLocations(requisition.origin, productsIds)
                 .groupBy { it?.inventoryItem?.product?.id }
 
+        Date today = new Date().clearTime()
         def editPageItems = data.collect {
             def substitutionItems = substitutionItemsMap[it.id]
 
@@ -1049,6 +1051,7 @@ class StockMovementService {
 
             def quantityAvailable = availableItems?.findAll { it.quantityAvailable > 0 }?.sum { it.quantityAvailable }
             def quantityOnHand = availableItems?.sum { it.quantityOnHand }
+            def quantityPickable = ExpiryRule.sumPickableQuantity(availableItems, today)
             def quantityDemandFulfilling = forecastingService.getDemand(requisition.origin, null, productsMap[it.product_id])
 
             [
@@ -1063,6 +1066,7 @@ class StockMovementService {
                 quantityDemandFulfilling    : quantityDemandFulfilling ? quantityDemandFulfilling.monthlyDemand : 0,
                 quantityOnHand              : (quantityOnHand && quantityOnHand > 0 ? quantityOnHand : 0),
                 quantityAvailable           : (quantityAvailable && quantityAvailable > 0 ? quantityAvailable : 0),
+                quantityPickable            : quantityPickable,
                 quantityCounted             : it.quantity_counted,
                 substitutionStatus          : it.substitution_status,
                 sortOrder                   : it.sort_order,

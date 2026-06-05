@@ -13,6 +13,7 @@ import org.pih.warehouse.core.RoleType
  * */
 class RoleInterceptor {
     def userService
+    def customRolePolicyService
 
     // this interceptor depends on SecurityInterceptor
     int order = LOWEST_PRECEDENCE
@@ -105,6 +106,24 @@ class RoleInterceptor {
     }
 
     boolean before() {
+        if (session?.warehouse?.id) {
+            Map customRoleAccess = customRolePolicyService.evaluateRouteAccess(
+                    session?.user,
+                    session?.warehouse?.id,
+                    controllerName,
+                    actionName,
+                    params,
+                    request
+            )
+            if (customRoleAccess.denied) {
+                log.info("User ${session?.user?.username} does not have access to ${controllerName}/${actionName} in location ${session?.warehouse?.name}")
+                redirect(controller: "errors", action: "handleForbidden")
+                return false
+            }
+            if (customRoleAccess.allowed) {
+                return true
+            }
+        }
 
         def rules = grailsApplication.config.openboxes.security.rbac.rules
         def rule = rules.find { it.controller == controllerName && it.actions.contains(actionName) ||
@@ -148,7 +167,8 @@ class RoleInterceptor {
         // Authorized users
         def isNotAuthenticated = !userService.isUserInRole(session.user, RoleType.ROLE_AUTHENTICATED)
         def isNotBrowser = !userService.canUserBrowse(session.user) && !needRequestorOrManager(controllerName, actionName)
-        def isNotManager = needManager(controllerName, actionName) && (needRequestorOrManager(controllerName, actionName) ? !userService.isUserManager(session.user) && !userService.isUserRequestor(session.user) : !userService.isUserManager(session.user))
+        def isNotManager = needManager(controllerName, actionName) &&
+            (needRequestorOrManager(controllerName, actionName) ? !userService.isUserManager(session.user) && !userService.isUserRequestor(session.user) : !userService.isUserManager(session.user))
         def isNotAdmin = needAdmin(controllerName, actionName) && !userService.isUserAdmin(session.user)
         def isNotSuperuser = needSuperuser(controllerName, actionName) && !userService.isSuperuser(session.user)
         def hasNoRoleInvoice = needInvoice(controllerName, actionName) && !userService.hasRoleInvoice(session.user)
@@ -202,4 +222,5 @@ class RoleInterceptor {
     static Boolean needAuthenticatedActions(controllerName, actionName) {
         authenticatedActions[controllerName]?.contains(actionName)
     }
+
 }

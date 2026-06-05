@@ -16,7 +16,7 @@ import org.pih.warehouse.core.User
 
 class MegamenuService {
 
-    def userService
+    def customRolePolicyService
     GrailsApplication grailsApplication
     def grailsLinkGenerator
 
@@ -38,32 +38,32 @@ class MegamenuService {
             translatedSection = [
                     id: key,
                     label: label,
-                    subsections: buildAndTranslateSubsections(section.subsections, user, location)
+                    subsections: buildAndTranslateSubsections(section.subsections, user, location, key)
             ]
             return translatedSection
         } else if (section.menuItems) {
             translatedSection = [
                     id: key,
                     label: label,
-                    menuItems: buildAndTranslateMenuItems(section.menuItems, user, location)
+                    menuItems: buildAndTranslateMenuItems(section.menuItems, user, location, key)
             ]
             return translatedSection
         }
         return [:]
     }
 
-    List buildAndTranslateSubsections(List subsections, User user, Location location) {
+    List buildAndTranslateSubsections(List subsections, User user, Location location, String sectionId = null) {
         def builtSubsections = []
         subsections.each {
             def minRole = it.minimumRequiredRole
             if (it.enabled == false) {
                 return
             }
-            if (minRole && !userService.isUserInRole(user, minRole)) {
+            if (minRole && !customRolePolicyService.userHasMinimumMenuRole(user, location, [minRole], sectionId)) {
                 return
             }
             def roles = it.supplementalRoles
-            if (roles && !userService.hasAnyRoles(user, roles)) {
+            if (roles && !customRolePolicyService.userHasSupplementalMenuRole(user, location, roles, sectionId)) {
                 return
             }
             ActivityCode[] activitiesAny = it.requiredActivitiesAny ?: []
@@ -78,24 +78,24 @@ class MegamenuService {
             def label = getMessageTagLib().message(code: it.label, default: it.defaultLabel)
             builtSubsections << [
                 label: label,
-                menuItems: buildAndTranslateMenuItems(it.menuItems, user, location)
+                menuItems: buildAndTranslateMenuItems(it.menuItems, user, location, sectionId)
             ]
         }
         return builtSubsections
     }
 
-    List buildAndTranslateMenuItems(List menuItems, User user, Location location) {
+    List buildAndTranslateMenuItems(List menuItems, User user, Location location, String sectionId = null) {
         def builtMenuItems = []
         menuItems.each {
             if (it.enabled == false) {
                 return
             }
             def minRole = it.minimumRequiredRole
-            if (minRole && !userService.isUserInRole(user, minRole)) {
+            if (minRole && !customRolePolicyService.userHasMinimumMenuRole(user, location, [minRole], sectionId)) {
                 return
             }
             def roles = it.supplementalRoles
-            if (roles && !userService.hasAnyRoles(user, roles)) {
+            if (roles && !customRolePolicyService.userHasSupplementalMenuRole(user, location, roles, sectionId)) {
                 return
             }
             ActivityCode[] activitiesAny = it.requiredActivitiesAny ?: []
@@ -116,7 +116,7 @@ class MegamenuService {
             } else if (it.subsections) {
                 builtMenuItems << [
                     label: label,
-                    subsections: buildAndTranslateSubsections(it.subsections, user, location)
+                    subsections: buildAndTranslateSubsections(it.subsections, user, location, sectionId)
                 ]
             }
         }
@@ -127,11 +127,11 @@ class MegamenuService {
         def parsedMenuConfig = []
         menuConfig.each { key, value ->
             def minRole = value.minimumRequiredRole
-            if (minRole && !userService.isUserInRole(user, minRole)) {
+            if (minRole && !customRolePolicyService.userHasMinimumMenuRole(user, location, [minRole], key)) {
                 return
             }
             def roles = value.supplementalRoles
-            if (roles && !userService.hasAnyRoles(user, roles)) {
+            if (roles && !customRolePolicyService.userHasSupplementalMenuRole(user, location, roles, key)) {
                 return
             }
             ActivityCode[] activitiesAny = value.requiredActivitiesAny ?: []
@@ -150,6 +150,6 @@ class MegamenuService {
                 }
             }
         }
-        return parsedMenuConfig
+        return customRolePolicyService.applyMenuPolicy(parsedMenuConfig, user, location?.id)
     }
 }

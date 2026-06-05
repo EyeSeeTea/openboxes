@@ -13,10 +13,12 @@
                 <img src="${resource(dir: 'images/icons/silk', file: 'application_view_list.png')}" />&nbsp;
                 <warehouse:message code="default.list.label" args="[entityName]"/>
             </g:link>
-            <g:link class="button" action="create">
-                <img src="${resource(dir: 'images/icons/silk', file: 'add.png')}" />&nbsp;
-                <warehouse:message code="default.add.label" args="[entityName]"/>
-            </g:link>
+            <g:canManageProducts>
+                <g:link class="button" action="create">
+                    <img src="${resource(dir: 'images/icons/silk', file: 'add.png')}" />&nbsp;
+                    <warehouse:message code="default.add.label" args="[entityName]"/>
+                </g:link>
+            </g:canManageProducts>
         </div>
         <div id="list-productComponent" class="box content scaffold-create" role="main">
             <h2><warehouse:message code="default.list.label" args="[entityName]" /></h2>

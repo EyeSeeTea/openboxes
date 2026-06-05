@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 
+import { getCustomRolePermissions } from 'custom/roles/customRolePermissions';
 import PropTypes from 'prop-types';
 import {
   RiDeleteBinLine,
@@ -32,6 +33,7 @@ const StockListTable = ({
   filterParams,
   translate,
   highestRole,
+  customRolePermissions,
 }) => {
   const {
     tableData,
@@ -47,7 +49,13 @@ const StockListTable = ({
     exportStockListItems,
   } = useStockListTableData(filterParams);
 
-  const customActionFilter = ({ isPublished }, row) => {
+  const permissions = getCustomRolePermissions({ customRolePermissions });
+
+  const customActionFilter = ({ isPublished, requiresStocklistWrite }, row) => {
+    const canWriteStocklists = permissions.canManageStocklists
+      || highestRole === 'Admin'
+      || highestRole === 'Superuser';
+    if (requiresStocklistWrite && !canWriteStocklists) return false;
     // skip actions that don't have isPublished property
     if (isPublished === undefined) return true;
     // show actions that have same boolean value in row and in action
@@ -67,35 +75,35 @@ const StockListTable = ({
       label: 'react.stocklists.editStock.label',
       leftIcon: <RiPencilLine />,
       href: REQUISITION_TEMPLATE_URL.editHeader,
-      minimumRequiredRole: 'Admin',
+      requiresStocklistWrite: true,
     },
     {
       defaultLabel: 'Edit stock list items',
       label: 'react.stocklists.items.editStock.label',
       leftIcon: <RiListUnordered />,
       href: REQUISITION_TEMPLATE_URL.edit,
-      minimumRequiredRole: 'Admin',
+      requiresStocklistWrite: true,
     },
     {
       defaultLabel: 'Import stock list items',
       label: 'react.stocklists.items.import.label',
       leftIcon: <RiUploadLine />,
       href: REQUISITION_TEMPLATE_URL.batch,
-      minimumRequiredRole: 'Admin',
+      requiresStocklistWrite: true,
     },
     {
       defaultLabel: 'Export stock list items',
       label: 'react.stocklists.items.export.label',
       leftIcon: <RiDownloadLine />,
       onClick: exportStockListItems,
-      minimumRequiredRole: 'Admin',
+      requiresStocklistWrite: true,
     },
     {
       defaultLabel: 'Clone stock list',
       label: 'react.stocklists.clone.label',
       leftIcon: <RiFileCopyLine />,
       onClick: cloneStocklists,
-      minimumRequiredRole: 'Admin',
+      requiresStocklistWrite: true,
     },
     {
       defaultLabel: 'Publish stock list',
@@ -103,7 +111,7 @@ const StockListTable = ({
       leftIcon: <RiFile3Line />,
       isPublished: false,
       onClick: publishStocklists,
-      minimumRequiredRole: 'Admin',
+      requiresStocklistWrite: true,
     },
     {
       defaultLabel: 'Unpublish stock list',
@@ -111,7 +119,7 @@ const StockListTable = ({
       leftIcon: <RiFileForbidLine />,
       isPublished: true,
       onClick: unpublishStocklists,
-      minimumRequiredRole: 'Admin',
+      requiresStocklistWrite: true,
     },
     {
       defaultLabel: 'Clear stock list items',
@@ -119,7 +127,7 @@ const StockListTable = ({
       leftIcon: <RiEraserLine />,
       variant: 'danger',
       onClick: onClickClearStocklists,
-      minimumRequiredRole: 'Admin',
+      requiresStocklistWrite: true,
     },
     {
       defaultLabel: 'Delete stock list',
@@ -127,9 +135,16 @@ const StockListTable = ({
       leftIcon: <RiDeleteBinLine />,
       variant: 'danger',
       onClick: onClickDeleteStocklists,
-      minimumRequiredRole: 'Admin',
+      requiresStocklistWrite: true,
     },
-  ], []);
+  ], [
+    cloneStocklists,
+    exportStockListItems,
+    onClickClearStocklists,
+    onClickDeleteStocklists,
+    publishStocklists,
+    unpublishStocklists,
+  ]);
 
   // Columns for react-table
   const columns = useMemo(() => [
@@ -218,7 +233,7 @@ const StockListTable = ({
       accessor: 'lastUpdated',
       width: 150,
     },
-  ], [highestRole]);
+  ], [highestRole, permissions.canManageStocklists]);
 
   return (
     <div className="list-page-list-section">
@@ -258,6 +273,7 @@ const StockListTable = ({
 const mapStateToProps = (state) => ({
   translate: translateWithDefaultMessage(getTranslate(state.localize)),
   highestRole: state.session.highestRole,
+  customRolePermissions: state.session.customRolePermissions,
 });
 
 export default connect(mapStateToProps)(StockListTable);
@@ -266,4 +282,12 @@ StockListTable.propTypes = {
   filterParams: PropTypes.shape({}).isRequired,
   translate: PropTypes.func.isRequired,
   highestRole: PropTypes.string.isRequired,
+  customRolePermissions: PropTypes.shape({
+    activeCustomRolePolicy: PropTypes.string,
+    canManageStocklists: PropTypes.bool,
+  }),
+};
+
+StockListTable.defaultProps = {
+  customRolePermissions: undefined,
 };

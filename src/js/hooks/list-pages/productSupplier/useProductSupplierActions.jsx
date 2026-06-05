@@ -1,6 +1,8 @@
 import React, { useCallback } from 'react';
 
+import { getCustomRolePermissions } from 'custom/roles/customRolePermissions';
 import { RiDeleteBinLine, RiPencilLine } from 'react-icons/ri';
+import { useSelector } from 'react-redux';
 
 import productSupplierApi from 'api/services/ProductSupplierApi';
 import { PRODUCT_SUPPLIER_EXPORT } from 'api/urls';
@@ -16,10 +18,13 @@ import translate from 'utils/Translate';
 
 const useProductSupplierActions = ({ fireFetchData, filterParams }) => {
   const spinner = useSpinner();
-  const canManageProducts = useUserHasPermissions({
+  const customRolePermissions = useSelector((state) => state.session.customRolePermissions);
+  const hasProductManagerPermissions = useUserHasPermissions({
     minRequiredRole: RoleType.ROLE_ADMIN,
     supplementalRoles: [RoleType.ROLE_PRODUCT_MANAGER],
   });
+  const permissions = getCustomRolePermissions({ customRolePermissions });
+  const canManageProducts = hasProductManagerPermissions || permissions.canManageProducts;
 
   const deleteProductSupplier = async (onClose, productSupplierId) => {
     try {

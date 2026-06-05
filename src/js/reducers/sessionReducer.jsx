@@ -1,3 +1,4 @@
+import { DEFAULT_CUSTOM_ROLE_PERMISSIONS } from 'custom/roles/customRolePermissions';
 import _ from 'lodash';
 
 import {
@@ -24,6 +25,7 @@ const initialState = {
   isUserAdmin: false,
   isUserApprover: false,
   isUserRequestApprover: false,
+  customRolePermissions: DEFAULT_CUSTOM_ROLE_PERMISSIONS,
   supportedActivities: [],
   menuConfig: [],
   menuSectionsUrlParts: {},
@@ -87,7 +89,7 @@ const initialState = {
   maxUploadFileSize: 2097152,
 };
 
-export default function (state = initialState, action) {
+export default function sessionReducer(state = initialState, action) {
   switch (action.type) {
     case FETCH_SESSION_INFO:
       return {
@@ -99,6 +101,7 @@ export default function (state = initialState, action) {
         isUserApprover: _.get(action, 'payload.data.data.isUserApprover', false),
         isUserRequestApprover: _.get(action, 'payload.data.data.isUserRequestApprover', false),
         isUserManager: _.get(action, 'payload.data.data.isUserManager', false),
+        customRolePermissions: _.get(action, 'payload.data.data.customRolePermissions', state.customRolePermissions),
         supportedActivities: _.get(action, 'payload.data.data.supportedActivities'),
         activeLanguage: _.get(action, 'payload.data.data.activeLanguage'),
         activeLanguageTag: _.get(action, 'payload.data.data.activeLanguageTag'),

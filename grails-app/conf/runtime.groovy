@@ -202,10 +202,10 @@ openboxes {
                     label: "",
                     defaultLabel: "Purchasing",
                     menuItems: [
-                        [label: "order.createPurchase.label", defaultLabel: "Create Purchase Order", href: "/purchaseOrder/create", requiredActivitiesAny: [ActivityCode.PLACE_ORDER]],
+                        [label: "order.createPurchase.label", defaultLabel: "Create Purchase Order", href: "/purchaseOrder/create", requiredActivitiesAny: [ActivityCode.PLACE_ORDER], minimumRequiredRole: RoleType.ROLE_ASSISTANT],
                         [label: "order.listPurchase.label", defaultLabel: "List Purchase Orders", href: "/purchaseOrder/list"],
                         [label: "location.listSuppliers.label", defaultLabel: "List Suppliers", href: "/supplier/list"],
-                        [label: "shipment.shipfromPO.label", defaultLabel: "Ship from Purchase Order", href: "/stockMovement/createCombinedShipments?direction=INBOUND"],
+                        [label: "shipment.shipfromPO.label", defaultLabel: "Ship from Purchase Order", href: "/stockMovement/createCombinedShipments?direction=INBOUND", minimumRequiredRole: RoleType.ROLE_ASSISTANT],
                         [label: "dashboard.supplierDashboard.label", defaultLabel: "Supplier Dashboard", href: "/dashboard/supplier"]
                     ]
                 ]
@@ -397,7 +397,7 @@ openboxes {
             defaultLabel = "Stock Lists"
             menuItems = [
                 [label: "requisitionTemplates.list.label", defaultLabel: "List stock lists", href: "/requisitionTemplate/list"],
-                [label: "requisitionTemplates.create.label", defaultLabel: "Create stock list", href: "/requisitionTemplate/create", minimumRequiredRole: RoleType.ROLE_ADMIN],
+                [label: "requisitionTemplates.create.label", defaultLabel: "Create stock list", href: "/requisitionTemplate/create", supplementalRoles: [RoleType.ROLE_SUPERUSER, RoleType.ROLE_ADMIN, RoleType.ROLE_REGIONAL_WAREHOUSE]],
             ]
         }
         configuration {

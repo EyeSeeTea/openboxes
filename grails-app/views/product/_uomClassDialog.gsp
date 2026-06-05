@@ -33,7 +33,9 @@
             <td></td>
             <td>
                 <div>
-                    <button type="submit" name="create" class="button icon approve" value="Create" id="create">${warehouse.message(code: 'default.button.create.label', default: 'Create')}</button>
+                    <g:canManageProducts>
+                        <button type="submit" name="create" class="button icon approve" value="Create" id="create">${warehouse.message(code: 'default.button.create.label', default: 'Create')}</button>
+                    </g:canManageProducts>
                     <a href="#" class="btn-close-dialog button icon remove" data-target="uom-class-dialog">${warehouse.message(code: 'default.button.cancel.label', default: 'Cancel')}</a>
                 </div>
             </td>

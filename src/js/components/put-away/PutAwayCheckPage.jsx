@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 
+import SupportingDocumentsPanel from 'custom/stockTransferDocuments/components/SupportingDocumentsPanel';
 import _ from 'lodash';
 import PropTypes from 'prop-types';
 import { confirmAlert } from 'react-confirm-alert';
@@ -73,11 +74,15 @@ class PutAwayCheckPage extends Component {
       pivotBy,
       expanded,
       location: this.props.location,
+      customCanComplete: false,
     };
 
     this.confirmEmptyBin = this.confirmEmptyBin.bind(this);
     this.confirmLowerQuantity = this.confirmLowerQuantity.bind(this);
     this.save = this.save.bind(this);
+    this.handleCanCompleteChange = (canComplete) => {
+      this.setState({ customCanComplete: canComplete });
+    };
   }
 
   componentWillReceiveProps(nextProps) {
@@ -425,6 +430,7 @@ class PutAwayCheckPage extends Component {
                     onClick={() => this.completePutAway()}
                     className="btn btn-outline-secondary btn-xs mr-3"
                     data-testid="complete-putaway-button"
+                    disabled={this.state.customCanComplete === false}
                   >
                     <Translate id="react.putAway.completePutAway.label" defaultMessage="Complete Putaway" />
                   </button>
@@ -453,6 +459,16 @@ class PutAwayCheckPage extends Component {
             )
             : null
         }
+        <SupportingDocumentsPanel
+          entityId={this.state.putAway.id || this.props.match?.params?.putAwayId}
+          apiBasePath="/api/custom/putaways"
+          requiredWarning={{
+            id: 'react.custom.putawayDocuments.required.warning',
+            defaultMessage: 'A document must be attached before this putaway can be completed',
+          }}
+          disabled={this.state.completed}
+          onCanCompleteChange={this.handleCanCompleteChange}
+        />
         <div className="submit-buttons">
           {
             this.state.completed
@@ -472,6 +488,7 @@ class PutAwayCheckPage extends Component {
                     onClick={() => this.completePutAway()}
                     className="btn btn-outline-primary btn-form float-right btn-xs"
                     data-testid="complete-putaway-button"
+                    disabled={this.state.customCanComplete === false}
                   >
                     <Translate id="react.putAway.completePutAway.label" defaultMessage="Complete Putaway" />
                   </button>

@@ -15,4 +15,8 @@
  */
 databaseChangeLog = {
     include file: 'custom/2026-05-22-create-custom-notification.groovy'
+    include file: 'custom/2026-05-15-add-facility-storekeeper-role.groovy'
+    include file: 'custom/2026-05-19-add-regional-warehouse-role.groovy'
+    include file: 'custom/2026-05-20-add-rpc-superuser-role.groovy'
+    include file: 'custom/2026-05-20-add-reporting-user-role.groovy'
 }
