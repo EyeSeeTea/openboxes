@@ -4,15 +4,15 @@ import React from 'react';
 import {
   fireEvent, render, screen, waitFor,
 } from '@testing-library/react';
-import SupportingDocumentsPanel from 'custom/stockTransferDocuments/components/SupportingDocumentsPanel';
+import SupportingDocumentsPanel from 'custom/supportingDocuments/components/SupportingDocumentsPanel';
 import {
   fetchDocuments,
   uploadDocument,
-} from 'custom/stockTransferDocuments/utils/api';
+} from 'custom/supportingDocuments/utils/api';
 
 import '@testing-library/jest-dom';
 
-jest.mock('custom/stockTransferDocuments/utils/api');
+jest.mock('custom/supportingDocuments/utils/api');
 
 jest.mock('utils/Translate', () => ({
   __esModule: true,
