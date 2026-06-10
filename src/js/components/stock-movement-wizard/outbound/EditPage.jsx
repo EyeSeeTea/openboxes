@@ -51,7 +51,8 @@ const FIELDS = {
       rowValues, subfield, showOnlyErroredItems, itemFilter,
     }) => {
       let className = rowValues.statusCode === 'SUBSTITUTED' ? 'crossed-out ' : '';
-      if ((rowValues.quantityPickable ?? rowValues.quantityAvailable) < rowValues.quantityRequested) {
+      const quantityAvailable = rowValues.quantityPickable ?? rowValues.quantityAvailable;
+      if (quantityAvailable < rowValues.quantityRequested) {
         className += 'font-weight-bold';
       }
       const filterOutItems = itemFilter

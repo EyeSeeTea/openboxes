@@ -2,12 +2,12 @@ import React from 'react';
 
 import { render, screen } from '@testing-library/react';
 
-import { ProductsListHeader } from 'components/products/ProductsListHeader';
+import { ProductsListHeaderComponent } from 'components/products/ProductsListHeader';
 
 describe('ProductsListHeader', () => {
   it('hides add and import actions for reporting user', () => {
     render(
-      <ProductsListHeader
+      <ProductsListHeaderComponent
         isUserAdmin={false}
         customRolePermissions={{
           activeCustomRolePolicy: 'ROLE_REPORTING_USER',
@@ -22,7 +22,7 @@ describe('ProductsListHeader', () => {
 
   it('hides add and import actions for regional warehouse user', () => {
     render(
-      <ProductsListHeader
+      <ProductsListHeaderComponent
         isUserAdmin={false}
         customRolePermissions={{
           activeCustomRolePolicy: 'ROLE_REGIONAL_WAREHOUSE',
@@ -37,7 +37,7 @@ describe('ProductsListHeader', () => {
 
   it('shows add and import actions for product write users', () => {
     render(
-      <ProductsListHeader
+      <ProductsListHeaderComponent
         isUserAdmin={false}
         customRolePermissions={{
           activeCustomRolePolicy: 'ROLE_RPC_SUPERUSER',

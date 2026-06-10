@@ -1,6 +1,4 @@
 /* eslint-env jest */
-import { renderToStaticMarkup } from 'react-dom/server';
-
 import {
   buildExpiredTooltip,
   EXPIRED_HINT_DEFAULT,
@@ -11,6 +9,7 @@ import {
   TOOLTIP_DEFAULT,
   TOOLTIP_KEY,
 } from 'custom/outboundExpiryRestrictions/utils/expiryHelpers';
+import { renderToStaticMarkup } from 'react-dom/server';
 
 import DateFormat from 'consts/dateFormat';
 

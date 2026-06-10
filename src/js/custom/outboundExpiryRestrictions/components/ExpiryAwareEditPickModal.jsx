@@ -148,7 +148,7 @@ const FIELDS = {
           const expired = isRowExpired(fieldValue);
           const noStock = fieldValue && !fieldValue.quantityAvailable && !fieldValue.quantityPicked;
           // Reason: screen readers ignore the native `title` on disabled inputs (JAWS/NVDA).
-          // `aria-label` is announced even when disabled, so the blocked-row reason reaches AT users.
+          // `aria-label` is announced when disabled, so the blocked-row reason reaches AT users.
           // Keep `title` too so sighted hover users still see the message via the browser tooltip.
           const expiredTooltip = expired
             ? buildExpiredTooltip(translate, formatLocalizedDate, fieldValue?.expirationDate)
