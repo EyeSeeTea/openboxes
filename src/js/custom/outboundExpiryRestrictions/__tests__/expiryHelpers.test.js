@@ -125,8 +125,9 @@ describe('renderAvailableCell', () => {
 
   it('formats expired counts with thousands separators', () => {
     const cell = renderAvailableCell(null)({ quantityAvailable: 1500, quantityPickable: 500 });
+    const expiredCount = (1500 - 500).toLocaleString();
     expect(renderCellHTML(cell))
-      .toBe('500<span class="text-danger ml-1">(1,000 expired)</span>');
+      .toBe(`500<span class="text-danger ml-1">(${expiredCount} expired)</span>`);
   });
 
   it('delegates to translate when supplied', () => {
