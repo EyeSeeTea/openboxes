@@ -68,26 +68,43 @@ configured via `iframe.frameAncestors` in `application.yml`. We also remove
 any upstream-set `X-Frame-Options` header to avoid the two contradicting
 each other.
 
-When the allow-list is empty (default), we emit `frame-ancestors 'self'` —
-equivalent protection to `X-Frame-Options: SAMEORIGIN` for the browser, but
-through a single header source the filter controls.
+**Gated to preserve upstream default (revised).** Earlier this decision emitted
+`frame-ancestors 'self'` on every response by default. To keep non-embedding
+deployments byte-for-byte identical to upstream (OB ships no framing header
+today), the filter now **no-ops entirely when `openboxes.custom.iframe.frameAncestors`
+is empty** and only emits the directive (and the X-Frame-Options suppression)
+when the allow-list is non-empty. Config lives in `openboxes.yml` external
+config under `openboxes.custom.iframe.frameAncestors`, not upstream
+`application.yml`.
 
-### D2: `SameSite=None; Secure` via `Set-Cookie`-rewriting filter
+### D2: `SameSite=None` via Rfc6265CookieProcessor on OB's embedded Tomcat (revised)
 
-Spike validation/tomcat-version.txt confirms the embedded Tomcat is 8.5.88.
-While `Rfc6265CookieProcessor.sameSiteCookies` is available on 8.5.88
-(backported in 8.5.47), the cookie path is a Servlet `Filter` because it
-requires no Tomcat XML config changes and can be toggled at runtime via the
-`iframe.frameAncestors` flag. The cookie path is therefore a Servlet `Filter`
-that rewrites the `Set-Cookie` header on outgoing responses when
-`iframe.frameAncestors` is non-empty.
+**Revised from the original `Set-Cookie`-rewriting filter.** Verifying against
+the actual code path showed a header-rewriting filter cannot reliably stamp the
+one cookie that matters: Tomcat serialises `JSESSIONID` through its internal
+`CookieProcessor` at response commit, not via `addHeader`/`setHeader`, so a
+filter never sees it. The filter would amend app-set cookies but silently miss
+the session cookie.
 
-Filter behavior:
-- Read all `Set-Cookie` headers on the response.
-- For the session cookie (and any cookie not already declaring `SameSite`),
-  append `; SameSite=None; Secure` if not already present.
-- Skip when `iframe.frameAncestors` is empty — preserves upstream behavior
-  for deployments not embedding OB.
+Instead, an `EmbeddedServletContainerCustomizer` (`IframeCookieCustomizer`,
+custom code) installs Tomcat's `Rfc6265CookieProcessor` with
+`sameSiteCookies=None` on **OB's own embedded Tomcat 8.5.88** when embedding is
+enabled. This is the only Tomcat 8.5 processor that can emit `SameSite`, it is
+already bundled (no Tomcat upgrade, no DHIS2 change, no XML), and it reliably
+covers `JSESSIONID`.
+
+- Scoped: no-op when `frameAncestors` is empty — OB keeps its default cookie
+  processor, so non-embedding deployments are unchanged.
+- `Secure` (required alongside `SameSite=None`) comes from D3 forwarded-proto:
+  once OB knows it is behind TLS, Tomcat stamps `JSESSIONID` Secure.
+- Footgun guard: the customizer logs a loud WARN that embedding requires TLS /
+  `server.use-forward-headers`, since `SameSite=None` without `Secure` is
+  dropped by browsers and would break login.
+- Trade-offs (accepted): switching to `Rfc6265CookieProcessor` applies stricter
+  RFC6265 cookie parsing for that deployment, and `SameSite=None` applies to all
+  OB cookies (cross-site embedding inherently requires this; OB's own CSRF
+  tokens remain the defence). WAR-on-external-Tomcat deployments must set the
+  equivalent in that Tomcat's `context.xml`.
 
 ### D3: Forwarded-proto via Spring Boot's existing setting
 
@@ -213,16 +230,20 @@ cookie carries the session forward.
 
 ## Upstream touch points
 
-These upstream files will be edited; merge conflicts on future upstream
-pulls should be expected here:
+The entire feature touches **one** upstream file (better than originally
+predicted — no `application.yml` edit, no X-Frame-Options neutralization):
 
-- `grails-app/conf/application.yml` — add `iframe.*` and
-  `server.use-forward-headers` keys, with defaults that preserve upstream
-  behavior.
-- **Conditional, pending spike task 1.7**: if the spike finds OB emits
-  `X-Frame-Options` from a source in-repo, neutralize it there so the new
-  CSP filter is the single source of truth. Pre-audit grep found no such
-  source — this touch point likely drops to zero.
+- `grails-app/conf/spring/resources.groovy` — registers the CSP filter and the
+  cookie customizer beans (an import + a few lines in the `beans {}` block). The
+  bean classes themselves are custom (`org.pih.warehouse.custom.iframe`).
+
+Dropped vs the original plan:
+- `application.yml` — NOT edited. `frameAncestors` and
+  `server.use-forward-headers` live in `openboxes.yml` external config; the CSP
+  filter defaults to a no-op when unset.
+- X-Frame-Options neutralization — NOT needed. A repo grep confirmed OB emits no
+  in-repo `X-Frame-Options`; the response wrapper suppresses any that a proxy
+  adds, with no upstream-code edit.
 
 The silent-SSO work (D5) touches **only this fork's own custom files** — no
 new upstream touch points:
