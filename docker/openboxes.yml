@@ -17,3 +17,15 @@ openboxes:
                 tokenUrl: https://dev.eyeseetea.com/play/uaa/oauth/token
                 userUrl: https://dev.eyeseetea.com/play/api/me
                 redirectUri: http://localhost:8080/openboxes/oauth/dhis2/callback
+
+        # -------------------------------------------------------------------------
+        # DHIS2 iframe embedding (dhis2-iframe-embedding)
+        # frameAncestors: DHIS2 origin(s) allowed to embed OB in an iframe. Empty/unset
+        # (default) => frame-ancestors 'self' (no third-party embedding). A non-empty
+        # list also gates silent SSO (prompt=none) and switches the session cookie to
+        # SameSite=None. SameSite=None needs Secure: in production serve OB over TLS with
+        # `server.use-forward-headers: true`; for plain-HTTP localhost testing only, add
+        # `server.session.cookie.secure: true` (never ship that to a real host).
+        # -------------------------------------------------------------------------
+        iframe:
+            frameAncestors: []        # e.g. ['https://dhis2.example.com'] or ['http://localhost:8081']
