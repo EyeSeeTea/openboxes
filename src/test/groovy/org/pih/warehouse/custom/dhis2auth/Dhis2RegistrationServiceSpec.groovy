@@ -4,6 +4,7 @@ import grails.testing.gorm.DataTest
 import grails.testing.services.ServiceUnitTest
 import org.pih.warehouse.core.Person
 import org.pih.warehouse.core.User
+import org.pih.warehouse.custom.dhis2auth.Dhis2OAuthService.Dhis2OAuthException
 import org.pih.warehouse.custom.dhis2auth.Dhis2OAuthService.Dhis2User
 import spock.lang.Specification
 import spock.lang.Unroll
@@ -76,6 +77,82 @@ class Dhis2RegistrationServiceSpec extends Specification
         result.active == true
         result.firstName == 'Eve'
         result.lastName == 'Updated'
+    }
+
+    void "v42 first login registers an inactive user keyed by username with a placeholder name"() {
+        when:
+        User result = service.findOrRegister(new Dhis2User(uid: null, username: 'frank'))
+
+        then:
+        result.username == 'frank'
+        result.firstName == 'frank'
+        result.lastName == '(DHIS2)'
+        !result.active
+
+        and:
+        Dhis2UserLink link = Dhis2UserLink.findByDhis2Username('frank')
+        link.dhis2Uid == null
+        link.user.id == result.id
+    }
+
+    void "v42 returning user is linked by username without creating a duplicate"() {
+        given:
+        User user = savedUser('grace', 'Grace', '(DHIS2)', 'g@x.com')
+        new Dhis2UserLink(user: user, dhis2Uid: null, dhis2Username: 'grace').save(flush: true, failOnError: true)
+
+        when:
+        User result = service.findOrRegister(new Dhis2User(uid: null, username: 'grace'))
+
+        then:
+        result.id == user.id
+        Dhis2UserLink.countByDhis2Username('grace') == 1
+        User.countByUsername('grace') == 1
+    }
+
+    void "v42 login on a tombstoned link forces re-approval (inactive, tombstone cleared)"() {
+        given:
+        User user = savedUser('heidi', 'Heidi', '(DHIS2)', 'h@x.com')
+        new Dhis2UserLink(user: user, dhis2Uid: null, dhis2Username: 'heidi', deactivatedAt: new Date())
+            .save(flush: true, failOnError: true)
+
+        when:
+        User result = service.findOrRegister(new Dhis2User(uid: null, username: 'heidi'))
+
+        then:
+        result.id == user.id
+        !result.active
+        Dhis2UserLink.findByDhis2Username('heidi').deactivatedAt == null
+    }
+
+    void "registration escalates the suffix when the -dhis2 username is also taken"() {
+        given:
+        savedUser('existing', 'Exist', 'Ing', 'e@g.com')
+        savedUser('existing-dhis2', 'Already', 'Suffixed', 's@g.com')
+
+        when:
+        User result = service.findOrRegister(new Dhis2User(uid: null, username: 'existing'))
+
+        then:
+        result.username == 'existing-dhis2-2'
+        !result.active
+        Dhis2UserLink.findByDhis2Username('existing').user.id == result.id
+    }
+
+    void "registration throws when every candidate username is exhausted"() {
+        given: "the base name, the -dhis2 suffix, and every -dhis2-N up to the cap are taken"
+        savedUser('clash', 'C', 'L', 'c@l.com')
+        savedUser('clash-dhis2', 'C', 'L', 'cd@l.com')
+        (2..20).each { savedUser("clash-dhis2-${it}", 'C', 'L', "c${it}@l.com") }
+
+        expect:
+        User.countByUsernameLike('clash%') == 21
+
+        when:
+        service.findOrRegister(new Dhis2User(uid: null, username: 'clash'))
+
+        then:
+        Dhis2OAuthException ex = thrown()
+        ex.message.contains('clash')
     }
 
     private User savedUser(String username, String first, String last, String email) {
