@@ -1,10 +1,14 @@
 package org.pih.warehouse.custom.dhis2auth
 
+import grails.gorm.transactions.Transactional
 import org.pih.warehouse.core.User
 import org.pih.warehouse.custom.dhis2auth.Dhis2OAuthService.Dhis2OAuthException
 import org.pih.warehouse.custom.dhis2auth.Dhis2OAuthService.Dhis2User
 
-// Grails services are transactional by default — no annotation needed.
+// Reason: the AST-based @Transactional reliably binds the Hibernate session for
+// flush() calls in private methods; the default Grails wrapping does not, which
+// caused TransactionRequiredException at runtime. Do not remove.
+@Transactional
 class Dhis2RegistrationService {
 
     private static final String PLACEHOLDER_LAST_NAME = '(DHIS2)'
