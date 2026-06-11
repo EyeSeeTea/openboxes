@@ -1,5 +1,6 @@
 <%@page import="org.pih.warehouse.core.ActivityCode;"%>
 <div class="d-none d-${breakPoint}-flex">
+    <g:render template="/custom/notifications/bell"/>
     <div class="menu-icon position-relative" data-testid="navbar-icon" aria-label="search">
         <div class="tooltip2">
             <i class="ri-search-line" id="global-search-button"></i>

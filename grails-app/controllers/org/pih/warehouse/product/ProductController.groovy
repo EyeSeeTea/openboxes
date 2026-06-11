@@ -23,6 +23,7 @@ import org.pih.warehouse.core.Location
 import org.pih.warehouse.core.MailService
 import org.pih.warehouse.core.ProductPrice
 import org.pih.warehouse.core.RoleType
+import org.pih.warehouse.custom.notifications.NotificationType
 import org.pih.warehouse.core.Synonym
 import org.pih.warehouse.core.Tag
 import org.pih.warehouse.core.UploadService
@@ -43,6 +44,8 @@ class ProductController {
     def dataService
     def userService
     MailService mailService
+    // in-app-notifications (custom)
+    def notificationDispatcherService
     def productService
     def documentService
     def barcodeService
@@ -1098,13 +1101,12 @@ class ProductController {
      */
     private def sendProductCreatedNotification(Product productInstance) {
         try {
-            def recipientList = userService.findUsersByRoleType(RoleType.ROLE_PRODUCT_NOTIFICATION).collect {
-                it.email
-            }
-            if (recipientList) {
+            List recipients = userService.findUsersByRoleType(RoleType.ROLE_PRODUCT_NOTIFICATION)
+            if (recipients) {
                 def subject = "${warehouse.message(code: 'email.productCreated.message', args: [productInstance?.name, productInstance?.createdBy?.name])}"
                 def body = "${g.render(template: '/email/productCreated', model: [productInstance: productInstance])}"
-                mailService.sendHtmlMail(subject, body.toString(), recipientList)
+                // in-app-notifications (custom): dispatcher handles both in-app and email
+                notificationDispatcherService.notify(recipients, subject, body.toString(), NotificationType.PRODUCT)
             }
         }
         catch (Exception e) {

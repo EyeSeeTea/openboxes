@@ -27,6 +27,7 @@ import org.pih.warehouse.core.Person
 import org.pih.warehouse.core.RoleType
 import org.pih.warehouse.core.User
 import org.pih.warehouse.core.localization.MessageLocalizer
+import org.pih.warehouse.custom.notifications.NotificationType
 import org.pih.warehouse.data.FileGenerationService
 import org.pih.warehouse.requisition.Requisition
 import org.pih.warehouse.requisition.RequisitionSourceType
@@ -41,6 +42,8 @@ class NotificationService {
     def dataService
     def userService
     MailService mailService
+    // in-app-notifications (custom)
+    def notificationDispatcherService
     GrailsApplication grailsApplication
     FileGenerationService fileGenerationService
     MessageLocalizer messageLocalizer
@@ -115,13 +118,18 @@ class NotificationService {
 
     def sendAlerts(String subject, String template, Map model, List<User> subscribers, String csv) {
 
+        String body = renderTemplate(template, model)
+
+        // in-app-notifications (custom): record for all subscribers (incl. those with no
+        // email) before the email-only short-circuit below, so email-less subscribers
+        // still get the in-app alert.
+        notificationDispatcherService.notify(subscribers, subject, body, NotificationType.STOCK_ALERT, false)
+
         Collection toList = subscribers.collect { it.email }.findAll{ it != null }.toArray()
         if (toList.isEmpty()) {
             log.info("Skipped ${subject} email because there are no subscribers")
             return
         }
-
-        String body = renderTemplate(template, model)
 
         // Send email with attachment (if csv exists)
         if (csv) {
@@ -160,9 +168,11 @@ class NotificationService {
         def g = grailsApplication.mainContext.getBean('org.grails.plugins.web.taglib.ApplicationTagLib')
         def recipientItems = shipmentInstance.shipmentItems.groupBy {it.recipient }
         recipientItems.each { Person recipient, items ->
+            def subject = g.message(code: "email.yourItemShipped.message", args: [shipmentInstance.origin.name, shipmentInstance.destination.name, shipmentInstance.shipmentNumber])
+            def body = "${g.render(template: "/email/shipmentItemShipped", model: [shipmentInstance: shipmentInstance, shipmentItems: items, recipient:recipient])}"
+            // in-app-notifications (custom): same body as the per-recipient email; reaches email-less recipients
+            notificationDispatcherService.notify([recipient], subject, body.toString(), NotificationType.SHIPMENT, false)
             if (emailValidator.isValid(recipient?.email)) {
-                def subject = g.message(code: "email.yourItemShipped.message", args: [shipmentInstance.origin.name, shipmentInstance.destination.name, shipmentInstance.shipmentNumber])
-                def body = "${g.render(template: "/email/shipmentItemShipped", model: [shipmentInstance: shipmentInstance, shipmentItems: items, recipient:recipient])}"
                 mailService.sendHtmlMail(subject, body.toString(), recipient.email)
             }
         }
@@ -170,10 +180,8 @@ class NotificationService {
 
     def sendShipmentNotifications(Shipment shipmentInstance, List<User> users, String template, String subject) {
         String body = renderTemplate(template, [shipmentInstance: shipmentInstance])
-        List emails = users.collect { it.email }
-        if (!emails.empty) {
-            mailService.sendHtmlMail(subject, body, emails)
-        }
+        // in-app-notifications (custom): replaces the email send; dispatcher records in-app and emails users with an address
+        notificationDispatcherService.notify(users, subject, body, NotificationType.SHIPMENT)
     }
 
     void sendReceiptNotifications(PartialReceipt partialReceipt) {
@@ -181,10 +189,11 @@ class NotificationService {
         EmailValidator emailValidator = EmailValidator.getInstance()
         Map<Person, List<PartialReceiptItem>> recipientItems = partialReceipt.partialReceiptItems.groupBy {it.recipient }
         recipientItems.each { Person recipient, items ->
+            String subject = messageLocalizer.localize("email.yourItemReceived.message", shipment.destination.name, shipment.shipmentNumber)
+            GString body = "${applicationTagLib.render(template: "/email/shipmentItemReceived", model: [shipmentInstance: shipment, receiptItems: items, recipient: recipient, receivedBy: partialReceipt.recipient])}"
+            // in-app-notifications (custom): same body as the per-recipient email; reaches email-less recipients
+            notificationDispatcherService.notify([recipient], subject, body.toString(), NotificationType.SHIPMENT, false)
             if (emailValidator.isValid(recipient?.email)) {
-                String subject = messageLocalizer.localize("email.yourItemReceived.message", shipment.destination.name, shipment.shipmentNumber)
-                GString body = "${applicationTagLib.render(template: "/email/shipmentItemReceived", model: [shipmentInstance: shipment, receiptItems: items, recipient: recipient, receivedBy: partialReceipt.recipient])}"
-
                 File barcodeFile = fileGenerationService.generateBarcodeFile(shipment.shipmentNumber)
                 String barcodeFileUri = fileGenerationService.getFileUri(barcodeFile)
                 String fileName = "GoodsReceiptNote-${shipment.shipmentNumber}.pdf"
@@ -213,12 +222,12 @@ class NotificationService {
         if (location.active && location.supports(org.pih.warehouse.core.ActivityCode.ENABLE_NOTIFICATIONS)) {
             List<RoleType> roleTypes = [RoleType.ROLE_ERROR_NOTIFICATION]
             List subscribers = userService.findUsersByRoleTypes(location, roleTypes)
-            List emails = subscribers.collect { it.email }
 
             GrailsWrappedRuntimeException grailsException = new GrailsWrappedRuntimeException(ServletContextHolder.servletContext, exception)
             String body = renderTemplate("/email/applicationError",
                     [exception: grailsException, location: location])
-            mailService.sendHtmlMail("Application Error: ${exception?.message}", body, emails)
+            // in-app-notifications (custom): replaces the email send; dispatcher records in-app and emails users with an address
+            notificationDispatcherService.notify(subscribers, "Application Error: ${exception?.message}", body, NotificationType.SYSTEM)
         }
         else {
             log.warn("Unable to send notification because location ${location.name} is inactive or has not enabled notifications")
@@ -231,10 +240,10 @@ class NotificationService {
             def recipients = userService.findUsersByRoleType(RoleType.ROLE_USER_NOTIFICATION)
             if (recipients) {
                 def locale = new Locale(grailsApplication.config.openboxes.locale.defaultLocale)
-                def to = recipients?.collect { it.email }?.unique()
                 def subject = messageSource.getMessage('email.userAccountCreated.message', [userInstance.username].toArray(), locale)
                 def body = renderTemplate("/email/userAccountCreated", [userInstance: userInstance, additionalQuestions: additionalQuestions])
-                mailService.sendHtmlMail(subject, body.toString(), to)
+                // in-app-notifications (custom): replaces the email send; dispatcher records in-app and emails users with an address
+                notificationDispatcherService.notify(recipients, subject, body.toString(), NotificationType.USER_ACCOUNT)
             }
 
         } catch (EmailException e) {
@@ -245,12 +254,11 @@ class NotificationService {
     def sendUserAccountConfirmation(User userInstance, Map additionalQuestions) {
         try {
             // Send confirmation email to user
-            if (userInstance?.email) {
-                def locale = userInstance?.locale ?: new Locale(grailsApplication.config.openboxes.locale.defaultLocale)
-                def subject = messageSource.getMessage('email.userAccountConfirmed.message', [userInstance?.email].toArray(), locale)
-                def body = renderTemplate("/email/userAccountConfirmed", [userInstance: userInstance, additionalQuestions: additionalQuestions])
-                mailService.sendHtmlMail(subject, body.toString(), userInstance?.email)
-            }
+            def locale = userInstance?.locale ?: new Locale(grailsApplication.config.openboxes.locale.defaultLocale)
+            def subject = messageSource.getMessage('email.userAccountConfirmed.message', [userInstance?.email].toArray(), locale)
+            def body = renderTemplate("/email/userAccountConfirmed", [userInstance: userInstance, additionalQuestions: additionalQuestions])
+            // in-app-notifications (custom): replaces the email send; dispatcher records in-app and self-skips email when the user has none
+            notificationDispatcherService.notify([userInstance], subject, body.toString(), NotificationType.USER_ACCOUNT)
         } catch (EmailException e) {
             log.error("Unable to send confirmation email: " + e.message, e)
         }
@@ -284,32 +292,30 @@ class NotificationService {
         String template = "/email/approvalsAlert"
 
         recipients.each { recipient ->
+            String redirectToRequestsList = "/stockMovement/list?direction=OUTBOUND&sourceType=ELECTRONIC&approver=${recipient.id}"
+            String body = renderTemplate(template, [requisition: requisition, redirectUrl: redirectToRequestsList])
+            // in-app-notifications (custom): same body as the per-recipient email; reaches email-less recipients
+            notificationDispatcherService.notify([recipient], subject, body, NotificationType.REQUISITION, false)
             if (recipient?.email) {
-                String redirectToRequestsList = "/stockMovement/list?direction=OUTBOUND&sourceType=ELECTRONIC&approver=${recipient.id}"
-                String body = renderTemplate(template, [requisition: requisition, redirectUrl: redirectToRequestsList])
                 mailService.sendHtmlMail(subject, body, recipient.email)
             }
         }
     }
 
     void publishRequisitionStatusUpdateNotification(Requisition requisition, Person recipient) {
-        if (!recipient.email) {
-            return
-        }
         String subject = "${requisition.requestNumber} ${requisition.name}"
         String template = "/email/approvalsStatusChanged"
         String body = renderTemplate(template, [requisition: requisition])
-        mailService.sendHtmlMail(subject, body, recipient.email)
+        // in-app-notifications (custom): replaces the email send + email guard; dispatcher records in-app and self-skips email when the recipient has none
+        notificationDispatcherService.notify([recipient], subject, body, NotificationType.REQUISITION)
     }
 
 
     void publishFulfillmentNotification(Person requestor, Requisition requisition) {
         String subject = "${requisition.requestNumber} ${requisition.name}"
         String template = "/email/fulfillmentAlert"
-
-        if (requestor.email) {
-            String body = renderTemplate(template, [requisition: requisition])
-            mailService.sendHtmlMail(subject, body, requestor.email)
-        }
+        String body = renderTemplate(template, [requisition: requisition])
+        // in-app-notifications (custom): replaces the email send + email guard; dispatcher records in-app and self-skips email when the requestor has none
+        notificationDispatcherService.notify([requestor], subject, body, NotificationType.FULFILLMENT)
     }
 }
