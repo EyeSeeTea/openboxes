@@ -126,6 +126,18 @@ databaseChangeLog = {
 
 **Liquibase id collisions are protected by namespace, not by id uniqueness.** Liquibase tracks changesets by `(id, author, filename)`. Use `author = 'eyeseetea'` and put files under `custom/` so even if upstream coincidentally ships an id matching one of ours, the tuple differs and the rows are independent in `databasechangelog`. Date-prefix changeset ids (`2026-04-13-01-...`) for human readability — collisions inside our own folder are the only ones we have to avoid manually.
 
+**Changeset id + author convention (REQUIRED).** Every custom changeset uses:
+
+```groovy
+changeSet(author: "eyeseetea", id: "<yyyy-MM-dd>-<NN>-<short-desc>") {  // e.g. 2026-05-13-01-dhis2-user-link
+```
+
+- **`id`: `<yyyy-MM-dd>-<NN>-<short-desc>`** — the date the changeset is written, a two-digit sequence (`01`, `02`, …) for multiple changesets the same day, then a kebab-case description. Matches the filename's date prefix.
+- **`author`: always `eyeseetea`** — uniform across the fork so the `(id, author, filename)` tuple stays predictable.
+- **Do NOT use a global sequential counter** (`custom-0001`, `custom-0002`, …). It needs cross-branch coordination — two parallel feature branches both grab the next number and clash. The date prefix is self-coordinating and collision-proof; a global counter is not.
+
+This is a maintainability/coordination rule, not a correctness one — Liquibase runs any unique tuple regardless. Standardize **going forward**; don't retrofit ids on already-merged changesets (changing a merged tuple orphans its `databasechangelog` row).
+
 ### Spring beans
 
 If a custom class needs to be registered as a Spring bean (rare; Grails auto-scans `grails-app/` subfolders), add it in `grails-app/conf/spring/resources.groovy`. That file is edited rarely by upstream, so diffs there have low conflict risk.
