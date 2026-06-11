@@ -10,10 +10,11 @@ import javax.servlet.ServletResponse
 import javax.servlet.http.HttpServletResponse
 
 /**
- * Emits a Content-Security-Policy `frame-ancestors` directive scoped to the
- * configured DHIS2 origin allow-list, making OB the single source of truth for
- * framing. Defaults to `frame-ancestors 'self'` when the allow-list is empty,
- * which is browser-equivalent to `X-Frame-Options: SAMEORIGIN`.
+ * When iframe embedding is enabled (a non-empty DHIS2 origin allow-list), emits a
+ * Content-Security-Policy `frame-ancestors` directive scoped to that list and
+ * suppresses any X-Frame-Options so CSP is the single source of truth for framing.
+ * When embedding is disabled (the default), the filter is a pass-through and leaves
+ * OB responses exactly as upstream — no header is added.
  */
 class CspFrameAncestorsFilter implements Filter {
 
@@ -27,14 +28,22 @@ class CspFrameAncestorsFilter implements Filter {
     void destroy() { }
 
     void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) {
+        List<String> origins = frameAncestors()
+        if (!origins) {
+            // Embedding disabled: do not touch the response — preserve upstream default behaviour.
+            chain.doFilter(request, response)
+            return
+        }
         HttpServletResponse httpResponse = response as HttpServletResponse
-        httpResponse.setHeader(CSP_HEADER, frameAncestorsDirective())
-        // Suppress any X-Frame-Options set downstream so it cannot contradict the CSP directive.
+        httpResponse.setHeader(CSP_HEADER, frameAncestorsDirective(origins))
         chain.doFilter(request, new XFrameOptionsSuppressingResponse(httpResponse))
     }
 
-    String frameAncestorsDirective() {
-        List<String> origins = (grailsApplication.config.openboxes.custom.iframe.frameAncestors ?: []) as List
+    List<String> frameAncestors() {
+        (grailsApplication.config.openboxes.custom.iframe.frameAncestors ?: []) as List
+    }
+
+    String frameAncestorsDirective(List<String> origins) {
         origins ? "${FRAME_ANCESTORS_SELF} ${origins.join(' ')}" : FRAME_ANCESTORS_SELF
     }
 }

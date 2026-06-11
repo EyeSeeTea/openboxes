@@ -6,6 +6,7 @@ import org.springframework.core.Ordered
 
 import org.pih.warehouse.monitoring.SentryGrailsTracingFilter
 import org.pih.warehouse.custom.iframe.CspFrameAncestorsFilter
+import org.pih.warehouse.custom.iframe.IframeCookieCustomizer
 
 // This is where we can register spring-specific beans using the Spring Bean DSL.
 // Regular beans that conform to Grails conventions don't need to be registered here.
@@ -28,4 +29,7 @@ beans = {
         urlPatterns = ['/*']
         order = Ordered.HIGHEST_PRECEDENCE + 2
     }
+
+    // Custom: DHIS2 iframe embedding — SameSite=None session cookie when embedding is enabled.
+    iframeCookieCustomizer(IframeCookieCustomizer)
 }

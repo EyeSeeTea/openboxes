@@ -21,32 +21,31 @@ class CspFrameAncestorsFilterSpec extends Specification implements GrailsUnitTes
         new CspFrameAncestorsFilter(grailsApplication: grailsApplication)
     }
 
-    void "empty allow-list emits frame-ancestors 'self'"() {
+    void "embedding disabled (empty allow-list) leaves the response untouched"() {
         when:
         filterWithAncestors([]).doFilter(request, response, chain)
 
         then:
-        1 * response.setHeader(CSP, "frame-ancestors 'self'")
-        1 * chain.doFilter(request, { it instanceof XFrameOptionsSuppressingResponse })
+        0 * response.setHeader(CSP, _)
+        1 * chain.doFilter(request, response)
     }
 
-    void "configured origins are appended to the directive"() {
+    void "configured origins emit the directive and wrap the response"() {
         when:
         filterWithAncestors(['https://dhis2.example.org', 'https://dhis2.other.org'])
             .doFilter(request, response, chain)
 
         then:
         1 * response.setHeader(CSP, "frame-ancestors 'self' https://dhis2.example.org https://dhis2.other.org")
-        1 * chain.doFilter(request, _)
+        1 * chain.doFilter(request, { it instanceof XFrameOptionsSuppressingResponse })
     }
 
     void "directive builder reflects the configured allow-list"() {
         expect:
-        filterWithAncestors(ancestors).frameAncestorsDirective() == expected
+        filterWithAncestors(ancestors).frameAncestorsDirective(ancestors) == expected
 
         where:
         ancestors                        || expected
-        []                               || "frame-ancestors 'self'"
         ['https://dhis2.example.org']    || "frame-ancestors 'self' https://dhis2.example.org"
     }
 }
