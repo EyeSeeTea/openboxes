@@ -1,5 +1,11 @@
-## ADDED Requirements
+# DHIS2 Authentication
 
+## Purpose
+DHIS2 OAuth2 SSO for OpenBoxes: a login option, first-login auto-registration,
+returning-user identity refresh, side-table user linkage, and pending-access
+admin gating. Supports the `v40` (UAA OAuth 2.0) and `v42` (Spring Authorization
+Server, OAuth 2.1 / OIDC) profiles.
+## Requirements
 ### Requirement: DHIS2 OAuth login option
 The system SHALL allow users to authenticate via a DHIS2 OAuth2 Authorization
 Code flow when DHIS2 OAuth is configured. The existing username/password login
@@ -55,8 +61,8 @@ gate, or the admin pending-users filter.
 - **THEN** OB rejects the callback with HTTP 400 and does not establish a session
 
 ### Requirement: First-login auto-registration
-On the first successful DHIS2 OAuth login for a DHIS2 UID not previously seen,
-the system SHALL create a new local OpenBoxes `User` with `active = false`, no
+The system SHALL, on the first successful DHIS2 OAuth login for a DHIS2 UID not
+previously seen, create a new local OpenBoxes `User` with `active = false`, no
 roles, and no location assignments, linked to the DHIS2 UID via a
 `Dhis2UserLink` record.
 
@@ -73,10 +79,10 @@ roles, and no location assignments, linked to the DHIS2 UID via a
 - **THEN** all requests except logout and the pending-access page redirect to the pending-access page, which explains the user is awaiting access from an admin
 
 ### Requirement: Returning-user identity refresh
-On every successful DHIS2 OAuth login for a DHIS2 UID that already has a
-`Dhis2UserLink`, the system SHALL match the existing OB `User` by UID and
-refresh non-authorization fields. Roles, location assignments, and the `active`
-flag SHALL NOT be modified by login.
+The system SHALL, on every successful DHIS2 OAuth login for a DHIS2 UID that
+already has a `Dhis2UserLink`, match the existing OB `User` by UID and refresh
+non-authorization fields. Roles, location assignments, and the `active` flag
+SHALL NOT be modified by login.
 
 #### Scenario: Returning DHIS2 user with updated email
 - **WHEN** a returning DHIS2 user logs in and `/api/me` returns a different email or display name than stored
@@ -102,3 +108,37 @@ The system SHALL allow administrators to filter the user admin screen by
 #### Scenario: Admin filters for pending users
 - **WHEN** an administrator selects the "Pending DHIS2 access" filter on the user admin list
 - **THEN** the list shows only users with `active = false` AND a non-null `Dhis2UserLink`, ordered by most recent `Dhis2UserLink.createdAt` first
+
+### Requirement: Embedded silent authentication
+The system SHALL establish an OB session without user interaction when
+OpenBoxes is served inside a DHIS2 iframe (embedding enabled via a non-empty
+`iframe.frameAncestors`), an unauthenticated request arrives, and the
+configured DHIS2 profile supports silent authentication (`v42`). Where the
+profile does not support it (`v40`), the system SHALL fall back to in-frame
+interactive login. The non-embedded (top-level) login flow SHALL remain
+unchanged from the base DHIS2 OAuth behavior.
+
+#### Scenario: v42 silent success with a live DHIS2 session
+- **WHEN** embedding is enabled, `custom.dhis2.oauth.profile = v42`, the request has no OB session, the user has a live DHIS2 session, and the OB OAuth client skips consent (or consent was previously granted)
+- **THEN** OB redirects to the DHIS2 authorize endpoint with `prompt=none` (plus the usual PKCE challenge and `scope=openid username`), DHIS2 returns an authorization `code` with no UI, and OB establishes the session and renders the requested screen inside the frame
+
+#### Scenario: v42 no DHIS2 session breaks out for interactive login
+- **WHEN** embedding is enabled, profile is `v42`, and the `prompt=none` authorize attempt returns `error=login_required` (or `interaction_required`) to the callback
+- **THEN** OB does NOT render DHIS2's login page inside the frame; instead it returns a break-out response that navigates the top-level window (`window.top`) to the interactive authorize URL (no `prompt=none`)
+
+#### Scenario: v42 consent required is treated as a break-out
+- **WHEN** the `prompt=none` attempt returns `error=consent_required` because the OB client was registered with `requireAuthorizationConsent=true` and the user has not yet consented
+- **THEN** OB breaks out of the frame for the one-time interactive consent, after which subsequent `prompt=none` attempts succeed silently
+
+#### Scenario: silent attempt runs at most once (no redirect loop)
+- **WHEN** a `prompt=none` attempt has already been made for the current navigation and returns an error again
+- **THEN** OB does NOT issue another silent `prompt=none` redirect for that navigation (a one-shot guard prevents an authorize↔callback loop); it proceeds to the break-out interactive login
+
+#### Scenario: v40 falls back to in-frame login
+- **WHEN** embedding is enabled and `custom.dhis2.oauth.profile = v40` (or unset)
+- **THEN** OB makes NO silent `prompt=none` attempt; the unauthenticated user is shown the OB login (DHIS2 SSO button or local credentials) inside the frame, and after login the `SameSite=None; Secure` session cookie keeps the session active on later embedded loads
+
+#### Scenario: non-embedded login is unchanged
+- **WHEN** `iframe.frameAncestors` is empty (embedding disabled), regardless of profile
+- **THEN** the login flow is identical to the base DHIS2 OAuth behavior — no `prompt=none`, no break-out response
+
