@@ -41,7 +41,7 @@ change branches from `feature/dhis2-oauth`).
       (set via `openboxes.yml`, only for TLS-proxied embedding deployments). No
       upstream `application.yml` edit. Provides the `Secure` flag that
       `SameSite=None` requires.
-- [ ] **3.2** Live check (folded into 5.7): confirm `request.isSecure()` and a
+- [x] **3.2** Live check (folded into 5.7): confirm `request.isSecure()` and a
       `Secure` session cookie behind the dev-stack nginx. (Spring Boot built-in;
       not unit-testable without the container.)
 
@@ -56,12 +56,13 @@ change branches from `feature/dhis2-oauth`).
       OAuth client setup (incl. `require-authorization-consent=false`),
       troubleshooting.
 - [x] **4.4** `docker/dhis2-sso/certs/.gitignore` — ignore all but `.gitignore`.
-- [ ] **4.5** End-to-end manual run-through of the `dhis2-sso` TLS stack from a
-      clean checkout; capture gotchas into the README. (Stack scaffolding still
-      unrun — the live embedded flow was instead exercised via the EyeSeeTea
-      skeleton; see `validation/cross-site-cookies.md`. Boot-wiring bug found and
-      fixed during this: iframe beans needed explicit `grailsApplication` ref in
-      `resources.groovy`, else NPE at container creation aborted boot.)
+- [x] **4.5** Superseded: the `dhis2-sso` compose stack itself was **not** run.
+      The live embedded flow was validated more thoroughly via the EyeSeeTea
+      skeleton **installed as a real DHIS2 app** + a local d2-docker DHIS2
+      (`2.42.4.1`) behind a TLS proxy — see `validation/cross-site-cookies.md`.
+      Boot-wiring bug found and fixed during this: iframe beans needed explicit
+      `grailsApplication` ref in `resources.groovy`, else NPE at container
+      creation aborted boot.
 - [x] **4.6** No spike compose file exists to delete (n/a).
 
 ## Phase 5 — Embedded silent SSO (v42) + v40 fallback
@@ -87,16 +88,21 @@ change branches from `feature/dhis2-oauth`).
       (`validation/cross-site-cookies.md`). Confirmed live: OB emits
       `SameSite=None; Secure` + CSP `frame-ancestors`; silent `prompt=none` →
       `login_required` → `breakout.gsp` → top-level interactive login → OB session.
-      In-frame *silent success* is gated on a same-site embedder (DHIS2 session
-      cookie is `SameSite=Strict`) and was not reproducible from a `localhost`
-      skeleton — documented as the deployment requirement.
+      In-frame *silent success* was subsequently **reproduced end-to-end** once
+      the embedder was the DHIS2 origin itself (skeleton installed as a DHIS2
+      app + local DHIS2 `2.42.4.1`): OB rendered in-frame with no second login,
+      for admin and a fresh user. Confirmed the real topology makes DHIS2's own
+      cookie first-party (SameSite is a non-issue); only OB's cookie is
+      cross-site. See `validation/cross-site-cookies.md` (2026-06-11 update).
 
 ## Phase 6 — Tests, docs, archive
 
-- [ ] **6.1** Full suite green: `./gradlew test` (custom specs green; full run
-      pending).
-- [ ] **6.2** Frontend untouched. `npm test` to confirm no regressions.
-- [ ] **6.3** Update top-level `README.md` only if enabled by default (it isn't).
+- [x] **6.1** Full suite green: `./gradlew test` — 973 tests, 9 skipped, 0
+      failures, 0 errors (2026-06-11, JDK 8).
+- [ ] **6.2** Frontend untouched (0 `src/js` changes). Local `npm test` blocked
+      by a Node-18-vs-floor-14 Babel toolchain mismatch (env, not code) — no
+      regression possible; verifying via CI (Node 14) on the PR.
+- [x] **6.3** n/a — feature is off by default; top-level `README.md` unchanged.
 - [ ] **6.4** Update PR description to reflect final shape.
 - [ ] **6.5** OpenSpec archive: `design.md` upstream touch points
       (`resources.groovy` only) + Deploy status; run `/opsx:archive`.
