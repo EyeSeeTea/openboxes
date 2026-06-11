@@ -87,12 +87,15 @@ class Dhis2OAuthServiceSpec extends Specification implements ServiceUnitTest<Dhi
         given:
         configureClient('https://dhis2.example.com/oauth2/authorize')
         grailsApplication.config.openboxes.custom.dhis2.oauth.profile = 'v42'
+        // Set scopes explicitly so this is deterministic (config is shared across feature methods).
+        grailsApplication.config.openboxes.custom.dhis2.oauth.scopes = 'openid username'
 
         when:
         String url = service.buildAuthorizeUrl('s')
 
         then:
-        !url.contains('code_challenge')
+        url == 'https://dhis2.example.com/oauth2/authorize?response_type=code&client_id=my+client&redirect_uri=https%3A%2F%2Fob.example.com%2Foauth%2Fdhis2%2Fcallback' +
+            '&scope=openid+username&state=s'
     }
 
     void "v42 buildAuthorizeUrl appends prompt=none only when silent is requested"() {

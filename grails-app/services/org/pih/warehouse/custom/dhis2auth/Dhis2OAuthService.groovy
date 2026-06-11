@@ -143,7 +143,7 @@ class Dhis2OAuthService {
             String payload = new String(Base64.urlDecoder.decode(padBase64(parts[1])), CHARSET)
             (JSON.parse(payload) as Map).sub as String
         } catch (Exception e) {
-            throw new Dhis2OAuthException("User info fetch failed: malformed id_token — ${e.message}", e)
+            throw new Dhis2OAuthException("User info fetch failed: malformed id_token — ${e.message ?: e.class.simpleName}", e)
         }
     }
 

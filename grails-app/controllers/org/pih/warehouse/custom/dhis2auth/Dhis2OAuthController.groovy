@@ -33,9 +33,7 @@ class Dhis2OAuthController {
         boolean silent = params.boolean('embedded') && iframeEmbeddingEnabled && dhis2OAuthService.silentAuthSupported
         session.dhis2OAuthSilent = silent
 
-        Dhis2OAuthService.AuthorizeRequest authRequest = silent ?
-            dhis2OAuthService.prepareAuthorize(state, true) :
-            dhis2OAuthService.prepareAuthorize(state)
+        Dhis2OAuthService.AuthorizeRequest authRequest = dhis2OAuthService.prepareAuthorize(state, silent)
         session.dhis2OAuthCodeVerifier = authRequest.codeVerifier
         redirect(url: authRequest.url)
     }
@@ -63,7 +61,8 @@ class Dhis2OAuthController {
                 render(view: '/custom/dhis2auth/breakout')
                 return
             }
-            log.warn "dhis2_oauth_authorize_error error=${error}"
+            // Reason: error is attacker-influenceable (OAuth error param) — strip CR/LF and cap length to prevent log forging.
+            log.warn "dhis2_oauth_authorize_error error=${error?.replaceAll(/[\r\n]/, ' ')?.take(100)}"
             flash.message = "DHIS2 login failed. Please try again or contact an administrator."
             redirect(controller: 'auth', action: 'login')
             return

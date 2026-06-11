@@ -54,7 +54,7 @@ class Dhis2OAuthControllerSpec extends Specification
     void "initiate stores the PKCE verifier from prepareAuthorize in the session"() {
         given:
         enableOAuth('v42')
-        dhis2OAuthService.prepareAuthorize(_) >> new AuthorizeRequest(
+        dhis2OAuthService.prepareAuthorize(_, _) >> new AuthorizeRequest(
             url: 'https://dhis2.example.com/oauth2/authorize', codeVerifier: 'verifier-xyz')
 
         when:
@@ -88,7 +88,7 @@ class Dhis2OAuthControllerSpec extends Specification
     void "initiate leaves the PKCE verifier null when prepareAuthorize returns none"() {
         given:
         enableOAuth('v40')
-        dhis2OAuthService.prepareAuthorize(_) >> new AuthorizeRequest(
+        dhis2OAuthService.prepareAuthorize(_, _) >> new AuthorizeRequest(
             url: 'https://dhis2.example.com/uaa/oauth/authorize', codeVerifier: null)
 
         when:
@@ -119,7 +119,7 @@ class Dhis2OAuthControllerSpec extends Specification
     void "embedded initiate does not go silent when embedding is disabled"() {
         given:
         enableOAuth('v42')
-        dhis2OAuthService.prepareAuthorize(_) >> new AuthorizeRequest(
+        dhis2OAuthService.prepareAuthorize(_, _) >> new AuthorizeRequest(
             url: 'https://dhis2.example.com/oauth2/authorize', codeVerifier: 'v')
 
         when:
@@ -156,6 +156,19 @@ class Dhis2OAuthControllerSpec extends Specification
         controller.callback()
 
         then:
+        response.redirectedUrl == '/auth/login'
+        0 * dhis2OAuthService.exchangeCode(*_)
+    }
+
+    void "callback does not break out for login_required when the attempt was not silent"() {
+        when:
+        session.dhis2OAuthState = STATE
+        session.dhis2OAuthSilent = false
+        params.state = STATE
+        params.error = 'login_required'
+        controller.callback()
+
+        then: "it redirects to login (a break-out would render the breakout view, not redirect)"
         response.redirectedUrl == '/auth/login'
         0 * dhis2OAuthService.exchangeCode(*_)
     }
