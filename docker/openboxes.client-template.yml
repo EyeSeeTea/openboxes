@@ -246,11 +246,16 @@ openboxes:
 
     # -------------------------------------------------------------------------
     # Iframe embedding / CSP frame-ancestors (dhis2-iframe-embedding)
-    # Set frameAncestors to the DHIS2 origin(s) that will embed OB.
-    # Also enable server.use-forward-headers if behind a TLS-terminating proxy.
+    # frameAncestors: the DHIS2 origin(s) allowed to embed OB in an iframe.
+    # Empty/unset (default) => `frame-ancestors 'self'` (no third-party embedding),
+    # behaviourally equivalent to the old X-Frame-Options: SAMEORIGIN.
+    # Setting a non-empty list also flips the session cookie to
+    # `SameSite=None; Secure` and turns on the v42 silent-SSO entry point
+    # (/oauth/dhis2/initiate?embedded=true). v40 falls back to in-frame login.
     # -------------------------------------------------------------------------
-    # iframe:
-    #     frameAncestors: []           # e.g. ['https://dhis2.example.com']
+    # custom:
+    #     iframe:
+    #         frameAncestors: []       # e.g. ['https://dhis2.example.com']
 
     # -------------------------------------------------------------------------
     # LDAP (optional — enable only for clients using corporate auth)
