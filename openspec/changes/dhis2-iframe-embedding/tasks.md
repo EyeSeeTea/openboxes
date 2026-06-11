@@ -56,8 +56,12 @@ change branches from `feature/dhis2-oauth`).
       OAuth client setup (incl. `require-authorization-consent=false`),
       troubleshooting.
 - [x] **4.4** `docker/dhis2-sso/certs/.gitignore` — ignore all but `.gitignore`.
-- [ ] **4.5** End-to-end manual run-through from a clean checkout; capture gotchas
-      into the README. (Scaffolding is untested.)
+- [ ] **4.5** End-to-end manual run-through of the `dhis2-sso` TLS stack from a
+      clean checkout; capture gotchas into the README. (Stack scaffolding still
+      unrun — the live embedded flow was instead exercised via the EyeSeeTea
+      skeleton; see `validation/cross-site-cookies.md`. Boot-wiring bug found and
+      fixed during this: iframe beans needed explicit `grailsApplication` ref in
+      `resources.groovy`, else NPE at container creation aborted boot.)
 - [x] **4.6** No spike compose file exists to delete (n/a).
 
 ## Phase 5 — Embedded silent SSO (v42) + v40 fallback
@@ -78,10 +82,14 @@ change branches from `feature/dhis2-oauth`).
       no `prompt=none`.
 - [x] **5.6** Consent prerequisite documented in `docker/dhis2-sso/README.md`,
       citing `validation/prompt-none.md`.
-- [ ] **5.7** **LIVE (manual):** prompt=none three-case test — DONE for the raw
-      flow (`validation/prompt-none.md`, confirmed on DHIS2 2.42.4.1). Still TODO:
-      the full embedded end-to-end in a browser (frame render + cookie survival +
-      break-out), via the Phase 4 dev stack.
+- [x] **5.7** **LIVE (manual):** prompt=none three-case (`validation/prompt-none.md`,
+      DHIS2 2.42.4.1) + full embedded browser run via the EyeSeeTea app skeleton
+      (`validation/cross-site-cookies.md`). Confirmed live: OB emits
+      `SameSite=None; Secure` + CSP `frame-ancestors`; silent `prompt=none` →
+      `login_required` → `breakout.gsp` → top-level interactive login → OB session.
+      In-frame *silent success* is gated on a same-site embedder (DHIS2 session
+      cookie is `SameSite=Strict`) and was not reproducible from a `localhost`
+      skeleton — documented as the deployment requirement.
 
 ## Phase 6 — Tests, docs, archive
 
