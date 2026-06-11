@@ -91,5 +91,4 @@ describe('NotificationModal', () => {
       expect(onClose).not.toHaveBeenCalled();
     });
   });
-
 });

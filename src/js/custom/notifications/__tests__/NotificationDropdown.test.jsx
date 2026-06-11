@@ -13,6 +13,7 @@ jest.mock('react-redux', () => ({
   useSelector: () => (id, defaultMessage) => defaultMessage || id,
 }));
 jest.mock('utils/Translate', () => {
+  // eslint-disable-next-line global-require, no-shadow
   const React = require('react');
   const Translate = ({ defaultMessage }) => React.createElement('span', null, defaultMessage);
   Translate.translateWithDefaultMessage = (translate) => translate;

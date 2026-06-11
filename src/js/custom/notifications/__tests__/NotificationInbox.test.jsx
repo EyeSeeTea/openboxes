@@ -1,19 +1,33 @@
 /* eslint-env jest */
 import React from 'react';
 
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import {
-  getNotifications, markAllRead, markRead, markUnread,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import {
+  getNotifications,
+  markAllRead,
+  markRead,
+  markUnread,
 } from 'custom/notifications/api/notificationsApi';
 import { toBeforeIso, toSinceIso } from 'custom/notifications/utils/dateFilters';
 
 import '@testing-library/jest-dom';
 
 jest.mock('@sentry/react', () => ({ captureException: jest.fn() }));
-jest.mock('components/DataTable/TablePagination', () => {
-  const React = require('react');
-  return ({ totalData }) => React.createElement('div', { 'data-testid': 'table-pagination' }, String(totalData));
-});
+jest.mock('components/DataTable/TablePagination', () => (
+  ({ totalData }) => {
+    const mockReact = jest.requireActual('react');
+    return mockReact.createElement(
+      'div',
+      { 'data-testid': 'table-pagination' },
+      String(totalData),
+    );
+  }
+));
 jest.mock('custom/notifications/api/notificationsApi', () => ({
   getNotifications: jest.fn(),
   markRead: jest.fn(),
@@ -27,7 +41,6 @@ jest.mock('date-fns', () => ({
 }));
 // FilterForm and filter fields have deep dependency trees — stub them out
 jest.mock('components/Filter/FilterForm', () => {
-  const React = require('react');
   const FilterFormStub = ({ updateFilterParams }) => (
     <button
       type="button"
@@ -60,8 +73,8 @@ jest.mock('react-redux', () => ({
   useSelector: () => (id, defaultMessage) => defaultMessage || id,
 }));
 jest.mock('utils/Translate', () => {
-  const React = require('react');
-  const Translate = ({ defaultMessage }) => React.createElement('span', null, defaultMessage);
+  const mockReact = jest.requireActual('react');
+  const Translate = ({ defaultMessage }) => mockReact.createElement('span', null, defaultMessage);
   Translate.translateWithDefaultMessage = (translate) => translate;
   return Translate;
 });
@@ -81,7 +94,11 @@ const READ = {
 
 const mockList = (items = []) => {
   getNotifications.mockResolvedValueOnce({
-    data: { data: items, unreadCount: items.filter((n) => !n.read).length, totalCount: items.length },
+    data: {
+      data: items,
+      unreadCount: items.filter((n) => !n.read).length,
+      totalCount: items.length,
+    },
   });
 };
 
@@ -185,12 +202,13 @@ describe('NotificationInbox', () => {
     fireEvent.click(screen.getByTestId('apply-filters'));
 
     await waitFor(() => {
-      const calls = getNotifications.mock.calls;
+      const { calls } = getNotifications.mock;
       const filterCall = calls.find((call) => call[0] && call[0].type === 'SHIPMENT');
+      const { 0: firstCall } = filterCall;
       expect(filterCall).toBeDefined();
-      expect(filterCall[0].read).toBe(false);
-      expect(filterCall[0].since).toBe(toSinceIso('01/15/2026'));
-      expect(filterCall[0].before).toBe(toBeforeIso('06/20/2026'));
+      expect(firstCall.read).toBe(false);
+      expect(firstCall.since).toBe(toSinceIso('01/15/2026'));
+      expect(firstCall.before).toBe(toBeforeIso('06/20/2026'));
     });
   });
 });
