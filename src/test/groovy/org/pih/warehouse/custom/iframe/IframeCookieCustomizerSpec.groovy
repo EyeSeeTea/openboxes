@@ -1,7 +1,10 @@
 package org.pih.warehouse.custom.iframe
 
+import org.apache.catalina.core.StandardContext
+import org.apache.tomcat.util.http.Rfc6265CookieProcessor
 import org.grails.testing.GrailsUnitTest
 import org.springframework.boot.context.embedded.ConfigurableEmbeddedServletContainer
+import org.springframework.boot.context.embedded.tomcat.TomcatContextCustomizer
 import org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainerFactory
 
 import spock.lang.Specification
@@ -13,15 +16,19 @@ class IframeCookieCustomizerSpec extends Specification implements GrailsUnitTest
         new IframeCookieCustomizer(grailsApplication: grailsApplication)
     }
 
-    void "registers a Tomcat context customizer when embedding is enabled"() {
+    void "installs an Rfc6265CookieProcessor with SameSite=None when embedding is enabled"() {
         given:
         TomcatEmbeddedServletContainerFactory factory = new TomcatEmbeddedServletContainerFactory()
+        StandardContext context = new StandardContext()
 
         when:
         customizerWithAncestors(['https://dhis2.example.org']).customize(factory)
+        factory.tomcatContextCustomizers.each { TomcatContextCustomizer it -> it.customize(context) }
 
         then:
         factory.tomcatContextCustomizers.size() == 1
+        context.cookieProcessor instanceof Rfc6265CookieProcessor
+        ((Rfc6265CookieProcessor) context.cookieProcessor).sameSiteCookies.value == 'None'
     }
 
     void "adds no customizer when embedding is disabled"() {

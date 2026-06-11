@@ -5,13 +5,17 @@
     <title><warehouse:message code="dhis2auth.breakout.title" default="Signing in…"/></title>
     <g:set var="interactiveUrl" value="${createLink(controller: 'dhis2OAuth', action: 'initiate')}"/>
     <script type="text/javascript">
-        // Silent SSO needs interactive login/consent. Navigate the TOP-LEVEL window so DHIS2's
-        // own login page (which forbids being framed) renders outside the iframe. Assigning
-        // window.top.location is permitted cross-origin and works whether or not OB is framed.
+        // Silent SSO needs interactive login/consent. When framed, navigate the TOP-LEVEL
+        // window so DHIS2's own login page (which forbids being framed) renders outside the
+        // iframe; a top-level visit just recovers in place.
         (function () {
-            var target = '${interactiveUrl}';
-            try { window.top.location.replace(target); }
-            catch (e) { window.location.replace(target); }
+            var target = '${interactiveUrl.encodeAsJavaScript()}';
+            if (window.top !== window.self) {
+                try { window.top.location.replace(target); }
+                catch (e) { window.location.replace(target); }
+            } else {
+                window.location.replace(target);
+            }
         })();
     </script>
 </head>

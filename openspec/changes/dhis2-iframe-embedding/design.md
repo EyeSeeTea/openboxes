@@ -223,10 +223,9 @@ cookie carries the session forward.
 3. Per-deployment opt-in: set the allow-list of DHIS2 origins in
    env-specific config and enable `server.use-forward-headers` if behind a
    TLS-terminating proxy.
-4. Rollback: clear `iframe.frameAncestors`. The CSP filter falls back to
-   `frame-ancestors 'self'` (browser-equivalent to the previous
-   `X-Frame-Options: SAMEORIGIN`), session cookie reverts to upstream
-   defaults.
+4. Rollback: clear `frameAncestors`. The CSP filter becomes a no-op and emits
+   no framing header, and the cookie customizer leaves OB's default cookie
+   processor in place — reverting fully to OB's upstream default.
 
 ## Upstream touch points
 
