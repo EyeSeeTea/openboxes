@@ -10,6 +10,8 @@
     <g:render template="/common/hotjar"/>
     <asset:link rel="icon" href="favicon.ico" type="image/x-ico"/>
 
+    <asset:stylesheet src="custom/obTheme.css"/>
+
     <g:layoutHead/>
 </head>
 <body class="d-flex flex-column">

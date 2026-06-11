@@ -1,0 +1,396 @@
+/* ============================================================
+   OpenBoxes — UNICEF Tajikistan Navy Theme (EyeSeeTea custom)
+
+   This ONE file is the entire theme, injected verbatim into every layout
+   head (react.gsp, custom.gsp, main.gsp). It reskins the real OpenBoxes UI:
+   structure matches the live app 1:1; only visual tokens change. The single
+   brand color (--ob-primary, navy) replaces OpenBoxes' default blue wherever
+   it appears: links, active nav, header icons, dropdown menus, steppers and
+   primary buttons. Semantic / chart colors are preserved.
+
+   Sections, in order:
+     1. Design tokens (palette) + base body/link color
+     2. The --blue-* / --color-* -> --ob-* bridge (recolors existing chrome)
+     3. The navy header + sidebar + dropdown overrides (React + GSP)
+     4. Groovy-page chrome: selectors (Chosen/Select2) + pagination
+     5. Groovy browse/list chrome: filter-panel header + results table header
+
+   To retheme, override only --ob-primary*.
+
+   DESIGN INTENT (moh.tj navy — reskin, not redesign):
+     - One brand color (--ob-primary navy) + neutrals. No secondary accent.
+     - Retheme tokens/colors ONLY. Do NOT change element positions, DOM order,
+       copy, or add imagery/logos to existing OB pages — match OB 1:1.
+     - KEEP semantic colors as-is: green = good/in-stock, red = critical/out,
+       amber = warning, blue = neutral/shipped, and all chart data series.
+       Never recolor those to the brand navy.
+
+   NOTE on React specificity: HeaderStyles.scss nests its rules under
+   `.main-wrapper {}`, so its `.main-wrapper .dropdown-menu-content …` rules
+   tie a plain `.main-wrapper …` override and win on source order (the bundle
+   loads after this <head> sheet). Every React header override below is
+   therefore anchored on `.navbar.main-wrapper` (one extra class) so it wins.
+   GSP uses `#main-wrapper` (an id) which always wins.
+   ============================================================ */
+
+:root {
+  /* Brand — navy replaces OB default blue */
+  --ob-primary: #1F4FA8;
+  --ob-primary-dark: #173E86;
+  --ob-primary-darker: #0F2C63;
+
+  /* Surfaces (match real OB greys) */
+  --ob-bg: #EDEEF0;
+
+  /* Ink */
+  --ob-ink: #2E2E2E;              /* OB body text is near-black grey */
+  --ob-muted: #777E89;
+
+  /* Semantic (kept as-is; bridged onto OB's --color-* in section 2) */
+  --ob-green: #6FA52A;            /* OB inventory bar green */
+  --ob-red: #D0021B;
+  --ob-amber: #E0A800;
+
+  /* Radius — OB is nearly square */
+  --ob-r: 3px;
+
+  /* Type */
+  --ob-font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+/* Base — color/type only. Intentionally does NOT reset body margin/padding or
+   set font-size/line-height (the design mock does, but on the live app those
+   would reflow existing OpenBoxes pages and break the "retheme, don't
+   redesign" rule). Base size & line-height stay inherited from OB/Bootstrap. */
+body {
+  font-family: var(--ob-font);
+  color: var(--ob-ink);
+  background: var(--ob-bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+a { color: var(--ob-primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+
+/* ============================================================
+   SECTION 2 — Bridge: map OpenBoxes' own brand CSS variables onto the
+   --ob-* tokens so existing React + GSP chrome recolors with NO upstream
+   stylesheet edits. The doubled :root (0,2,0) beats the React bundle's later
+   :root defaults regardless of source order.
+   ============================================================ */
+:root:root {
+  --blue-primary: var(--ob-primary);
+  --blue-500: var(--ob-primary);
+  --blue-700: var(--ob-primary-dark);
+  --blue-800: var(--ob-primary-darker);
+  --color-red: var(--ob-red);
+  --color-green: var(--ob-green);
+  --color-yellow: var(--ob-amber);
+  --page-background: var(--ob-bg);
+}
+html body { font-family: var(--ob-font); }
+
+
+/* ============================================================
+   SECTION 3 — Navy header + navy sidebar + light-grey nav dropdown
+   (moh.tj), on the real OpenBoxes classes. Pure override layer.
+   React anchor = `.navbar.main-wrapper` (beats HeaderStyles.scss's
+   `.main-wrapper …` rules on specificity); GSP anchor = `#main-wrapper`.
+   ============================================================ */
+
+/* --- Header bar: solid navy, subtle dark-navy bottom line --- */
+.navbar.main-wrapper,
+#main-wrapper.navbar {
+  background-color: var(--ob-primary) !important;
+  border-bottom: 1px solid var(--ob-primary-dark) !important;
+  color: #fff !important;
+}
+
+/* Top-level nav links → white (82% rest, full on hover). */
+.navbar.main-wrapper .nav-link,
+#main-wrapper .nav-link,
+.navbar.main-wrapper .nav-item > button,
+#main-wrapper .nav-item > button {
+  color: rgba(255, 255, 255, 0.82) !important;
+}
+.navbar.main-wrapper .nav-link:hover,
+#main-wrapper .nav-link:hover {
+  color: #fff !important;
+}
+
+/* Top-level nav item hover → clearly-visible white wash + white text
+   (beats HeaderStyles' blue-200/blue-700 hover). */
+.navbar.main-wrapper .navbar-nav > .nav-item:hover,
+#main-wrapper .navbar-nav > .nav-item:hover,
+.navbar.main-wrapper .navbar-nav > .dropdown.nav-item:hover,
+#main-wrapper .navbar-nav > .dropdown.nav-item:hover,
+.navbar.main-wrapper .collapse-nav-item > .nav-link:hover,
+#main-wrapper .collapse-nav-item > .nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.14) !important;
+  color: #fff !important;
+}
+
+/* Active section → faint white highlight + white underline + white label. */
+.navbar.main-wrapper .active-section,
+#main-wrapper .active-section {
+  background-color: rgba(255, 255, 255, 0.10) !important;
+  box-shadow: inset 0 -3px 0 #fff !important;
+}
+.navbar.main-wrapper .active-section .nav-link,
+#main-wrapper .active-section .nav-link {
+  color: #fff !important;
+}
+
+/* Warehouse pill → translucent white on navy. */
+.navbar.main-wrapper .location-chooser__button,
+#main-wrapper .location-chooser__button {
+  background-color: rgba(255, 255, 255, 0.10) !important;
+  border-color: rgba(255, 255, 255, 0.28) !important;
+}
+.navbar.main-wrapper .location-chooser__button:hover,
+#main-wrapper .location-chooser__button:hover {
+  background-color: rgba(255, 255, 255, 0.18) !important;
+}
+.navbar.main-wrapper .location-chooser__button-title,
+#main-wrapper .location-chooser__button-title {
+  color: #fff !important;
+}
+
+/* Right-side icon buttons (search / help / settings / profile). */
+.navbar.main-wrapper .navbar-icons .menu-icon,
+#main-wrapper .navbar-icons .menu-icon {
+  color: #fff;
+}
+.navbar.main-wrapper .navbar-icons .menu-icon:hover,
+#main-wrapper .navbar-icons .menu-icon:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* Mobile hamburger toggler. */
+.navbar.main-wrapper .navbar-toggler,
+#main-wrapper .navbar-toggler {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* --- Nav dropdown / megamenu (incl. settings & profile menus) → light-grey
+   panel, dark rows, white hover with navy text (moh.tj). Covers BOTH React
+   link classes: `.dropdown-item` (megamenu/profile) and
+   `.subsection-section-item` (settings/configuration), plus GSP markup. --- */
+.navbar.main-wrapper .dropdown-menu-content,
+#main-wrapper .dropdown-menu-content {
+  background-color: var(--ob-bg) !important;
+}
+.navbar.main-wrapper .dropdown-menu-content a,
+#main-wrapper .dropdown-menu-content a,
+.navbar.main-wrapper .dropdown-item,
+#main-wrapper .dropdown-item,
+.navbar.main-wrapper .subsection-section-item,
+#main-wrapper .subsection-section-item {
+  color: var(--ob-ink) !important;
+}
+.navbar.main-wrapper .dropdown-menu-content a:hover,
+#main-wrapper .dropdown-menu-content a:hover,
+.navbar.main-wrapper .dropdown-item:hover,
+#main-wrapper .dropdown-item:hover,
+.navbar.main-wrapper .subsection-section-item:hover,
+#main-wrapper .subsection-section-item:hover {
+  background-color: #fff !important;
+  color: var(--ob-primary) !important;
+}
+/* Dropdown section headings → muted grey (React + GSP). */
+.navbar.main-wrapper .subsection-section-title,
+#main-wrapper .subsection-section-title,
+.navbar.main-wrapper .subsection-title,
+#main-wrapper .subsection-title {
+  color: var(--ob-muted) !important;
+}
+
+/* --- Dashboard sidebar (React, .configs-left-nav) → solid navy; hover &
+   active items flip to a WHITE pill with navy text + navy icon (moh.tj). --- */
+.configs-left-nav {
+  background-color: var(--ob-primary) !important;
+  border-right: 1px solid var(--ob-primary-dark) !important;
+}
+.configs-left-nav .configs-list-item {
+  color: rgba(255, 255, 255, 0.82) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.configs-left-nav .configs-list-item button { color: inherit !important; }
+.configs-left-nav .configs-list-item:hover,
+.configs-left-nav .configs-list-item.active {
+  background-color: #fff !important;
+  color: var(--ob-primary) !important;
+}
+.configs-left-nav .configs-list-item.active { font-weight: 600; }
+.configs-left-nav .toggle-nav {
+  background: var(--ob-primary-dark) !important;
+  color: #fff !important;
+}
+.configs-left-nav.configs-left-nav .update-section { color: rgba(255, 255, 255, 0.82) !important; }
+.configs-left-nav .update-section .division-line { border-color: rgba(255, 255, 255, 0.14) !important; }
+.configs-left-nav .update-section button { color: var(--ob-primary) !important; }
+
+
+/* ============================================================
+   SECTION 4 — Groovy page chrome: selectors + pagination.
+   Recolors the Chosen/Select2 highlighted option to navy and the active
+   per-page indicator, so Groovy pages (e.g. Browse Inventory) match the
+   design's navy selector + table. Global + additive; no upstream edits.
+   ============================================================ */
+
+/* Chosen (chzn-select) dropdown — highlighted option → navy. */
+.chosen-container .chosen-results li.highlighted {
+  background-color: var(--ob-primary) !important;
+  background-image: none !important;
+  color: #fff !important;
+}
+.chosen-container .chosen-results li.result-selected {
+  color: var(--ob-primary);
+  font-weight: 600;
+}
+
+/* Select2 dropdown — highlighted option → navy (other Groovy selectors). */
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+  background-color: var(--ob-primary) !important;
+  color: #fff !important;
+}
+.select2-container--default .select2-results__option[aria-selected="true"] {
+  color: var(--ob-primary);
+  font-weight: 600;
+}
+
+/* Active per-page / pagination indicator → navy pill (Browse Inventory etc.). */
+.paginateButtons .currentStep,
+span.currentStep {
+  background-color: var(--ob-primary) !important;
+  color: #fff !important;
+  border: 1px solid var(--ob-primary) !important;
+  border-radius: var(--ob-r);
+  padding: 1px 7px;
+}
+
+
+/* ============================================================
+   SECTION 5 — Groovy browse/list page chrome (matches the design mock):
+   navy filter-panel header + navy results table header. Scoped to the
+   browse-page structures (`.filters` panel + the browse results table),
+   so edit/show/detail pages, their tables, and buttons stay untouched —
+   the mock keeps buttons grey and the "Showing N results" header plain.
+   Additive; no upstream edits. obTheme.css loads after openboxes.css so
+   these win on source order — !important guards against the more specific
+   gradient/colour rules in openboxes.css.
+   ============================================================ */
+
+/* --- Filter-panel header ("Search by product") → solid navy, white label.
+   Scoped to `.filters` so only the browse/list filter panel is recolored;
+   the results "Showing N results" header (.yui-u .box h2) stays grey. --- */
+.filters .box h2 {
+  background: var(--ob-primary) !important;
+  border-color: var(--ob-primary-dark) !important;
+  color: #fff !important;
+  text-shadow: none !important;
+}
+
+/* --- Browse results table header row → navy with white text + white sort
+   links. Scoped to the browse results table so other tables (edit/show
+   forms, transactions) keep their default grey header. --- */
+#inventoryBrowserTable thead th {
+  background-color: var(--ob-primary) !important;
+  color: #fff !important;
+  border-top: none !important;
+  border-bottom: 1px solid var(--ob-primary-dark) !important;
+}
+#inventoryBrowserTable thead th a:link,
+#inventoryBrowserTable thead th a:visited,
+#inventoryBrowserTable thead th a:hover {
+  color: #fff !important;
+}
+
+
+/* ============================================================
+   SECTION 6 — Stock card + linked Groovy page chrome.
+   Covers: stock card, record stock, edit product, view bin
+   location, and any other page using the stockCard/custom
+   layout with .box section headers and jQuery UI tabs.
+   Additive; no upstream edits.
+   ============================================================ */
+
+/* --- .box h2 section headers (Status / Details / Auditing /
+   Record Stock / Line Items / etc.) → solid navy, white text.
+   Applies across all custom-layout Groovy pages that use the
+   standard .box + h2 pattern. Overrides the grey gradient in
+   openboxes.css — !important + higher specificity needed. --- */
+.box h2 {
+  background: var(--ob-primary) !important;
+  background-image: none !important;
+  border-color: var(--ob-primary-dark) !important;
+  color: #fff !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+/* --- jQuery UI tabs (stock card right panel + product edit).
+   Active tab → navy text + navy bottom indicator.
+   Inactive tab → muted grey instead of the default #c0c0c0.
+   Overrides openboxes.css `.tabs .ui-state-active a {#459E00}`. */
+.tabs .ui-state-active a,
+.tabs.tabs-ui .ui-state-active a {
+  color: var(--ob-primary) !important;
+  font-weight: 600;
+}
+.tabs .ui-state-active,
+.tabs.tabs-ui .ui-state-active {
+  border-bottom: 2px solid var(--ob-primary) !important;
+}
+.tabs .ui-state-default a,
+.tabs.tabs-ui .ui-state-default a {
+  color: var(--ob-muted) !important;
+}
+.tabs .ui-state-default a:hover,
+.tabs.tabs-ui .ui-state-default a:hover {
+  color: var(--ob-primary) !important;
+}
+
+/* --- Stock card table headers (current stock, record stock
+   line items, stock history, etc.) → navy with white text.
+   Targets thead th inside .box so it only applies to content
+   tables, not to the page header/nav. --- */
+.box table thead th,
+.box table thead tr.odd th {
+  background-color: var(--ob-primary) !important;
+  background-image: none !important;
+  color: #fff !important;
+  border-top: none !important;
+  border-bottom: 1px solid var(--ob-primary-dark) !important;
+}
+.box table thead th a:link,
+.box table thead th a:visited,
+.box table thead th a:hover {
+  color: #fff !important;
+}
+
+
+/* ============================================================
+   SECTION 7 — React bundle button overrides.
+   The Webpack bundle CSS (bundle.*.css) loads in <body> after
+   this <head> stylesheet, so Bootstrap's compiled btn-outline-primary
+   (#007bff) wins on source order. !important is required to beat it.
+   ============================================================ */
+.btn-outline-primary {
+  color: var(--ob-primary) !important;
+  border-color: var(--ob-primary) !important;
+}
+.btn-outline-primary:hover,
+.btn-outline-primary:not(:disabled):not(.disabled):active,
+.btn-outline-primary:not(:disabled):not(.disabled).active {
+  background-color: var(--ob-primary) !important;
+  border-color: var(--ob-primary) !important;
+  color: #fff !important;
+}
+.btn-outline-primary:focus,
+.btn-outline-primary.focus {
+  box-shadow: 0 0 0 3px rgba(31, 79, 168, 0.3) !important;
+}

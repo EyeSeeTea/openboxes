@@ -41,6 +41,9 @@
     <link rel="stylesheet" href="${resource(dir:'css',file:'openboxes.css')}?v=${g.meta(name: 'app.version')}" type="text/css" media="all" />
     <link rel="stylesheet" href="${resource(dir:'css',file:'loading.css')}" type="text/css" media="all" />
 
+    <!-- EyeSeeTea custom theme (tokens + chrome recolor); see obTheme.css -->
+    <asset:stylesheet src="custom/obTheme.css"/>
+
     <!-- jquery validation messages -->
     <g:if test="${ session?.user?.locale && session?.user?.locale != 'en'}">
         <script src="${resource(dir:'js/jquery.validation/', file:'messages_'+ session?.user?.locale + '.js')}"  type="text/javascript" ></script>
