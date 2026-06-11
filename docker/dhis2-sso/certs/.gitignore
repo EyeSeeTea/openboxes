@@ -1,0 +1,3 @@
+# mkcert-issued certs are generated per-developer — never commit them.
+*
+!.gitignore

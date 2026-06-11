@@ -257,6 +257,12 @@ openboxes:
     #     iframe:
     #         frameAncestors: []       # e.g. ['https://dhis2.example.com']
 
+# Forwarded-proto: REQUIRED when embedding behind a TLS-terminating proxy, so OB
+# knows the request is HTTPS and stamps the SameSite=None session cookie Secure
+# (browsers reject SameSite=None without Secure). Root-level key, not under openboxes.
+# server:
+#     use-forward-headers: true
+
     # -------------------------------------------------------------------------
     # LDAP (optional — enable only for clients using corporate auth)
     # -------------------------------------------------------------------------
