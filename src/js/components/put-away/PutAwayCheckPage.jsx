@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 
-import SupportingDocumentsPanel from 'custom/stockTransferDocuments/components/SupportingDocumentsPanel';
+import SupportingDocumentsPanel from 'custom/supportingDocuments/components/SupportingDocumentsPanel';
 import _ from 'lodash';
 import PropTypes from 'prop-types';
 import { confirmAlert } from 'react-confirm-alert';

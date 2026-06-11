@@ -8,7 +8,7 @@ import Button from 'components/form-elements/Button';
 import { PRODUCT_URL } from 'consts/applicationUrls';
 import Translate from 'utils/Translate';
 
-export const ProductsListHeader = ({ isUserAdmin, customRolePermissions }) => {
+export const ProductsListHeaderComponent = ({ isUserAdmin, customRolePermissions }) => {
   const permissions = getCustomRolePermissions({ customRolePermissions });
   return (
     <div className="d-flex list-page-header">
@@ -42,9 +42,9 @@ const mapStateToProps = (state) => ({
   customRolePermissions: state.session.customRolePermissions,
 });
 
-export default connect(mapStateToProps)(ProductsListHeader);
+export default connect(mapStateToProps)(ProductsListHeaderComponent);
 
-ProductsListHeader.propTypes = {
+ProductsListHeaderComponent.propTypes = {
   isUserAdmin: PropTypes.bool.isRequired,
   customRolePermissions: PropTypes.shape({
     activeCustomRolePolicy: PropTypes.string,
@@ -52,6 +52,6 @@ ProductsListHeader.propTypes = {
   }),
 };
 
-ProductsListHeader.defaultProps = {
+ProductsListHeaderComponent.defaultProps = {
   customRolePermissions: undefined,
 };

@@ -6,14 +6,14 @@ import {
   buildDocumentsUrl,
   fetchDocuments,
   uploadDocument,
-} from 'custom/stockTransferDocuments/utils/api';
-import M from 'custom/stockTransferDocuments/utils/messages';
+} from 'custom/supportingDocuments/utils/api';
+import M from 'custom/supportingDocuments/utils/messages';
 import PropTypes from 'prop-types';
 import Dropzone from 'react-dropzone';
 
 import Translate from 'utils/Translate';
 
-import 'custom/stockTransferDocuments/components/SupportingDocumentsPanel.scss';
+import 'custom/supportingDocuments/components/SupportingDocumentsPanel.scss';
 
 const BLOCK = 'custom-supporting-documents';
 
