@@ -8,19 +8,23 @@ which would prevent it being sent on cross-site requests inside an iframe
 even if the framing were allowed.
 
 This change owns the response-header, cookie, and forwarded-proto changes
-needed to make iframe embedding work, plus a local TLS dev stack to test the
-flow end-to-end without a public domain. It is independent of how users log
-in — it makes embedding possible whether the user authenticates via DHIS2
-SSO (see `dhis2-oauth-core`) or local username/password.
+needed to make iframe embedding work, a local TLS dev stack to test the flow
+end-to-end without a public domain, AND the in-frame SSO behavior that makes
+the embedded experience seamless: a DHIS2-authenticated user opening an
+embedded OB screen should land authenticated without a second login.
 
-**This change depends on `dhis2-oauth-spike` being archived first** —
-`design.md` Decisions reference its `validation/` artifacts, especially the
-embedded-Tomcat version and `Rfc6265CookieProcessor.sameSiteCookies`
-availability.
+The header/cookie/proxy plumbing is independent of how users log in. The
+seamless in-frame SSO, however, builds on the DHIS2 OAuth flow
+(`dhis2-oauth-core` / v42) — it is the OAuth flow run silently inside the
+frame. This change therefore branches from and depends on the DHIS2 OAuth
+work.
 
-`dhis2-oauth-core` is NOT a hard prerequisite for the code in this change.
-The dev stack here pairs naturally with SSO for E2E testing, but the
-header/cookie work stands on its own.
+**This change also depends on `dhis2-oauth-spike` being archived** —
+`design.md` Decisions reference its `validation/` artifacts (embedded-Tomcat
+version, `Rfc6265CookieProcessor.sameSiteCookies` availability). The silent-SSO
+design is grounded in `validation/prompt-none.md` (source-level confirmation
+that DHIS2 v42 / Spring Authorization Server honors OIDC `prompt=none`, and
+that legacy v40 / UAA does not).
 
 ## What Changes
 
@@ -35,10 +39,22 @@ header/cookie work stands on its own.
   terminating TLS in front of `dhis2` and `openboxes` containers, mkcert-issued
   certs, `*.localtest.me` hostnames so the OAuth + iframe flow can be tested
   faithfully without a public domain.
+- **Seamless in-frame SSO (v42):** when embedding is enabled and an
+  unauthenticated request arrives, OB silently runs the OAuth Authorization
+  Code flow with OIDC `prompt=none`. If the user has a live DHIS2 session (and
+  the OB client skips consent), OB establishes a session with zero UI. If DHIS2
+  returns `login_required` / `consent_required`, OB breaks out of the frame for
+  a one-time interactive login rather than rendering DHIS2's login page inside
+  the frame (which DHIS2's own `X-Frame-Options` would block).
+- **v40 fallback (login-once-in-frame):** legacy UAA does not support
+  `prompt=none` (`validation/prompt-none.md`), so v40 embedded users log in
+  once inside the frame (DHIS2 SSO button or local credentials); the
+  `SameSite=None` session cookie then keeps them authenticated on later loads.
 
-Out of scope: OAuth/SSO flow itself (see `dhis2-oauth-core`), deep-linking from
-DHIS2 dashboard items into specific OB screens, iframe-aware re-auth handling
-when access tokens expire.
+Out of scope: deep-linking from DHIS2 dashboard items into specific OB screens;
+seamless re-entry into the *same* dashboard after a break-out interactive login
+(the user returns via the DHIS2 dashboard, at which point the frame loads
+silently); iframe-aware re-auth handling when access tokens expire.
 
 ## Capabilities
 
@@ -49,13 +65,20 @@ when access tokens expire.
   faithful local OAuth/iframe testing.
 
 ### Modified Capabilities
-<!-- None — upstream login/session flow is preserved when the feature is off. -->
+- `dhis2-auth`: adds embedded silent authentication — when OB is framed and
+  embedding is enabled, the v42 OAuth flow runs with `prompt=none` and breaks
+  out of the frame on `login_required`/`consent_required`; v40 falls back to
+  in-frame login. The non-embedded (top-level) login flow is unchanged.
 
 ## Impact
 
 - **New custom backend code** under `org.pih.warehouse.custom.dhis2auth.iframe`
   (or a sibling package — same custom isolation rules): CSP filter, cookie
   rewrite filter (if needed per spike), forwarded-headers config.
+- **Custom backend edits (this fork's own files, not upstream)** under
+  `org.pih.warehouse.custom.dhis2auth`: `Dhis2OAuthService` gains an optional
+  `prompt` on the authorize URL; the controller/interceptor gains the
+  embedded-silent-redirect + loop-guard + break-out-on-error handling.
 - **Upstream touch points**:
   - `grails-app/conf/application.yml` — config keys for
     `iframe.frameAncestors` and forwarded-headers, with defaults that preserve

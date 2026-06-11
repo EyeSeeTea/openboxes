@@ -41,9 +41,18 @@ surgical edits to upstream files), JDK 8 / Groovy 2.4 / Grails 3.3 floors.
 - Local TLS dev stack so developers can exercise the iframe flow against a
   real DHIS2 instance without owning a public domain.
 
+**Goals (added for silent SSO):**
+- A DHIS2-authenticated user opening an embedded OB screen lands authenticated
+  with no second login, on the `v42` profile (silent `prompt=none` flow).
+- `v40` embedded users degrade gracefully to a one-time in-frame login.
+
 **Non-Goals:**
-- The OAuth/SSO flow itself (see `dhis2-oauth-core`).
+- The base OAuth/SSO flow itself (owned by `dhis2-oauth-core` / v42; this change
+  only adds the *embedded* silent variant on top of it).
 - Deep-linking from DHIS2 dashboard items into OB screens.
+- Seamless re-entry into the originating DHIS2 dashboard after a break-out
+  interactive login — the user returns via the DHIS2 dashboard, at which point
+  the frame loads silently. (No automatic frame re-entry in v1.)
 - Iframe-aware re-auth handling when DHIS2 access tokens expire (out of v1
   scope across all three changes; mitigation: configure long-lived DHIS2
   tokens).
@@ -113,6 +122,49 @@ The compose file in this change supersedes the spike's
 change lands, the spike's file can be deleted as part of `dhis2-oauth-spike`
 archival.
 
+### D5: In-frame silent SSO (v42) with break-out on interactive login
+
+Grounded in `validation/prompt-none.md`: DHIS2 v42 (Spring Authorization Server
+1.5.x) honors OIDC `prompt=none`; legacy v40/UAA does not.
+
+**v42 silent flow.** When embedding is enabled and an unauthenticated request
+arrives, the custom login redirect (the existing `dhis2auth` interceptor /
+controller path, not upstream) sends the user to the DHIS2 authorize endpoint
+with `prompt=none` added to the normal PKCE + `scope=openid username` request.
+`Dhis2OAuthService.buildAuthorizeUrl` gains an optional `prompt` argument; no
+other OAuth code changes. On a live DHIS2 session with consent already granted,
+DHIS2 returns a `code` and the existing callback establishes the session — zero
+UI.
+
+**Error handling = break out of the frame.** DHIS2 returns `prompt=none`
+failures as `error=login_required` / `consent_required` / `interaction_required`
+on the redirect back to OB's callback. OB must NOT respond by redirecting the
+*frame* to DHIS2's interactive login — DHIS2 serves its own `X-Frame-Options`,
+so that would render blank. Instead the callback returns a minimal break-out
+page whose script sets `window.top.location` to the interactive authorize URL
+(same request, `prompt` omitted). DHIS2's login then renders top-level; after
+login the OB session cookie (`SameSite=None; Secure`) is set, and the user
+returns to the DHIS2 dashboard, where the frame now loads silently.
+
+**Loop guard.** A persistent `login_required` must not bounce authorize↔callback
+forever. A one-shot marker (a short-lived session flag or a `silent=tried`
+query param echoed through `state`) ensures at most one `prompt=none` attempt
+per navigation before falling through to the break-out.
+
+**Detecting "embedded".** OB cannot see framing server-side. We treat embedding
+as active when `iframe.frameAncestors` is non-empty; that config is the single
+switch. (The break-out page additionally guards with `window.top === window.self`
+on the client so a top-level visit never breaks itself out.)
+
+**Consent prerequisite (v42).** For true zero-click, the OB OAuth client in
+DHIS2 must be registered with `requireAuthorizationConsent=false` (DHIS2
+defaults it to `true` — `validation/prompt-none.md`). Otherwise the first
+embedded visit per user breaks out once for consent, then is silent thereafter.
+
+**v40.** No `prompt=none` path. The interceptor makes no silent attempt for
+profile `v40`; the user logs in once inside the frame and the `SameSite=None`
+cookie carries the session forward.
+
 ## Risks / Trade-offs
 
 - **`SameSite=None` cookie rewriting** depends on the `Set-Cookie` header
@@ -130,6 +182,21 @@ archival.
   the re-auth bounce may break out of the iframe when tokens expire.
   Mitigation: configure long-lived DHIS2 access tokens, or accept the
   re-auth bounce in v1. Document in the README.
+- **Third-party cookies block silent SSO (D5).** The OB session cookie is
+  third-party relative to the DHIS2 host page. `SameSite=None; Secure` (D2)
+  covers browsers that still permit third-party cookies, but Chrome's
+  third-party-cookie phase-out can block the in-frame session entirely —
+  silent `prompt=none` would succeed yet the resulting cookie would not be
+  sent on the next embedded request. Mitigations, in order of preference:
+  (a) deploy OB and DHIS2 under a shared parent domain so the cookie is
+  first-party; (b) `Partitioned` cookies (CHIPS) once viable on the target
+  Tomcat/browser matrix; (c) accept that fully-blocked browsers fall back to
+  the in-frame login. This is environment-dependent — confirm against the
+  customer's actual browser + domain topology during the live test.
+- **`prompt=none` behavior is library-confirmed but not yet live-verified.**
+  `validation/prompt-none.md` flags spring-security #18647 (a 7.x regression
+  that should not affect the 6.5.x line DHIS2 2.42 ships). The three-case
+  manual test must pass on the target DHIS2 before relying on D5.
 
 ## Migration Plan
 
@@ -156,6 +223,14 @@ pulls should be expected here:
   `X-Frame-Options` from a source in-repo, neutralize it there so the new
   CSP filter is the single source of truth. Pre-audit grep found no such
   source — this touch point likely drops to zero.
+
+The silent-SSO work (D5) touches **only this fork's own custom files** — no
+new upstream touch points:
+- `org.pih.warehouse.custom.dhis2auth.Dhis2OAuthService` — optional `prompt`
+  on the authorize URL.
+- The `dhis2auth` login interceptor / `Dhis2OAuthController` callback —
+  embedded silent redirect, one-shot loop guard, and the break-out-on-error
+  response.
 
 Everything else lives under the new custom package and `docker/dhis2-sso/`.
 

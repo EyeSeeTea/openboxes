@@ -73,15 +73,57 @@ the dev stack with SSO is what end-to-end testing looks like.
 - [ ] **4.6** Delete `docker/dhis2-sso/docker-compose.spike.yml` (left over
       from `dhis2-oauth-spike`) now that the full compose file supersedes it.
 
-## Phase 5 — Tests, docs, archive
+## Phase 5 — Embedded silent SSO (v42) + v40 fallback
 
-- [ ] **5.1** All Spock tests green: `./gradlew test`.
-- [ ] **5.2** Frontend untouched. Run `npm test` to confirm no regressions.
-- [ ] **5.3** Update top-level `README.md` only if user-facing behavior is
+Grounded in `validation/prompt-none.md` and Decision D5. All edits are to this
+fork's own `org.pih.warehouse.custom.dhis2auth` files — no new upstream
+touch points.
+
+- [ ] **5.1** Add an optional `prompt` argument to
+      `Dhis2OAuthService.buildAuthorizeUrl` / `prepareAuthorize` (v42 only;
+      appends `&prompt=none` when requested). No other OAuth code changes.
+- [ ] **5.2** In the `dhis2auth` login redirect path (custom interceptor /
+      controller), when `iframe.frameAncestors` is non-empty AND
+      `profile = v42` AND the request is unauthenticated AND no silent attempt
+      has been made for this navigation: redirect to authorize with
+      `prompt=none`. Set a one-shot loop guard (session flag or `state`-echoed
+      marker).
+- [ ] **5.3** Callback: detect OIDC error responses
+      (`login_required` / `consent_required` / `interaction_required`) and
+      return a minimal break-out page that sets `window.top.location` to the
+      interactive authorize URL (no `prompt=none`); guard with
+      `window.top === window.self` so a top-level hit never breaks itself out.
+- [ ] **5.4** v40: ensure NO silent attempt is made (profile guard); confirm
+      the in-frame OB login renders and works under the CSP + `SameSite=None`
+      cookie from Phases 1–2.
+- [ ] **5.5** Spock tests:
+      - v42 + embedded + unauthenticated → authorize URL includes
+        `prompt=none` (and still PKCE + `scope=openid username`)
+      - loop guard → second attempt does NOT re-issue `prompt=none`
+      - callback with `error=login_required` → break-out response
+        (top-level navigation), not an in-frame redirect to DHIS2 login
+      - v40 + embedded → NO `prompt=none`
+      - embedding disabled → flow identical to base (no `prompt`, no break-out)
+- [ ] **5.6** Document the consent prerequisite: register the OB OAuth client
+      in DHIS2 with `requireAuthorizationConsent=false` for zero-click silent
+      auth. Add to `docker/dhis2-sso/README.md`, citing
+      `validation/prompt-none.md`.
+- [ ] **5.7** **LIVE (manual, needs real DHIS2 v42):** run the three-case
+      `prompt=none` test from `validation/prompt-none.md` (no session →
+      `login_required`; session, not consented → `consent_required`; session +
+      consented → silent `code`). Capture the redirect `Location` results into
+      `validation/`. Also confirm the session cookie survives in-frame in the
+      target browser (third-party-cookie check, Risk D5).
+
+## Phase 6 — Tests, docs, archive
+
+- [ ] **6.1** All Spock tests green: `./gradlew test`.
+- [ ] **6.2** Frontend untouched. Run `npm test` to confirm no regressions.
+- [ ] **6.3** Update top-level `README.md` only if user-facing behavior is
       enabled by default (it isn't — skip unless we decide to enable it on a
       specific customer branch).
-- [ ] **5.4** Update PR description on the open PR (if any) to reflect final
+- [ ] **6.4** Update PR description on the open PR (if any) to reflect final
       shape.
-- [ ] **5.5** OpenSpec archive: ensure `design.md` "Upstream touch points"
+- [ ] **6.5** OpenSpec archive: ensure `design.md` "Upstream touch points"
       lists every modified upstream file; add "Deploy status" line; run
       `/opsx:archive`.
