@@ -25,7 +25,9 @@ class Dhis2OAuthController {
         String state = UUID.randomUUID().toString()
         session.dhis2OAuthState = state
 
-        redirect(url: dhis2OAuthService.buildAuthorizeUrl(state))
+        Dhis2OAuthService.AuthorizeRequest authRequest = dhis2OAuthService.prepareAuthorize(state)
+        session.dhis2OAuthCodeVerifier = authRequest.codeVerifier
+        redirect(url: authRequest.url)
     }
 
     def callback() {
@@ -43,18 +45,22 @@ class Dhis2OAuthController {
             return
         }
         session.dhis2OAuthState = null
+        String codeVerifier = session.dhis2OAuthCodeVerifier
+        session.dhis2OAuthCodeVerifier = null
 
         try {
-            AccessToken token = dhis2OAuthService.exchangeCode(code)
-            Dhis2User dhis2User = dhis2OAuthService.fetchMe(token.accessToken)
+            AccessToken token = dhis2OAuthService.exchangeCode(code, codeVerifier)
+            Dhis2User dhis2User = dhis2OAuthService.resolveIdentity(token)
             User user = dhis2RegistrationService.findOrRegister(dhis2User)
 
             if (user.active) {
                 dhis2SessionService.establishSession(user, session)
-                if (session.targetUri) {
-                    String uri = session.targetUri
-                    session.targetUri = null
-                    redirect(uri: uri)
+                String targetUri = session.targetUri
+                session.targetUri = null
+                // Reason: only follow local paths so a pre-seeded targetUri can't open-redirect off-domain
+                // post-login. Reject '//' and '\' since browsers normalise backslashes to '/' (protocol-relative bypass).
+                if (targetUri && targetUri.startsWith('/') && !targetUri.startsWith('//') && !targetUri.contains('\\')) {
+                    redirect(uri: targetUri)
                 } else {
                     redirect(controller: 'dashboard', action: 'index')
                 }
