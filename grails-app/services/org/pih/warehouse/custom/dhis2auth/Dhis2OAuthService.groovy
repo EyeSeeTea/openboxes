@@ -75,7 +75,8 @@ class Dhis2OAuthService {
             "&scope=${encode(scopes)}" +
             "&state=${encode(state)}"
         if (v42 && codeChallenge) {
-            url += "&code_challenge=${encode(codeChallenge)}&code_challenge_method=${CODE_CHALLENGE_METHOD}"
+            // codeChallenge is base64url-no-pad ([A-Za-z0-9_-]) — already URL-safe, no encoding needed
+            url += "&code_challenge=${codeChallenge}&code_challenge_method=${CODE_CHALLENGE_METHOD}"
         }
         url
     }

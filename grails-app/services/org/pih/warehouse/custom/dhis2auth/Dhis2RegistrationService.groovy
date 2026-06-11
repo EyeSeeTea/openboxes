@@ -38,8 +38,10 @@ class Dhis2RegistrationService {
     private User reactivateTombstonedLink(Dhis2UserLink link, Dhis2User dhis2User) {
         link.deactivatedAt = null
         link.lastLoginAt = new Date()
-        link.user.active = false
-        link.user.save(flush: true, failOnError: true)
+        if (link.user.active) {
+            link.user.active = false
+            link.user.save(flush: true, failOnError: true)
+        }
         link.save(flush: true, failOnError: true)
         log.warn "dhis2_username_link_pending_recheck username=${dhis2User.username} userId=${link.user.id}"
         link.user

@@ -98,7 +98,9 @@ class Dhis2RegistrationServiceSpec extends Specification
     void "v42 returning user is linked by username without creating a duplicate"() {
         given:
         User user = savedUser('grace', 'Grace', '(DHIS2)', 'g@x.com')
-        new Dhis2UserLink(user: user, dhis2Uid: null, dhis2Username: 'grace').save(flush: true, failOnError: true)
+        Date staleLogin = new Date(0)
+        new Dhis2UserLink(user: user, dhis2Uid: null, dhis2Username: 'grace', lastLoginAt: staleLogin)
+            .save(flush: true, failOnError: true)
 
         when:
         User result = service.findOrRegister(new Dhis2User(uid: null, username: 'grace'))
@@ -107,6 +109,7 @@ class Dhis2RegistrationServiceSpec extends Specification
         result.id == user.id
         Dhis2UserLink.countByDhis2Username('grace') == 1
         User.countByUsername('grace') == 1
+        Dhis2UserLink.findByDhis2Username('grace').lastLoginAt > staleLogin
     }
 
     void "v42 login on a tombstoned link forces re-approval (inactive, tombstone cleared)"() {
