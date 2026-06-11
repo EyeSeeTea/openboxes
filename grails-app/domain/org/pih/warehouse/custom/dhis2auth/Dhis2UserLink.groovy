@@ -9,6 +9,7 @@ class Dhis2UserLink implements Serializable {
     String dhis2Uid
     String dhis2Username
     Date lastLoginAt
+    Date deactivatedAt
     Date dateCreated
     Date lastUpdated
 
@@ -19,14 +20,18 @@ class Dhis2UserLink implements Serializable {
         dhis2Uid column: 'dhis2_uid'
         dhis2Username column: 'dhis2_username'
         lastLoginAt column: 'last_login_at'
+        deactivatedAt column: 'deactivated_at'
         dateCreated column: 'created_at'
         lastUpdated column: 'updated_at'
     }
 
     static constraints = {
         user unique: true
-        dhis2Uid unique: true, blank: false, size: 11..11
-        dhis2Username nullable: true, maxSize: 255
+        // v42 links have no DHIS2 UID (identity is the username); v40/v41 links carry the 11-char UID.
+        // nullable allows the v42 (no-UID) case; blank rejects an empty-string UID.
+        dhis2Uid nullable: true, unique: true, blank: false, size: 11..11
+        dhis2Username unique: true, nullable: false, blank: false, maxSize: 255
         lastLoginAt nullable: true
+        deactivatedAt nullable: true
     }
 }
