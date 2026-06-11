@@ -95,6 +95,40 @@ class Dhis2OAuthServiceSpec extends Specification implements ServiceUnitTest<Dhi
         !url.contains('code_challenge')
     }
 
+    void "v42 buildAuthorizeUrl appends prompt=none only when silent is requested"() {
+        given:
+        configureClient('https://dhis2.example.com/oauth2/authorize')
+        grailsApplication.config.openboxes.custom.dhis2.oauth.profile = 'v42'
+
+        expect:
+        service.buildAuthorizeUrl('s', RFC7636_CHALLENGE, true).endsWith('&prompt=none')
+        !service.buildAuthorizeUrl('s', RFC7636_CHALLENGE, false).contains('prompt')
+    }
+
+    void "v40 buildAuthorizeUrl never appends prompt=none even when silent is requested"() {
+        given:
+        configureClient('https://dhis2.example.com/uaa/oauth/authorize')
+        grailsApplication.config.openboxes.custom.dhis2.oauth.profile = 'v40'
+
+        expect:
+        !service.buildAuthorizeUrl('s', RFC7636_CHALLENGE, true).contains('prompt')
+    }
+
+    @Unroll
+    void "isSilentAuthSupported is #expected for profile=#profile"() {
+        given:
+        grailsApplication.config.openboxes.custom.dhis2.oauth.profile = profile
+
+        expect:
+        service.isSilentAuthSupported() == expected
+
+        where:
+        profile || expected
+        'v42'    || true
+        'v40'    || false
+        null     || false
+    }
+
     void "codeChallengeFor matches the RFC 7636 appendix-B test vector"() {
         expect:
         service.codeChallengeFor(RFC7636_VERIFIER) == RFC7636_CHALLENGE

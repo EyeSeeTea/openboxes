@@ -10,6 +10,10 @@ class Dhis2OAuthController {
 
     static allowedMethods = [initiate: 'GET', callback: 'GET', pending: 'GET']
 
+    // OIDC errors a prompt=none attempt returns when interactive login/consent is needed.
+    private static final List<String> SILENT_INTERACTION_ERRORS =
+        ['login_required', 'consent_required', 'interaction_required']
+
     GrailsApplication grailsApplication
     Dhis2OAuthService dhis2OAuthService
     Dhis2RegistrationService dhis2RegistrationService
@@ -25,7 +29,13 @@ class Dhis2OAuthController {
         String state = UUID.randomUUID().toString()
         session.dhis2OAuthState = state
 
-        Dhis2OAuthService.AuthorizeRequest authRequest = dhis2OAuthService.prepareAuthorize(state)
+        // Embedded entry point (iframe src = .../initiate?embedded=true) attempts silent SSO on v42.
+        boolean silent = params.boolean('embedded') && iframeEmbeddingEnabled && dhis2OAuthService.silentAuthSupported
+        session.dhis2OAuthSilent = silent
+
+        Dhis2OAuthService.AuthorizeRequest authRequest = silent ?
+            dhis2OAuthService.prepareAuthorize(state, true) :
+            dhis2OAuthService.prepareAuthorize(state)
         session.dhis2OAuthCodeVerifier = authRequest.codeVerifier
         redirect(url: authRequest.url)
     }
@@ -33,20 +43,37 @@ class Dhis2OAuthController {
     def callback() {
         String code = params.code
         String state = params.state
+        String error = params.error
 
-        if (!code || !state) {
-            response.status = 400
-            render "Bad request: missing code or state"
-            return
-        }
-        if (state != session.dhis2OAuthState) {
+        if (!state || state != session.dhis2OAuthState) {
             response.status = 400
             render "Bad request: state mismatch"
             return
         }
+        boolean wasSilent = session.dhis2OAuthSilent as boolean
         session.dhis2OAuthState = null
+        session.dhis2OAuthSilent = null
         String codeVerifier = session.dhis2OAuthCodeVerifier
         session.dhis2OAuthCodeVerifier = null
+
+        if (error) {
+            // A silent prompt=none attempt that needs interaction: break out of the iframe to a
+            // top-level interactive login (the break-out page omits prompt=none, so no loop).
+            if (wasSilent && SILENT_INTERACTION_ERRORS.contains(error)) {
+                render(view: '/custom/dhis2auth/breakout')
+                return
+            }
+            log.warn "dhis2_oauth_authorize_error error=${error}"
+            flash.message = "DHIS2 login failed. Please try again or contact an administrator."
+            redirect(controller: 'auth', action: 'login')
+            return
+        }
+
+        if (!code) {
+            response.status = 400
+            render "Bad request: missing code"
+            return
+        }
 
         try {
             AccessToken token = dhis2OAuthService.exchangeCode(code, codeVerifier)
@@ -81,5 +108,10 @@ class Dhis2OAuthController {
 
     private boolean isOauthEnabled() {
         grailsApplication.config.openboxes.custom.dhis2.oauth.enabled as boolean
+    }
+
+    private boolean isIframeEmbeddingEnabled() {
+        List ancestors = (grailsApplication.config.openboxes.custom.iframe.frameAncestors ?: []) as List
+        ancestors as boolean
     }
 }

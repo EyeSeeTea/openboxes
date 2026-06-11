@@ -36,6 +36,7 @@ class Dhis2OAuthService {
     private static final String DEFAULT_SCOPES_V40 = 'ALL'
     private static final String DEFAULT_SCOPES_V42 = 'openid username'
     private static final String CODE_CHALLENGE_METHOD = 'S256'
+    private static final String PROMPT_NONE = 'none'
     private static final int PKCE_VERIFIER_BYTES = 32
     private static final int HTTP_OK = 200
 
@@ -59,13 +60,18 @@ class Dhis2OAuthService {
         connectionManager?.close()
     }
 
-    AuthorizeRequest prepareAuthorize(String state) {
+    AuthorizeRequest prepareAuthorize(String state, boolean silent = false) {
         String codeVerifier = isV42() ? generateCodeVerifier() : null
         String challenge = codeVerifier ? codeChallengeFor(codeVerifier) : null
-        new AuthorizeRequest(url: buildAuthorizeUrl(state, challenge), codeVerifier: codeVerifier)
+        new AuthorizeRequest(url: buildAuthorizeUrl(state, challenge, silent), codeVerifier: codeVerifier)
     }
 
-    String buildAuthorizeUrl(String state, String codeChallenge = null) {
+    // Reason: only v42 (OIDC) honours prompt=none; v40/UAA ignores it, so silent is a no-op there.
+    boolean isSilentAuthSupported() {
+        isV42()
+    }
+
+    String buildAuthorizeUrl(String state, String codeChallenge = null, boolean silent = false) {
         boolean v42 = isV42()
         String defaultScopes = v42 ? DEFAULT_SCOPES_V42 : DEFAULT_SCOPES_V40
         String scopes = config.scopes ?: defaultScopes
@@ -77,6 +83,9 @@ class Dhis2OAuthService {
         if (v42 && codeChallenge) {
             // codeChallenge is base64url-no-pad ([A-Za-z0-9_-]) — already URL-safe, no encoding needed
             url += "&code_challenge=${codeChallenge}&code_challenge_method=${CODE_CHALLENGE_METHOD}"
+        }
+        if (v42 && silent) {
+            url += "&prompt=${PROMPT_NONE}"
         }
         url
     }
