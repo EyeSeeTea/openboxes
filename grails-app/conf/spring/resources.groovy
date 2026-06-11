@@ -23,7 +23,9 @@ beans = {
     productValidator(ProductValidator)
 
     // Custom: DHIS2 iframe embedding — emit CSP frame-ancestors, suppress X-Frame-Options.
-    cspFrameAncestorsFilter(CspFrameAncestorsFilter)
+    cspFrameAncestorsFilter(CspFrameAncestorsFilter) {
+        grailsApplication = ref('grailsApplication')
+    }
     cspFrameAncestorsFilterRegistration(FilterRegistrationBean) {
         filter = cspFrameAncestorsFilter
         urlPatterns = ['/*']
@@ -31,5 +33,9 @@ beans = {
     }
 
     // Custom: DHIS2 iframe embedding — SameSite=None session cookie when embedding is enabled.
-    iframeCookieCustomizer(IframeCookieCustomizer)
+    // grailsApplication must be wired explicitly: resources.groovy DSL beans are not
+    // autowired by name, and this customizer runs at container-creation time (very early).
+    iframeCookieCustomizer(IframeCookieCustomizer) {
+        grailsApplication = ref('grailsApplication')
+    }
 }
