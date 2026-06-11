@@ -42,10 +42,35 @@ keeps the user logged in on later loads).
   silently ignored: no session → login page (not `login_required`); no
   DHIS2-exposed `autoApprove` on the `OAuth2Client` domain.
 
-## Open item — confirm live (cannot be settled from source)
+## Live confirmation — CONFIRMED ✓
 
-Spring-security #18647 reports a `prompt=none` regression in spring-security
-**7.x**; DHIS2 2.42 is on the **6.5.x / SAS 1.5.x** line, so it should not
-apply — but verify the actual `login_required` / silent-`code` redirects on the
-target DHIS2 instance before committing to the silent-SSO design. See the
-three-case manual test (no session / session-not-consented / session-consented).
+Tested 2026-06-11 against a live DHIS2 **2.42.4.1** instance (Spring
+Authorization Server). Client `openboxes-dev`: `scopes=openid,username`,
+`require-authorization-consent=true`, `require-proof-key=false`,
+`redirectUris=http://localhost:8080/openboxes/oauth/dhis2/callback`.
+
+Authorize request: `response_type=code`, `prompt=none`, PKCE `S256`,
+`scope=openid username`.
+
+| Case | Setup | Result (`Location`) |
+|---|---|---|
+| A — no session | unauthenticated request | `…/callback?error=login_required&error_description=OAuth 2.0 Parameter: prompt&state=test123` ✓ |
+| C — live session | session via `POST /api/auth/login` | `…/callback?code=rJ-Pk_6W…&state=test123` — **silent code, no UI** ✓ |
+
+Notes:
+- `prompt=none` is honored: no session yields the OIDC `login_required` error
+  redirect (not a rendered login page) — exactly what the break-out flow (D5)
+  keys off.
+- With a live session the authorize endpoint returned an authorization `code`
+  with zero UI. Consent did not block because the admin user had already
+  consented for this client; a never-consented user with
+  `require-authorization-consent=true` would get `error=consent_required` until
+  consent is recorded or the client is set to `false`.
+- HTTP Basic auth on the authorize request does NOT establish a SAS session
+  (returned `login_required`) — only a real login-session cookie counts.
+- Token exchange was not exercised (plaintext client secret not on hand); the
+  silent `code` issuance is sufficient to confirm the flow.
+- spring-security #18647 (a `prompt=none` regression on the **7.x** line) does
+  NOT manifest here — DHIS2 2.42.4.1 is on the 6.5.x / SAS 1.5.x line.
+
+**Verdict: silent SSO is viable on v42 — Phase 5 is safe to implement.**
