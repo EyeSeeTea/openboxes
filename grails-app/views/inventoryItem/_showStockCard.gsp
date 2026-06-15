@@ -85,17 +85,21 @@
 <g:elseif test="${commandInstance?.inventoryLevel?.status == InventoryStatus.NOT_SUPPORTED }">
 	<div class="padded center box">
 		<h4 class="fade"><g:message code="enum.InventoryStatus.NOT_SUPPORTED"/></h4>
-		<g:link controller="product" action="edit" params="['id': commandInstance?.product?.id]">
-			<warehouse:message code="product.edit.label"/>
-		</g:link>
+		<g:canManageProducts>
+			<g:link controller="product" action="edit" params="['id': commandInstance?.product?.id]">
+				<warehouse:message code="product.edit.label"/>
+			</g:link>
+		</g:canManageProducts>
 	</div>
 </g:elseif>
 <g:elseif test="${commandInstance?.inventoryLevel?.status == InventoryStatus.SUPPORTED_NON_INVENTORY }">
 	<div class="padded center box">
 		<h4 class="fade"><g:message code="enum.InventoryStatus.SUPPORTED_NON_INVENTORY"/></h4>
-		<g:link controller="product" action="edit" params="['id': commandInstance?.product?.id]">
-			<warehouse:message code="product.edit.label"/>
-		</g:link>
+		<g:canManageProducts>
+			<g:link controller="product" action="edit" params="['id': commandInstance?.product?.id]">
+				<warehouse:message code="product.edit.label"/>
+			</g:link>
+		</g:canManageProducts>
 	</div>
 </g:elseif>
 <script>

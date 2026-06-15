@@ -47,7 +47,8 @@ class CustomRolePolicyService {
 
     private static final Map<String, List<String>> FACILITY_STOREKEEPER_ALLOWED_ACTIONS = [
             'inventory'    : ['createInboundTransfer', 'createConsumed', 'createAdjustment', 'editTransaction', 'deleteTransaction', 'saveTransaction', 'saveAdjustmentTransaction'],
-            'inventoryItem': ['showRecordInventory', 'adjustStock', 'transferStock'],
+            'inventoryItem': ['showRecordInventory', 'saveRecordInventory', 'adjustStock', 'transferStock'],
+            'recordStockApi': ['saveRecordStock'],
             'stockMovement': ['createRequest'],
             'stockTransfer': ['create', 'edit', 'createInboundReturn'],
             'stockTransferApi': ['list', 'read', 'create', 'update', 'stockTransferCandidates', 'returnCandidates'],
@@ -55,7 +56,8 @@ class CustomRolePolicyService {
 
     private static final Map<String, List<String>> REGIONAL_WAREHOUSE_ALLOWED_ACTIONS = [
             'inventory'        : ['createInboundTransfer', 'createConsumed', 'createAdjustment', 'editTransaction', 'deleteTransaction', 'saveTransaction', 'saveAdjustmentTransaction'],
-            'inventoryItem'    : ['showRecordInventory', 'adjustStock', 'transferStock'],
+            'inventoryItem'    : ['showRecordInventory', 'saveRecordInventory', 'adjustStock', 'transferStock'],
+            'recordStockApi'   : ['saveRecordStock'],
             'stockTransfer'    : ['create', 'edit', 'createInboundReturn', 'createOutboundReturn'],
             'stockTransferApi' : ['list', 'read', 'create', 'update', 'stockTransferCandidates', 'returnCandidates'],
             'stockMovement'    : ['createRequest', 'createOutbound', 'importOutboundStockMovement', 'verifyRequest'],

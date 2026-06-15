@@ -77,10 +77,12 @@
 										<img src="${resource(dir: 'images/icons/silk', file: 'clipboard.png')}"/>
 										<warehouse:message code="inventory.showStockCard.label"/>
 									</g:link>
-									<g:link class="button" controller="product" action="edit" id="${inventoryItem?.product?.id }">
-										<img src="${resource(dir: 'images/icons/silk', file: 'pencil.png')}"/>
-										<warehouse:message code="product.edit.label"/>
-									</g:link>
+									<g:canManageProducts>
+										<g:link class="button" controller="product" action="edit" id="${inventoryItem?.product?.id }">
+											<img src="${resource(dir: 'images/icons/silk', file: 'pencil.png')}"/>
+											<warehouse:message code="product.edit.label"/>
+										</g:link>
+									</g:canManageProducts>
 									<g:link class="button" controller="inventoryItem" action="showTransactionLog" params="['product.id': inventoryItem?.product?.id, 'disableFilter':true]">
 										<img src="${resource(dir: 'images/icons/silk', file: 'chart_bar.png')}"/>
 										<warehouse:message code="inventory.showTransactionLog.label"/>

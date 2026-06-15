@@ -254,6 +254,27 @@ class CustomRolePolicyServiceSpec extends Specification implements ServiceUnitTe
         access.allowed
     }
 
+    def "should allow facility storekeeper to complete record stock workflow"() {
+        given:
+        User user = mockUser([RoleType.ROLE_FACILITY_STOREKEEPER], [RoleType.ROLE_FACILITY_STOREKEEPER])
+
+        when:
+        Map<String, Object> showAccess = service.evaluateRouteAccess(user, 'loc-1', 'inventoryItem', 'showRecordInventory')
+        Map<String, Object> saveAccess = service.evaluateRouteAccess(user, 'loc-1', 'inventoryItem', 'saveRecordInventory')
+        Map<String, Object> apiAccess = service.evaluateRouteAccess(user, 'loc-1', 'recordStockApi', 'saveRecordStock')
+
+        then:
+        showAccess.hasPolicy
+        !showAccess.denied
+        showAccess.allowed
+        saveAccess.hasPolicy
+        !saveAccess.denied
+        saveAccess.allowed
+        apiAccess.hasPolicy
+        !apiAccess.denied
+        apiAccess.allowed
+    }
+
     def "should allow regional warehouse to create and save inventory adjustments"() {
         given:
         User user = mockUser([RoleType.ROLE_REGIONAL_WAREHOUSE], [RoleType.ROLE_REGIONAL_WAREHOUSE])
@@ -304,6 +325,27 @@ class CustomRolePolicyServiceSpec extends Specification implements ServiceUnitTe
         itemAccess.hasPolicy
         !itemAccess.denied
         itemAccess.allowed
+    }
+
+    def "should allow regional warehouse to complete record stock workflow"() {
+        given:
+        User user = mockUser([RoleType.ROLE_REGIONAL_WAREHOUSE], [RoleType.ROLE_REGIONAL_WAREHOUSE])
+
+        when:
+        Map<String, Object> showAccess = service.evaluateRouteAccess(user, 'loc-1', 'inventoryItem', 'showRecordInventory')
+        Map<String, Object> saveAccess = service.evaluateRouteAccess(user, 'loc-1', 'inventoryItem', 'saveRecordInventory')
+        Map<String, Object> apiAccess = service.evaluateRouteAccess(user, 'loc-1', 'recordStockApi', 'saveRecordStock')
+
+        then:
+        showAccess.hasPolicy
+        !showAccess.denied
+        showAccess.allowed
+        saveAccess.hasPolicy
+        !saveAccess.denied
+        saveAccess.allowed
+        apiAccess.hasPolicy
+        !apiAccess.denied
+        apiAccess.allowed
     }
 
     def "should remove inbound create actions from regional warehouse menu"() {

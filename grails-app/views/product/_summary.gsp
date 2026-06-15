@@ -81,24 +81,30 @@
 							<img src="${resource(dir: 'images/icons/silk', file: 'clipboard.png')}" />&nbsp;
 							${warehouse.message(code: 'inventory.showStockCard.label', default: 'Show stock')}
 						</g:link>
-						<g:link controller='inventoryItem' action='showRecordInventory' params="['product.id':productInstance?.id]" class="button">
-							<img src="${resource(dir: 'images/icons/silk', file: 'calculator.png')}" />&nbsp;
-							${warehouse.message(code: 'inventory.record.label', default: 'Record Stock')}
-						</g:link>
-						<g:link controller='product' action='edit' id='${productInstance?.id }' class="button">
-							<img src="${resource(dir: 'images/icons/silk', file: 'pencil.png')}" />&nbsp;
-							${warehouse.message(code: 'default.edit.label', args:[g.message(code: 'product.label', 'Product')])}
-						</g:link>
+						<g:canRecordStock>
+							<g:link controller='inventoryItem' action='showRecordInventory' params="['product.id':productInstance?.id]" class="button">
+								<img src="${resource(dir: 'images/icons/silk', file: 'calculator.png')}" />&nbsp;
+								${warehouse.message(code: 'inventory.record.label', default: 'Record Stock')}
+							</g:link>
+						</g:canRecordStock>
+						<g:canManageProducts>
+							<g:link controller='product' action='edit' id='${productInstance?.id }' class="button">
+								<img src="${resource(dir: 'images/icons/silk', file: 'pencil.png')}" />&nbsp;
+								${warehouse.message(code: 'default.edit.label', args:[g.message(code: 'product.label', 'Product')])}
+							</g:link>
+						</g:canManageProducts>
 						<g:isUserManager>
 							<g:link controller="inventoryItem" action="showLotNumbers" params="['product.id': productInstance?.id]" class="button">
 								<img src="${resource(dir: 'images/icons', file: 'barcode.png')}"/>&nbsp;
 								<warehouse:message code="inventory.showLotNumbers.label"/>
 							</g:link>
 						</g:isUserManager>
-						<g:link controller="stocklistManagement" action="index" id="${productInstance?.id}" class="button">
-							<img src="${resource(dir: 'images/icons/silk', file: 'application_side_list.png')}"/>&nbsp;
-							${warehouse.message(code: 'default.manage.label', default: 'Manage stock lists', args:[warehouse.message(code:'requisitionTemplates.label')])}
-						</g:link>
+						<g:canManageStocklists>
+							<g:link controller="stocklistManagement" action="index" id="${productInstance?.id}" class="button">
+								<img src="${resource(dir: 'images/icons/silk', file: 'application_side_list.png')}"/>&nbsp;
+								${warehouse.message(code: 'default.manage.label', default: 'Manage stock lists', args:[warehouse.message(code:'requisitionTemplates.label')])}
+							</g:link>
+						</g:canManageStocklists>
 					</div>
 
 					<g:isSuperuser>
