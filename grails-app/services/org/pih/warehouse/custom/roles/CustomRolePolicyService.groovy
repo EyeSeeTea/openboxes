@@ -4,6 +4,8 @@ import org.pih.warehouse.core.Location
 import org.pih.warehouse.core.Role
 import org.pih.warehouse.core.RoleType
 import org.pih.warehouse.core.User
+import org.pih.warehouse.requisition.Requisition
+import org.pih.warehouse.requisition.RequisitionSourceType
 
 class CustomRolePolicyService {
 
@@ -44,18 +46,19 @@ class CustomRolePolicyService {
     ]
 
     private static final Map<String, List<String>> FACILITY_STOREKEEPER_ALLOWED_ACTIONS = [
-            'inventory'    : ['createInboundTransfer', 'createConsumed', 'editTransaction', 'deleteTransaction', 'saveTransaction'],
+            'inventory'    : ['createInboundTransfer', 'createConsumed', 'createAdjustment', 'editTransaction', 'deleteTransaction', 'saveTransaction', 'saveAdjustmentTransaction'],
             'inventoryItem': ['showRecordInventory', 'adjustStock', 'transferStock'],
+            'stockMovement': ['createRequest'],
             'stockTransfer': ['create', 'edit', 'createInboundReturn'],
             'stockTransferApi': ['list', 'read', 'create', 'update', 'stockTransferCandidates', 'returnCandidates'],
     ]
 
     private static final Map<String, List<String>> REGIONAL_WAREHOUSE_ALLOWED_ACTIONS = [
-            'inventory'        : ['createInboundTransfer', 'createConsumed', 'editTransaction', 'deleteTransaction', 'saveTransaction'],
+            'inventory'        : ['createInboundTransfer', 'createConsumed', 'createAdjustment', 'editTransaction', 'deleteTransaction', 'saveTransaction', 'saveAdjustmentTransaction'],
             'inventoryItem'    : ['showRecordInventory', 'adjustStock', 'transferStock'],
             'stockTransfer'    : ['create', 'edit', 'createInboundReturn', 'createOutboundReturn'],
             'stockTransferApi' : ['list', 'read', 'create', 'update', 'stockTransferCandidates', 'returnCandidates'],
-            'stockMovement'    : ['createOutbound', 'importOutboundStockMovement', 'verifyRequest'],
+            'stockMovement'    : ['createRequest', 'createOutbound', 'importOutboundStockMovement', 'verifyRequest'],
             'stockMovementApi' : ['list', 'create'],
             'stocklistApi'     : ['list', 'read', 'create', 'update', 'delete', 'sendMail', 'clear', 'clone', 'publish', 'unpublish', 'export'],
             'stocklistItemApi' : ['list', 'read', 'create', 'update', 'remove', 'availableStocklists'],
@@ -354,9 +357,11 @@ class CustomRolePolicyService {
     private boolean isAllowedByPolicy(RoleType policy, String controllerName, String actionName, Map params, def request) {
         switch (policy) {
             case RoleType.ROLE_FACILITY_STOREKEEPER:
-                return isRouteAllowed(FACILITY_STOREKEEPER_ALLOWED_ACTIONS, controllerName, actionName)
+                return isRouteAllowed(FACILITY_STOREKEEPER_ALLOWED_ACTIONS, controllerName, actionName) ||
+                        isAllowedStockRequestRoute(controllerName, actionName, params, request)
             case RoleType.ROLE_REGIONAL_WAREHOUSE:
-                return isRouteAllowed(REGIONAL_WAREHOUSE_ALLOWED_ACTIONS, controllerName, actionName)
+                return isRouteAllowed(REGIONAL_WAREHOUSE_ALLOWED_ACTIONS, controllerName, actionName) ||
+                        isAllowedStockRequestRoute(controllerName, actionName, params, request)
             case RoleType.ROLE_RPC_SUPERUSER:
                 return isRouteAllowed(RPC_SUPERUSER_ALLOWED_ACTIONS, controllerName, actionName)
             case RoleType.ROLE_REPORTING_USER:
@@ -384,6 +389,34 @@ class CustomRolePolicyService {
     private static boolean isRouteAllowed(Map<String, List<String>> allowedActions, String controllerName, String actionName) {
         List<String> controllerActions = allowedActions[controllerName] ?: []
         return controllerActions.contains('*') || controllerActions.contains(actionName)
+    }
+
+    // Stock requests and regular inbound movements currently share the same API endpoints.
+    // This helper lets the policy stay expressed in matrix terms while the implementation
+    // uses the underlying requisition source type to identify stock-request routes.
+    private static boolean isAllowedStockRequestRoute(String controllerName, String actionName, Map params, def request) {
+        if (controllerName == 'stockMovementApi' && actionName == 'create') {
+            return isStockRequestCreate(params, request)
+        }
+
+        if (controllerName == 'stockMovementApi' && actionName in ['read', 'updateRequisition', 'updateItems', 'updateStatus', 'delete']) {
+            return isStockRequest(params?.id)
+        }
+
+        if (controllerName == 'stockMovementItemApi' && actionName == 'getStockMovementItems') {
+            return isStockRequest(params?.id)
+        }
+
+        return false
+    }
+
+    private static boolean isStockRequestCreate(Map params, def request) {
+        String sourceType = params.sourceType ?: request?.JSON?.sourceType
+        return sourceType?.toUpperCase() == RequisitionSourceType.ELECTRONIC.name()
+    }
+
+    private static boolean isStockRequest(String id) {
+        return Requisition.get(id)?.sourceType == RequisitionSourceType.ELECTRONIC
     }
 
     private static boolean policyAllowsCreateInboundMovement(RoleType activePolicy) {

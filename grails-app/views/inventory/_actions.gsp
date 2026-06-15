@@ -7,7 +7,7 @@
 	<div class="actions">
 		<g:supports activityCode="${org.pih.warehouse.core.ActivityCode.ADJUST_INVENTORY}">
 			<div class="action-menu-item">
-				<a href="javascript:void(0);" class="actionButton" data-action="${g.createLink(controller: "inventory", action: "createInventory")}">
+				<a href="javascript:void(0);" class="actionButton" data-action="${g.createLink(controller: "inventory", action: "createAdjustment")}">
 					<img src="${resource(dir:'images/icons/silk',file:'book_edit.png')}"/>&nbsp;
 				<g:message code="inventory.adjustStock.label" />
 				</a>
