@@ -158,6 +158,22 @@ class Dhis2RegistrationServiceSpec extends Specification
         ex.message.contains('clash')
     }
 
+    void "registered DHIS2 user gets an unguessable random local password, never a shared sentinel"() {
+        when:
+        User alice = service.findOrRegister(new Dhis2User(uid: null, username: 'alice'))
+        User bob = service.findOrRegister(new Dhis2User(uid: null, username: 'bob'))
+
+        then: "no known sentinel value an attacker could type into the login form"
+        alice.password != '*DHIS2*'
+        bob.password != '*DHIS2*'
+
+        and: "each account gets its own value, so one leaked password can't open another"
+        alice.password != bob.password
+
+        and: "long enough to be unguessable (32 random bytes, base64url)"
+        alice.password.length() >= 43
+    }
+
     private User savedUser(String username, String first, String last, String email) {
         new User(
             username: username,
