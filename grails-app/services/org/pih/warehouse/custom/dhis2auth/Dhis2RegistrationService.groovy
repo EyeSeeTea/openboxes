@@ -5,6 +5,8 @@ import org.pih.warehouse.core.User
 import org.pih.warehouse.custom.dhis2auth.Dhis2OAuthService.Dhis2OAuthException
 import org.pih.warehouse.custom.dhis2auth.Dhis2OAuthService.Dhis2User
 
+import java.security.SecureRandom
+
 // Reason: the AST-based @Transactional reliably binds the Hibernate session for
 // flush() calls in private methods; the default Grails wrapping does not, which
 // caused TransactionRequiredException at runtime. Do not remove.
@@ -13,6 +15,11 @@ class Dhis2RegistrationService {
 
     private static final String PLACEHOLDER_LAST_NAME = '(DHIS2)'
     private static final int MAX_USERNAME_SUFFIX = 20
+    private static final int LOCKED_PASSWORD_BYTES = 32
+
+    // Reason: SecureRandom is thread-safe; shared instance avoids per-registration entropy cost
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom()
+    private static final Base64.Encoder URL_ENCODER = Base64.urlEncoder.withoutPadding()
 
     User findOrRegister(Dhis2User dhis2User) {
         dhis2User.uid ? findOrRegisterByUid(dhis2User) : findOrRegisterByUsername(dhis2User)
@@ -96,15 +103,18 @@ class Dhis2RegistrationService {
 
     private User createDhis2User(String username, String firstName, String lastName, String email,
                                  String dhis2Uid, String dhis2Username) {
-        // password must be non-blank per User constraints — DHIS2-only users get a locked sentinel
+        // DHIS2-only users authenticate via SSO; the local password is never used. Set an
+        // unguessable random value (non-blank per User constraints) so the account can never be
+        // taken over via database/API login with a known sentinel.
+        String lockedPassword = randomLockedPassword()
         User user = new User(
             username: username,
             firstName: firstName,
             lastName: lastName,
             email: email,
             active: false,
-            password: '*DHIS2*',
-            passwordConfirm: '*DHIS2*',
+            password: lockedPassword,
+            passwordConfirm: lockedPassword,
         )
         user.save(flush: true, failOnError: true)
 
@@ -132,6 +142,12 @@ class Dhis2RegistrationService {
 
     private static String suffixedUsername(String dhis2Username, int attempt) {
         attempt == 1 ? "${dhis2Username}-dhis2" : "${dhis2Username}-dhis2-${attempt}"
+    }
+
+    private static String randomLockedPassword() {
+        byte[] bytes = new byte[LOCKED_PASSWORD_BYTES]
+        SECURE_RANDOM.nextBytes(bytes)
+        URL_ENCODER.encodeToString(bytes)
     }
 
     private static List<String> parseDisplayName(String displayName) {

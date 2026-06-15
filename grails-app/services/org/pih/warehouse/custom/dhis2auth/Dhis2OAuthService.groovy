@@ -3,6 +3,7 @@ package org.pih.warehouse.custom.dhis2auth
 import grails.converters.JSON
 import grails.core.GrailsApplication
 import org.apache.http.NameValuePair
+import org.apache.http.client.config.RequestConfig
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.http.client.methods.CloseableHttpResponse
 import org.apache.http.client.methods.HttpGet
@@ -39,6 +40,9 @@ class Dhis2OAuthService {
     private static final String PROMPT_NONE = 'none'
     private static final int PKCE_VERIFIER_BYTES = 32
     private static final int HTTP_OK = 200
+    private static final int DEFAULT_CONNECT_TIMEOUT_MS = 10000
+    private static final int DEFAULT_SOCKET_TIMEOUT_MS = 15000
+    private static final int DEFAULT_CONNECTION_REQUEST_TIMEOUT_MS = 5000
 
     // Reason: SecureRandom is thread-safe; shared instance avoids per-request entropy cost
     private static final SecureRandom SECURE_RANDOM = new SecureRandom()
@@ -51,7 +55,18 @@ class Dhis2OAuthService {
     @PostConstruct
     void init() {
         connectionManager = new PoolingHttpClientConnectionManager()
-        httpClient = HttpClients.custom().setConnectionManager(connectionManager).build()
+        // Reason: login is user-facing — bound every phase so a slow/unreachable DHIS2 endpoint
+        // can't hang the servlet thread indefinitely. Missing config keys fall back via Elvis
+        // (an unset ConfigObject key is empty/falsy), matching the config.* reads elsewhere here.
+        RequestConfig requestConfig = RequestConfig.custom()
+            .setConnectTimeout((config.connectTimeoutMs ?: DEFAULT_CONNECT_TIMEOUT_MS) as int)
+            .setSocketTimeout((config.socketTimeoutMs ?: DEFAULT_SOCKET_TIMEOUT_MS) as int)
+            .setConnectionRequestTimeout((config.connectionRequestTimeoutMs ?: DEFAULT_CONNECTION_REQUEST_TIMEOUT_MS) as int)
+            .build()
+        httpClient = HttpClients.custom()
+            .setConnectionManager(connectionManager)
+            .setDefaultRequestConfig(requestConfig)
+            .build()
     }
 
     @PreDestroy
@@ -132,8 +147,11 @@ class Dhis2OAuthService {
         new Dhis2User(uid: null, username: username, displayName: null, email: null)
     }
 
-    // Reason: the id_token arrives over the TLS back channel straight from the token
-    // endpoint, so the sub claim is read without signature verification.
+    // Reason: the sub claim is read WITHOUT JWT signature/claim validation. TLS on the back-channel
+    // token request secures transport, but does not validate the id_token as an identity assertion
+    // (iss/aud/exp/signature unchecked). Accepted risk: DHIS2 and OB are operated end-to-end by the
+    // same party and the token comes directly from the token endpoint. Add JWKS-based validation if
+    // an untrusted IdP or proxy ever sits in this path.
     private static String subjectClaim(String idToken) {
         String[] parts = idToken?.split('\\.')
         if (!parts || parts.length < 2) {
@@ -183,7 +201,11 @@ class Dhis2OAuthService {
             int status = response.statusLine.statusCode
             String body = response.entity ? EntityUtils.toString(response.entity) : ''
             if (status != HTTP_OK) {
-                throw new Dhis2OAuthException("${errorContext}: HTTP ${status} — ${body}")
+                // Reason: the error body can carry token fragments, client details, or user
+                // identifiers — keep it out of the (logged) exception; expose only at guarded
+                // debug, and truncate so a large/sensitive body isn't dumped wholesale.
+                log.debug "dhis2_oauth_http_error context=${errorContext} status=${status} body=${body?.take(500)}"
+                throw new Dhis2OAuthException("${errorContext}: HTTP ${status}")
             }
             JSON.parse(body) as Map
         } finally {
