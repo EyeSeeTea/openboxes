@@ -1,3 +1,5 @@
+import { useMemo } from 'react';
+
 import { isBefore } from 'date-fns';
 import { useSelector } from 'react-redux';
 import { z } from 'zod';
@@ -8,84 +10,70 @@ const useInboundAddItemsV2Validation = () => {
   const translate = useTranslate();
   const deferLotControlToReceipt = useSelector((state) => state.session.deferLotControlToReceipt);
 
-  const lineItemSchema = z.object({
-    palletName: z.string().optional(),
-    boxName: z.string().optional(),
-    product: z.object({
-      id: z.string(),
-      value: z.string(),
-      label: z.string(),
-      lotAndExpiryControl: z.boolean().optional().nullable(),
-    }).optional().nullable(),
-    lotNumber: z.string().optional(),
-    expirationDate: z
-      .string()
-      .optional()
-      .nullable()
-      .refine(
-        (date) => !date || !isBefore(date, new Date(2000, 0, 1)), {
-          message: translate('react.stockMovement.error.invalidDate.label', 'This date is invalid. Please enter a date after 2000.'),
-        },
-      ),
-    quantityRequested: z.number()
-      .min(0, translate('react.stockMovement.error.enterQuantity.label', 'Enter proper quantity'))
-      .optional()
-      .nullable(),
-    recipient: z.object({
-      id: z.string(),
-      value: z.string(),
-      label: z.string(),
-    }).optional().nullable(),
-  })
-    .refine((data) => !(data.boxName && !data.palletName), {
-      message: translate('react.stockMovement.error.boxWithoutPallet.label', 'Please enter Pack level 1 before Pack level 2'),
-      path: ['boxName'],
+  const validationSchema = useMemo(() => {
+    const lineItemSchema = z.object({
+      palletName: z.string().optional(),
+      boxName: z.string().optional(),
+      product: z.object({
+        id: z.string(),
+        value: z.string(),
+        label: z.string(),
+        lotAndExpiryControl: z.boolean().optional().nullable(),
+      }).optional().nullable(),
+      lotNumber: z.string().optional(),
+      expirationDate: z
+        .string()
+        .optional()
+        .nullable()
+        .refine(
+          (date) => !date || !isBefore(date, new Date(2000, 0, 1)), {
+            message: translate('react.stockMovement.error.invalidDate.label', 'This date is invalid. Please enter a date after 2000.'),
+          },
+        ),
+      quantityRequested: z.number()
+        .min(0, translate('react.stockMovement.error.enterQuantity.label', 'Enter proper quantity'))
+        .optional()
+        .nullable(),
+      recipient: z.object({
+        id: z.string(),
+        value: z.string(),
+        label: z.string(),
+      }).optional().nullable(),
     })
-    .refine((data) => !(data.expirationDate && !data.lotNumber), {
-      message: translate('react.stockMovement.error.expiryWithoutLot.label', 'Items with an expiry date must also have a lot number'),
-      path: ['lotNumber'],
-    })
-    .refine((data) => {
-      if (data?.product && data?.product?.id) {
-        return data?.quantityRequested !== undefined && data?.quantityRequested !== null;
-      }
-      return true;
-    }, {
-      message: translate('react.stockMovement.error.enterQuantity.label', 'Enter proper quantity'),
-      path: ['quantityRequested'],
-    })
-    .refine(
-      (data) => {
-        if (deferLotControlToReceipt) return true;
-        if (data.product?.lotAndExpiryControl) {
-          return Boolean(data.expirationDate);
-        }
-        return true;
-      },
-      {
-        message: translate('react.stockMovement.error.lotAndExpiryControl.label', 'Both lot number and expiry date are required for this item.'),
-        path: ['expirationDate'],
-      },
-    )
-    .refine(
-      (data) => {
-        if (deferLotControlToReceipt) return true;
-        if (data.product?.lotAndExpiryControl) {
-          return Boolean(data.lotNumber);
-        }
-        return true;
-      },
-      {
-        message: translate('react.stockMovement.error.lotAndExpiryControl.label', 'Both lot number and expiry date are required for this item.'),
+      .refine((data) => !(data.boxName && !data.palletName), {
+        message: translate('react.stockMovement.error.boxWithoutPallet.label', 'Please enter Pack level 1 before Pack level 2'),
+        path: ['boxName'],
+      })
+      .refine((data) => !(data.expirationDate && !data.lotNumber), {
+        message: translate('react.stockMovement.error.expiryWithoutLot.label', 'Items with an expiry date must also have a lot number'),
         path: ['lotNumber'],
-      },
-    );
+      })
+      .refine((data) => {
+        if (data?.product && data?.product?.id) {
+          return data?.quantityRequested !== undefined && data?.quantityRequested !== null;
+        }
+        return true;
+      }, {
+        message: translate('react.stockMovement.error.enterQuantity.label', 'Enter proper quantity'),
+        path: ['quantityRequested'],
+      })
+      .superRefine((data, ctx) => {
+        if (deferLotControlToReceipt || !data.product?.lotAndExpiryControl) return;
+        const message = translate('react.stockMovement.error.lotAndExpiryControl.label', 'Both lot number and expiry date are required for this item.');
+        if (!data.expirationDate) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message, path: ['expirationDate'] });
+        }
+        if (!data.lotNumber) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message, path: ['lotNumber'] });
+        }
+      });
 
-  const validationSchema = z.object({
-    values: z.object({
-      lineItems: z.array(lineItemSchema),
-    }),
-  });
+    return z.object({
+      values: z.object({
+        lineItems: z.array(lineItemSchema),
+      }),
+    });
+  }, [deferLotControlToReceipt, translate]);
 
   return {
     validationSchema,

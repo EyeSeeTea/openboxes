@@ -27,7 +27,7 @@ const UNCONTROLLED_PRODUCT = {
 const buildLineItem = (overrides = {}) => ({
   product: CONTROLLED_PRODUCT,
   lotNumber: undefined,
-  expirationDate: null,
+  expirationDate: undefined,
   quantityRequested: 10,
   ...overrides,
 });
@@ -36,93 +36,66 @@ const parseLineItem = (schema, lineItem) => schema.safeParse({
   values: { lineItems: [lineItem] },
 });
 
-const getLineItemErrors = (result) => {
-  if (result.success) return [];
-  return result.error.issues.map((i) => i.path.join('.'));
+const expectPaths = (parsed, ...expected) => {
+  expect(parsed.success).toBe(false);
+  const paths = parsed.error.issues.map((i) => i.path.join('.'));
+  expected.forEach((p) => expect(paths).toContain(p));
 };
 
 describe('useInboundAddItemsV2Validation', () => {
   describe('flag OFF (deferLotControlToReceipt = false) — upstream behavior', () => {
+    let schema;
+
     beforeEach(() => {
       useSelector.mockImplementation((selector) =>
         selector({ session: { deferLotControlToReceipt: false } }));
+      const { result } = renderHook(() => useInboundAddItemsV2Validation());
+      schema = result.current.validationSchema;
     });
 
     it('fails validation when controlled product has blank lot and expiry', () => {
-      const { result } = renderHook(() => useInboundAddItemsV2Validation());
-      const parsed = parseLineItem(result.current.validationSchema, buildLineItem());
-
-      expect(parsed.success).toBe(false);
-      const paths = getLineItemErrors(parsed);
-      expect(paths).toContain('values.lineItems.0.expirationDate');
-      expect(paths).toContain('values.lineItems.0.lotNumber');
+      const parsed = parseLineItem(schema, buildLineItem());
+      expectPaths(parsed, 'values.lineItems.0.expirationDate', 'values.lineItems.0.lotNumber');
     });
 
     it('fails validation when controlled product has expiry but no lot', () => {
-      const { result } = renderHook(() => useInboundAddItemsV2Validation());
-      const parsed = parseLineItem(
-        result.current.validationSchema,
-        buildLineItem({ expirationDate: '2027-01-01' }),
-      );
-
-      expect(parsed.success).toBe(false);
-      const paths = getLineItemErrors(parsed);
-      expect(paths).toContain('values.lineItems.0.lotNumber');
+      const parsed = parseLineItem(schema, buildLineItem({ expirationDate: '2027-01-01' }));
+      expectPaths(parsed, 'values.lineItems.0.lotNumber');
     });
 
     it('passes validation when controlled product has both lot and expiry', () => {
-      const { result } = renderHook(() => useInboundAddItemsV2Validation());
-      const parsed = parseLineItem(
-        result.current.validationSchema,
-        buildLineItem({ lotNumber: 'LOT-001', expirationDate: '2027-01-01' }),
-      );
-
+      const parsed = parseLineItem(schema, buildLineItem({ lotNumber: 'LOT-001', expirationDate: '2027-01-01' }));
       expect(parsed.success).toBe(true);
     });
 
     it('passes validation for uncontrolled product with blank lot and expiry', () => {
-      const { result } = renderHook(() => useInboundAddItemsV2Validation());
-      const parsed = parseLineItem(
-        result.current.validationSchema,
-        buildLineItem({ product: UNCONTROLLED_PRODUCT }),
-      );
-
+      const parsed = parseLineItem(schema, buildLineItem({ product: UNCONTROLLED_PRODUCT }));
       expect(parsed.success).toBe(true);
     });
   });
 
   describe('flag ON (deferLotControlToReceipt = true)', () => {
+    let schema;
+
     beforeEach(() => {
       useSelector.mockImplementation((selector) =>
         selector({ session: { deferLotControlToReceipt: true } }));
+      const { result } = renderHook(() => useInboundAddItemsV2Validation());
+      schema = result.current.validationSchema;
     });
 
     it('passes validation when controlled product has blank lot and expiry', () => {
-      const { result } = renderHook(() => useInboundAddItemsV2Validation());
-      const parsed = parseLineItem(result.current.validationSchema, buildLineItem());
-
+      const parsed = parseLineItem(schema, buildLineItem());
       expect(parsed.success).toBe(true);
     });
 
     it('still fails when expiry is entered but lot is blank (expiry-without-lot guard)', () => {
-      const { result } = renderHook(() => useInboundAddItemsV2Validation());
-      const parsed = parseLineItem(
-        result.current.validationSchema,
-        buildLineItem({ expirationDate: '2027-01-01' }),
-      );
-
-      expect(parsed.success).toBe(false);
-      const paths = getLineItemErrors(parsed);
-      expect(paths).toContain('values.lineItems.0.lotNumber');
+      const parsed = parseLineItem(schema, buildLineItem({ expirationDate: '2027-01-01' }));
+      expectPaths(parsed, 'values.lineItems.0.lotNumber');
     });
 
     it('passes validation when controlled product has both lot and expiry', () => {
-      const { result } = renderHook(() => useInboundAddItemsV2Validation());
-      const parsed = parseLineItem(
-        result.current.validationSchema,
-        buildLineItem({ lotNumber: 'LOT-001', expirationDate: '2027-01-01' }),
-      );
-
+      const parsed = parseLineItem(schema, buildLineItem({ lotNumber: 'LOT-001', expirationDate: '2027-01-01' }));
       expect(parsed.success).toBe(true);
     });
   });
