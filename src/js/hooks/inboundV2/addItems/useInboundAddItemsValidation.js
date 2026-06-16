@@ -1,10 +1,12 @@
 import { isBefore } from 'date-fns';
+import { useSelector } from 'react-redux';
 import { z } from 'zod';
 
 import useTranslate from 'hooks/useTranslate';
 
 const useInboundAddItemsV2Validation = () => {
   const translate = useTranslate();
+  const deferLotControlToReceipt = useSelector((state) => state.session.deferLotControlToReceipt);
 
   const lineItemSchema = z.object({
     palletName: z.string().optional(),
@@ -54,7 +56,7 @@ const useInboundAddItemsV2Validation = () => {
     })
     .refine(
       (data) => {
-        // If product has lot and expiry control, it has to have the expiration date filled
+        if (deferLotControlToReceipt) return true;
         if (data.product?.lotAndExpiryControl) {
           return Boolean(data.expirationDate);
         }
@@ -67,7 +69,7 @@ const useInboundAddItemsV2Validation = () => {
     )
     .refine(
       (data) => {
-        // If product has lot and expiry control, it has to have the lotNumber filled
+        if (deferLotControlToReceipt) return true;
         if (data.product?.lotAndExpiryControl) {
           return Boolean(data.lotNumber);
         }

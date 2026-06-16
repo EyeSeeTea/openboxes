@@ -204,6 +204,10 @@ openboxes:
     #     adjustments:
     #         damaged:
     #             enabled: false
+    #     lotControl:
+    #         # When true, lot+expiry are only required at receiving, not at inbound creation.
+    #         # Default (key absent or false): lot+expiry required at inbound add-items (upstream behavior).
+    #         deferToReceipt: false
 
     # -------------------------------------------------------------------------
     # LDAP (optional — enable only for clients using corporate auth)

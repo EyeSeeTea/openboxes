@@ -200,6 +200,7 @@ class ApiController {
         boolean isHelpScoutEnabled = grailsApplication.config.openboxes.helpscout.widget.enabled
         boolean localizationModeEnabled = session.useDebugLocale ?: false
         int maxUploadFileSize = grailsApplication.config.grails.controllers.upload.maxFileSize
+        def deferLotControlToReceipt = grailsApplication.config.openboxes.custom.lotControl.deferToReceipt ?: false
 
         render([
             data: [
@@ -245,6 +246,7 @@ class ApiController {
                 isAutosaveEnabled             : isAutosaveEnabled,
                 cycleCountMaxSelectedProducts : cycleCountMaxSelectedProducts,
                 maxUploadFileSize             : maxUploadFileSize,
+                deferLotControlToReceipt      : deferLotControlToReceipt,
             ],
         ] as JSON)
     }
