@@ -14,6 +14,7 @@
  * See .claude/rules/custom-package-isolation.md for the full rules.
  */
 databaseChangeLog = {
+    include file: 'custom/2026-05-13-dhis2-user-link.groovy'
     include file: 'custom/2026-05-22-create-custom-notification.groovy'
     include file: 'custom/2026-05-15-add-facility-storekeeper-role.groovy'
     include file: 'custom/2026-05-19-add-regional-warehouse-role.groovy'

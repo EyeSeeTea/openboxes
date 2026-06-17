@@ -195,7 +195,7 @@ openboxes:
     #             secretKey: CHANGE_ME
 
     # -------------------------------------------------------------------------
-    # Custom: damaged stock adjustments
+# Custom: damaged stock adjustments
     # Default (key absent): user-initiated damaged adjustments are enabled.
     # Set to false to disable the Adjust Stock / Create Damaged Transaction paths
     # and require the transfer-to-Damaged-bin workflow instead.
@@ -204,6 +204,75 @@ openboxes:
     #     adjustments:
     #         damaged:
     #             enabled: false
+
+    # -------------------------------------------------------------------------
+    # DHIS2 OAuth2 SSO (dhis2-oauth-core / dhis2-oauth-v42)
+    # ONE provider per deployment. Uncomment the single block below, set
+    # enabled: true, and choose `profile` to match your DHIS2 version. The
+    # `profile` value selects which endpoint/scope semantics OB uses — you do
+    # NOT define two blocks. Register the redirectUri exactly as shown in DHIS2
+    # → System Settings → OAuth2 Clients. Inject clientSecret via env var —
+    # never commit the value. clientSecret must be a 36-char UUID (DHIS2 req).
+    #
+    # Pick the endpoint/scope set for your DHIS2 version:
+    #   profile: v40  (DHIS2 <= 2.41, legacy UAA provider)
+    #       authorizeUrl: https://dhis2.example.com/uaa/oauth/authorize
+    #       tokenUrl:     https://dhis2.example.com/uaa/oauth/token
+    #       scopes:       ALL          (or omit — defaults to ALL)
+    #       clientAuth:   (n/a — always HTTP Basic)
+    #   profile: v42  (DHIS2 >= 2.42, Spring Authorization Server / OIDC)
+    #       authorizeUrl: https://dhis2.example.com/oauth2/authorize
+    #       tokenUrl:     https://dhis2.example.com/oauth2/token
+    #       scopes:       openid username
+    #       clientAuth:   basic (default) | post (client_secret_post)
+    # v42 identity: the SAS access token is NOT accepted on DHIS2 /api/* endpoints,
+    # so OB identifies the user by the `sub` claim (the DHIS2 username) read from the
+    # id_token. `openid` scope is therefore REQUIRED (it yields the id_token). v42
+    # users are linked by username only — no UID/name/email; an admin fills name on
+    # approval. Do NOT add `email` scope (DHIS2 token mint throws for users without
+    # an email). v42 needs NO userUrl. The v42 path always sends PKCE (S256).
+    #
+    # DHIS2-side client setup (the admin UI has no fields for these — set via
+    # `PATCH /api/oAuth2Clients/{uid}`, and RE-APPLY if you edit the client in the
+    # UI, which wipes them):
+    #   - scopes:                     openid,username
+    #   - clientAuthenticationMethods: client_secret_basic (or client_secret_post)
+    #   - clientSecret:               store the BCRYPT HASH in DHIS2 (it stores the
+    #                                 value plaintext but matches with bcrypt); keep
+    #                                 the plaintext in OB's clientSecret below.
+    # -------------------------------------------------------------------------
+    # custom:                          # fork-custom config namespace (EST)
+    #     dhis2:
+    #         oauth:
+    #             enabled: false
+    #             profile: v42                 # v40 | v42 — see endpoint sets above
+    #             clientId: openboxes
+    #             clientSecret: CHANGE_ME      # plaintext (bcrypt hash goes in DHIS2)
+    #             authorizeUrl: https://dhis2.example.com/oauth2/authorize
+    #             tokenUrl: https://dhis2.example.com/oauth2/token
+    #             # userUrl: https://dhis2.example.com/api/me   # v40 ONLY — not used by v42
+    #             redirectUri: https://openboxes.example.com/oauth/dhis2/callback
+    #             scopes: openid username      # v40: ALL (or omit)
+    #             clientAuth: basic            # v42 only: basic | post
+
+    # -------------------------------------------------------------------------
+    # Iframe embedding / CSP frame-ancestors (dhis2-iframe-embedding)
+    # frameAncestors: the DHIS2 origin(s) allowed to embed OB in an iframe.
+    # Empty/unset (default) => `frame-ancestors 'self'` (no third-party embedding),
+    # behaviourally equivalent to the old X-Frame-Options: SAMEORIGIN.
+    # Setting a non-empty list also flips the session cookie to
+    # `SameSite=None; Secure` and turns on the v42 silent-SSO entry point
+    # (/oauth/dhis2/initiate?embedded=true). v40 falls back to in-frame login.
+    # -------------------------------------------------------------------------
+    # custom:
+    #     iframe:
+    #         frameAncestors: []       # e.g. ['https://dhis2.example.com']
+
+# Forwarded-proto: REQUIRED when embedding behind a TLS-terminating proxy, so OB
+# knows the request is HTTPS and stamps the SameSite=None session cookie Secure
+# (browsers reject SameSite=None without Secure). Root-level key, not under openboxes.
+# server:
+#     use-forward-headers: true
 
     # -------------------------------------------------------------------------
     # LDAP (optional — enable only for clients using corporate auth)

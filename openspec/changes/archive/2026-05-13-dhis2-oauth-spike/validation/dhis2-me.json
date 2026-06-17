@@ -1,0 +1,25 @@
+{
+  "id": "xEhRFt7bYkA",
+  "username": "test.user",
+  "firstName": "Test",
+  "surname": "User",
+  "displayName": "Test User",
+  "email": "test.user@example.com",
+  "organisationUnits": [
+    {
+      "id": "qNzokATGeVo"
+    }
+  ],
+  "userRoles": [
+    {
+      "id": "qK4CnUlvoTk"
+    },
+    {
+      "id": "yrB6vc5Ip3r"
+    }
+  ],
+  "settings": {
+    "keyDbLocale": "en",
+    "keyUiLocale": "en"
+  }
+}

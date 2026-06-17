@@ -1,0 +1,14 @@
+--- grep -rn -i "X-Frame-Options|frameOptions" grails-app/ src/main/ ---
+(no output)
+
+VERDICT: No in-repo source of X-Frame-Options found. The header is either
+not set at all, or it originates from a deploy-level component (nginx or
+the customer-side reverse proxy). The iframe filter in dhis2-iframe-embedding
+only needs to ADD a CSP frame-ancestors header — there is nothing in OB
+source code to neutralize. If a proxy emits X-Frame-Options, the filter
+should also strip it on the response (documented as a filter behavior in the
+dhis2-iframe-embedding design D1).
+
+Impact: dhis2-iframe-embedding D1 conditional touch-point drops to zero for
+in-repo code. The README for the dev stack should note that nginx or a
+customer proxy may also need to be configured to suppress X-Frame-Options.
