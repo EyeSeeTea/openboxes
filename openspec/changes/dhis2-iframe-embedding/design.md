@@ -1,0 +1,180 @@
+## Context
+
+Embedding OB inside a DHIS2 dashboard requires a CSP `frame-ancestors`
+directive that names specific third-party origins, plus a session cookie that
+survives a cross-site request.
+
+Whether OB also emits a conflicting `X-Frame-Options` header today is
+**determined by the spike** (`dhis2-oauth-spike` task 1.7 →
+`validation/xframeoptions-source.txt`). A pre-audit grep of the repo found no
+in-source `X-Frame-Options`, so the most likely outcome is:
+
+- **No in-repo source.** The header may come from a deploy-level proxy (nginx
+  in the dev stack, customer-side reverse proxy in production), or simply not
+  be set at all. Either way, the iframe filter just ADDS CSP — no upstream
+  code to neutralize.
+- **Less likely**: a Grails plugin or Tomcat default is emitting it. The
+  spike artifact pins this down. If it's emitted, our filter strips it on
+  the way out (still no upstream-code edit needed — same filter, just an
+  extra response-header removal).
+
+The embedded Tomcat in Grails 3.3.16 / Spring Boot 1.5 is Tomcat 8.5.88
+(confirmed by `dhis2-oauth-spike` validation/tomcat-version.txt).
+`Rfc6265CookieProcessor.sameSiteCookies` was backported to Tomcat 8.5 in
+8.5.47 — it IS technically available at 8.5.88. However, the cookie path
+remains a `Set-Cookie`-rewriting Servlet `Filter` (D2) because the filter
+approach requires no Tomcat XML config changes and is easier to toggle at
+runtime per the `iframe.frameAncestors` flag. The Rfc6265CookieProcessor
+path is an available fallback if the filter proves problematic.
+
+Constraints: upstream-isolation (new code under `org.pih.warehouse.custom.*`,
+surgical edits to upstream files), JDK 8 / Groovy 2.4 / Grails 3.3 floors.
+
+## Goals / Non-Goals
+
+**Goals:**
+- OB pages embeddable in iframes whose top-level origin matches a configured
+  DHIS2 allow-list; safely default-deny when the list is empty.
+- Session cookie `SameSite=None; Secure` when embedding is enabled.
+- `Secure` cookies set correctly behind a TLS-terminating proxy
+  (`X-Forwarded-Proto: https`).
+- Local TLS dev stack so developers can exercise the iframe flow against a
+  real DHIS2 instance without owning a public domain.
+
+**Non-Goals:**
+- The OAuth/SSO flow itself (see `dhis2-oauth-core`).
+- Deep-linking from DHIS2 dashboard items into OB screens.
+- Iframe-aware re-auth handling when DHIS2 access tokens expire (out of v1
+  scope across all three changes; mitigation: configure long-lived DHIS2
+  tokens).
+
+## Decisions
+
+### D1: CSP `frame-ancestors`, not `X-Frame-Options`
+
+`X-Frame-Options: SAMEORIGIN` cannot allow specific third-party origins.
+`Content-Security-Policy: frame-ancestors` can, and is the modern
+replacement. We emit it from a custom filter that runs on all HTML responses,
+configured via `iframe.frameAncestors` in `application.yml`. We also remove
+any upstream-set `X-Frame-Options` header to avoid the two contradicting
+each other.
+
+When the allow-list is empty (default), we emit `frame-ancestors 'self'` —
+equivalent protection to `X-Frame-Options: SAMEORIGIN` for the browser, but
+through a single header source the filter controls.
+
+### D2: `SameSite=None; Secure` via `Set-Cookie`-rewriting filter
+
+Spike validation/tomcat-version.txt confirms the embedded Tomcat is 8.5.88.
+While `Rfc6265CookieProcessor.sameSiteCookies` is available on 8.5.88
+(backported in 8.5.47), the cookie path is a Servlet `Filter` because it
+requires no Tomcat XML config changes and can be toggled at runtime via the
+`iframe.frameAncestors` flag. The cookie path is therefore a Servlet `Filter`
+that rewrites the `Set-Cookie` header on outgoing responses when
+`iframe.frameAncestors` is non-empty.
+
+Filter behavior:
+- Read all `Set-Cookie` headers on the response.
+- For the session cookie (and any cookie not already declaring `SameSite`),
+  append `; SameSite=None; Secure` if not already present.
+- Skip when `iframe.frameAncestors` is empty — preserves upstream behavior
+  for deployments not embedding OB.
+
+### D3: Forwarded-proto via Spring Boot's existing setting
+
+Spring Boot 1.5 supports `server.use-forward-headers=true` (verified in
+`dhis2-oauth-spike` validation/spring-boot-1.5-forward-headers.txt), which
+configures Tomcat's `RemoteIpValve`. Setting it makes `request.isSecure()`
+reflect the proxy's `X-Forwarded-Proto` header. We enable it via a profile
+or conditional only when iframe embedding is enabled, to avoid changing
+behavior for deployments without a TLS-terminating proxy.
+
+### D4: Local dev stack as a separate `docker/dhis2-sso/` directory
+
+Avoid touching `docker/docker-compose.yml` (upstream file). New directory
+contains:
+- `docker-compose.yml` — services: `nginx`, `dhis2`, `dhis2-db` (postgres),
+  `openboxes`, `openboxes-db` (mysql).
+- `nginx.conf` — two `server` blocks (443/TLS) proxying to internal services,
+  WebSocket upgrade headers, `X-Forwarded-Proto`, `X-Forwarded-For`, `Host`.
+- `certs/.gitignore` — committed empty dir; certs generated by the developer.
+- `README.md` — mkcert install, cert generation command, OAuth client
+  registration walkthrough in DHIS2 (referencing the spike's setup notes),
+  troubleshooting.
+
+Hostnames: `dhis2.localtest.me` and `openboxes.localtest.me`. `*.localtest.me`
+is reserved by RFC 6761 / IANA and resolves to `127.0.0.1` automatically —
+no `/etc/hosts` edits required for most resolvers (confirmed by
+`dhis2-oauth-spike` validation/localtest-resolution.txt; corporate-DNS
+workaround documented in the README).
+
+The compose file in this change supersedes the spike's
+`docker-compose.spike.yml` (which only had DHIS2 + postgres). Once this
+change lands, the spike's file can be deleted as part of `dhis2-oauth-spike`
+archival.
+
+## Risks / Trade-offs
+
+- **`SameSite=None` cookie rewriting** depends on the `Set-Cookie` header
+  being unset before our filter runs. If upstream code commits the cookie
+  via a pre-baked `Set-Cookie` string mid-response (rare in Grails), the
+  filter would not be able to amend it. Mitigation: filter runs late in the
+  chain; if a real case shows up, document the operational workaround
+  ("front OB with nginx that rewrites `Set-Cookie`").
+- **Origin allow-list misconfiguration** silently breaks the iframe. The
+  browser shows the CSP violation in DevTools console. Mitigation: prominent
+  troubleshooting section in the dev stack README.
+- **DHIS2 OAuth2 client setup varies by DHIS2 version**: the README pins the
+  DHIS2 image tag (same tag used in `dhis2-oauth-spike`).
+- **Refresh tokens out of scope across all three changes**: in an iframe,
+  the re-auth bounce may break out of the iframe when tokens expire.
+  Mitigation: configure long-lived DHIS2 access tokens, or accept the
+  re-auth bounce in v1. Document in the README.
+
+## Migration Plan
+
+1. Land code with `iframe.frameAncestors = []` defaults — zero behavior
+   change for existing deployments.
+2. No schema changes — no Liquibase work.
+3. Per-deployment opt-in: set the allow-list of DHIS2 origins in
+   env-specific config and enable `server.use-forward-headers` if behind a
+   TLS-terminating proxy.
+4. Rollback: clear `iframe.frameAncestors`. The CSP filter falls back to
+   `frame-ancestors 'self'` (browser-equivalent to the previous
+   `X-Frame-Options: SAMEORIGIN`), session cookie reverts to upstream
+   defaults.
+
+## Upstream touch points
+
+These upstream files will be edited; merge conflicts on future upstream
+pulls should be expected here:
+
+- `grails-app/conf/application.yml` — add `iframe.*` and
+  `server.use-forward-headers` keys, with defaults that preserve upstream
+  behavior.
+- **Conditional, pending spike task 1.7**: if the spike finds OB emits
+  `X-Frame-Options` from a source in-repo, neutralize it there so the new
+  CSP filter is the single source of truth. Pre-audit grep found no such
+  source — this touch point likely drops to zero.
+
+Everything else lives under the new custom package and `docker/dhis2-sso/`.
+
+## Confidence: 9/10
+
+Re-scored after `dhis2-oauth-spike` validation artifacts landed.
+
+All assumptions confirmed:
+- Tomcat 8.5.88 — filter-based cookie rewrite path confirmed (D2) ✓
+- No OB in-repo source of `X-Frame-Options` — conditional D1 touch-point
+  drops to zero for in-repo code ✓
+- `server.use-forward-headers=true` property name confirmed (D3) ✓
+- `*.localtest.me` resolves to 127.0.0.1 on this machine (D4) ✓
+- Config belongs in `docker/openboxes.yml`, not `application.yml` ✓
+
+Note: DHIS2 itself already emits a `frame-ancestors` CSP on its own
+responses (for the DHIS2 UI). This is DHIS2-side and does not affect OB's
+filter, which controls OB's own response headers.
+
+Residual risk: the `Set-Cookie` rewrite filter cannot amend cookies committed
+mid-response by upstream code (rare in Grails). Mitigation documented: front
+OB with nginx that rewrites `Set-Cookie` as a last resort.
