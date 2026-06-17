@@ -15,10 +15,10 @@ import org.pih.warehouse.core.LocationStatus
 
 class SecurityInterceptor {
 
-    static ArrayList controllersWithAuthUserNotRequired = ['test', 'errors']
+    static ArrayList controllersWithAuthUserNotRequired = ['test', 'errors', 'dhis2OAuth']
     static ArrayList actionsWithAuthUserNotRequired = ['status', 'test', 'login', 'logout', 'handleLogin', 'signup', 'handleSignup', 'json', 'updateAuthUserLocale', 'viewLogo', 'changeLocation', 'menu']
 
-    static ArrayList controllersWithLocationNotRequired = ['categoryApi', 'productApi', 'genericApi', 'api', 'customNotification']
+    static ArrayList controllersWithLocationNotRequired = ['categoryApi', 'productApi', 'genericApi', 'api', 'customNotification', 'dhis2OAuth']
     static ArrayList actionsWithLocationNotRequired = ['status', 'test', 'login', 'logout', 'handleLogin', 'signup', 'handleSignup', 'json', 'updateAuthUserLocale', 'viewLogo', 'chooseLocation', 'menu']
 
     def authService
@@ -62,6 +62,18 @@ class SecurityInterceptor {
         // FIXME In order to start working on sync use cases, we need to authenticate
         else if (controllersWithAuthUserNotRequired.contains(controllerName)) {
             return true
+        }
+        // DHIS2 pending-access gate: user completed OAuth but is not yet active.
+        // session.pendingDhis2UserId is set by Dhis2OAuthController; it is NOT session.user,
+        // so the normal unauthenticated-redirect below would fire without this guard.
+        else if (session.pendingDhis2UserId) {
+            boolean isPendingPage = controllerName == 'dhis2OAuth' && actionName == 'pending'
+            boolean isLogout = actionName == 'logout'
+            if (isPendingPage || isLogout) {
+                return true
+            }
+            redirect(controller: 'dhis2OAuth', action: 'pending')
+            return false
         }
         // When there's no authenticated user in the session and a request requires authentication
         // we redirect to the auth login page.  targetUri is the URI the user was trying to get to.

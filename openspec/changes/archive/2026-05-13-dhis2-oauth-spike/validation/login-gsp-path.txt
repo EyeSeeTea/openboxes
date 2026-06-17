@@ -1,0 +1,7 @@
+grails-app/views/auth/login.gsp
+grails-app/views/mobile/login.gsp
+
+The desktop login form is grails-app/views/auth/login.gsp (served by
+AuthController.login action). The mobile variant is separate. The "Sign in
+with DHIS2" button goes in grails-app/views/auth/login.gsp — this is the
+upstream touch point documented in dhis2-oauth-core design.md D4.

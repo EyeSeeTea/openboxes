@@ -42,6 +42,7 @@ class UserController {
     LocalizationService localizationService
     LocationRoleDataService locationRoleDataService
     UserDataService userGormService
+    def dhis2AdminService
 
     /**
      * Show index page - just a redirect to the list page.
@@ -68,7 +69,11 @@ class UserController {
 
         def query = params.q ? "%" + params.q + "%" : ""
 
-        userInstanceList = userService.findUsers(query, params)
+        if (params.status == 'pending_dhis2') {
+            userInstanceList = dhis2AdminService.findPendingDhis2Users(params)
+        } else {
+            userInstanceList = userService.findUsers(query, params)
+        }
         userInstanceTotal = userInstanceList.totalCount
 
         [userInstanceList: userInstanceList, userInstanceTotal: userInstanceTotal]

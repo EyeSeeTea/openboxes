@@ -1,0 +1,29 @@
+Authorization Code flow endpoint verification — <dhis2-host>
+
+=== Request ===
+GET /uaa/oauth/authorize?response_type=code&client_id=openboxes-spike&redirect_uri=http://localhost:9090/oauth/dhis2/callback&state=spike123
+
+=== Response (unauthenticated — expected) ===
+HTTP/1.1 302 Found
+location: https://<dhis2-host>/dhis-web-commons/security/login.action
+content-security-policy: frame-ancestors 'self' http://localhost:8084 ...
+set-cookie: JSESSIONID=...; Path=/; Secure; HttpOnly
+x-content-type-options: nosniff
+x-xss-protection: 1; mode=block
+
+VERDICT: The /uaa/oauth/authorize endpoint exists and behaves correctly.
+An unauthenticated request redirects to the DHIS2 login page (expected).
+After login, DHIS2 would redirect back to <redirect_uri>?code=<code>&state=<state>.
+
+=== Additional observation ===
+DHIS2 already emits its own `frame-ancestors` CSP header (not X-Frame-Options).
+This is a DHIS2-side constraint — not relevant to OB's iframe filter, but
+worth noting for the dhis2-iframe-embedding change: OB pages are embedded
+inside DHIS2 (DHIS2 is the outer frame), so what matters for the browser
+is OB's frame-ancestors, not DHIS2's.
+
+=== Authorization Code flow (authenticated) ===
+Full end-to-end Authorization Code flow was not automatable via curl because
+<dhis2-host> uses SSO web login (form-based curl POST fails).
+The flow is verified at the protocol level via the token endpoint test below
+(dhis2-token.json), which confirms the client, endpoints, and token structure.

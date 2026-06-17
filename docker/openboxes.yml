@@ -6,11 +6,11 @@
 grails:
     mail:
         enabled: true
-        host: smtp.example.com
+        host: ssl0.ovh.net
         port: 587
-        username: noreply@example.com
+        username: noreply@eyeseetea.com
         password: CHANGE_ME
-        from: noreply@example.com
+        from: noreply@eyeseetea.com
         prefix: '[UNICEF TJK Openboxes]'
 
 openboxes:
@@ -31,6 +31,32 @@ openboxes:
             damaged:
                 enabled: false
 
+        # -------------------------------------------------------------------------
+        # DHIS2 OAuth2 SSO
+        # Register redirectUri exactly as shown in DHIS2 → System Settings → OAuth2
+        # Clients. Inject clientSecret via env var / deploy-time override — never
+        # commit the real secret. See openboxes.client-template.yml for v40/v42 notes.
+        # -------------------------------------------------------------------------
+        dhis2:
+            oauth:
+                enabled: false
+                profile: v42
+                clientId: openboxes
+                clientSecret: CHANGE_ME
+                authorizeUrl: https://d2instance/oauth2/authorize
+                tokenUrl: https://d2instance/oauth2/token
+                redirectUri: https://obinstance/openboxes/oauth/dhis2/callback
+                scopes: openid username
+                clientAuth: basic
+
+        # DHIS2 iframe embedding — set frameAncestors to the DHIS2 origin(s) allowed
+        # to embed OB (empty = no third-party embedding). A non-empty list also turns
+        # on silent SSO and SameSite=None cookies (requires server.use-forward-headers
+        # below behind a TLS proxy). See openboxes.client-template.yml for the full note.
+        iframe:
+            frameAncestors:
+                - https://d2instance
+
     jobs:
         sendStockAlertsJob:
             enabled: true
@@ -44,3 +70,10 @@ openboxes:
         # during housekeeping.
         refreshInventorySnapshotAfterTransactionJob:
             enabled: true
+
+# Forwarded-proto — root-level key, a sibling of `openboxes` (NOT under it).
+# REQUIRED when OB runs behind a TLS-terminating proxy (the iframe-embedding case):
+# it lets OB trust X-Forwarded-Proto so it stamps the SameSite=None session cookie
+# Secure and builds https self-links. Harmless when not behind a proxy.
+server:
+    use-forward-headers: true

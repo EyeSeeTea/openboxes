@@ -33,7 +33,7 @@
                                     <p>
                                         <label>${warehouse.message(code:'default.status.label', default: "Status")}</label>
                                     </p>
-                                    <g:select name="status" from="['':'All users', 'true':'Active users only', 'false':'Inactive users only']"
+                                    <g:select name="status" from="['':'All users', 'true':'Active users only', 'false':'Inactive users only', 'pending_dhis2':'Pending DHIS2 access']"
                                             value="${params.status}"
                                               class="chzn-select-deselect"
                                               optionKey="key" optionValue="value"/>
