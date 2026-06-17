@@ -127,6 +127,23 @@ class Dhis2RegistrationServiceSpec extends Specification
         Dhis2UserLink.findByDhis2Username('heidi').deactivatedAt == null
     }
 
+    void "v42 login on a tombstoned link whose user is already inactive clears the tombstone and leaves the user inactive"() {
+        given:
+        User user = savedUser('ida', 'Ida', '(DHIS2)', 'i@x.com')
+        user.active = false
+        user.save(flush: true)
+        new Dhis2UserLink(user: user, dhis2Uid: null, dhis2Username: 'ida', deactivatedAt: new Date())
+            .save(flush: true, failOnError: true)
+
+        when:
+        User result = service.findOrRegister(new Dhis2User(uid: null, username: 'ida'))
+
+        then:
+        result.id == user.id
+        !result.active
+        Dhis2UserLink.findByDhis2Username('ida').deactivatedAt == null
+    }
+
     void "registration escalates the suffix when the -dhis2 username is also taken"() {
         given:
         savedUser('existing', 'Exist', 'Ing', 'e@g.com')

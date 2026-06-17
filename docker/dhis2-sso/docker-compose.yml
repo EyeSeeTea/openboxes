@@ -1,0 +1,51 @@
+# Local TLS dev stack for DHIS2 iframe embedding + silent-SSO testing.
+# nginx terminates TLS in front of OpenBoxes so the SameSite=None; Secure cookie
+# and CSP frame-ancestors flow behave as in production. DHIS2 is treated as an
+# external instance (proxied via nginx -> DHIS2_UPSTREAM) — set it to your DHIS2.
+#
+# Prereqs: see README.md (mkcert certs into ./certs, /etc/hosts not needed for
+# *.localtest.me). Bring up with:  docker compose -f docker/dhis2-sso/docker-compose.yml up
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:1.25-alpine
+    environment:
+      # Point this at your DHIS2 instance (must be reachable from the nginx container).
+      DHIS2_UPSTREAM: ${DHIS2_UPSTREAM:-http://host.docker.internal:18081}
+    ports:
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/templates/nginx.conf.template:ro
+      - ./certs:/etc/nginx/certs:ro
+    command: >
+      /bin/sh -c "envsubst '$$DHIS2_UPSTREAM' < /etc/nginx/templates/nginx.conf.template
+      > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
+    depends_on:
+      - openboxes
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  openboxes:
+    image: openboxes/openboxes:latest
+    environment:
+      # External OB config: enable iframe embedding + forwarded-proto. The mounted
+      # openboxes.yml supplies the DHIS2 OAuth client settings (v42, prompt=none).
+      JAVA_OPTS: "-Dgrails.env=production"
+    volumes:
+      - ./openboxes.yml:/home/openboxes/.grails/openboxes.yml:ro
+    depends_on:
+      - openboxes-db
+
+  openboxes-db:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: openboxes
+      MYSQL_DATABASE: openboxes
+      MYSQL_USER: openboxes
+      MYSQL_PASSWORD: openboxes
+    volumes:
+      - openboxes-db-data:/var/lib/mysql
+
+volumes:
+  openboxes-db-data:

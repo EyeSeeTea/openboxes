@@ -87,12 +87,49 @@ class Dhis2OAuthServiceSpec extends Specification implements ServiceUnitTest<Dhi
         given:
         configureClient('https://dhis2.example.com/oauth2/authorize')
         grailsApplication.config.openboxes.custom.dhis2.oauth.profile = 'v42'
+        // Set scopes explicitly so this is deterministic (config is shared across feature methods).
+        grailsApplication.config.openboxes.custom.dhis2.oauth.scopes = 'openid username'
 
         when:
         String url = service.buildAuthorizeUrl('s')
 
         then:
-        !url.contains('code_challenge')
+        url == 'https://dhis2.example.com/oauth2/authorize?response_type=code&client_id=my+client&redirect_uri=https%3A%2F%2Fob.example.com%2Foauth%2Fdhis2%2Fcallback' +
+            '&scope=openid+username&state=s'
+    }
+
+    void "v42 buildAuthorizeUrl appends prompt=none only when silent is requested"() {
+        given:
+        configureClient('https://dhis2.example.com/oauth2/authorize')
+        grailsApplication.config.openboxes.custom.dhis2.oauth.profile = 'v42'
+
+        expect:
+        service.buildAuthorizeUrl('s', RFC7636_CHALLENGE, true).endsWith('&prompt=none')
+        !service.buildAuthorizeUrl('s', RFC7636_CHALLENGE, false).contains('prompt')
+    }
+
+    void "v40 buildAuthorizeUrl never appends prompt=none even when silent is requested"() {
+        given:
+        configureClient('https://dhis2.example.com/uaa/oauth/authorize')
+        grailsApplication.config.openboxes.custom.dhis2.oauth.profile = 'v40'
+
+        expect:
+        !service.buildAuthorizeUrl('s', RFC7636_CHALLENGE, true).contains('prompt')
+    }
+
+    @Unroll
+    void "isSilentAuthSupported is #expected for profile=#profile"() {
+        given:
+        grailsApplication.config.openboxes.custom.dhis2.oauth.profile = profile
+
+        expect:
+        service.isSilentAuthSupported() == expected
+
+        where:
+        profile || expected
+        'v42'    || true
+        'v40'    || false
+        null     || false
     }
 
     void "codeChallengeFor matches the RFC 7636 appendix-B test vector"() {

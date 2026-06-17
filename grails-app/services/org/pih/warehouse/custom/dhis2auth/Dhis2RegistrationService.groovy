@@ -7,6 +7,9 @@ import org.pih.warehouse.custom.dhis2auth.Dhis2OAuthService.Dhis2User
 
 import java.security.SecureRandom
 
+// Reason: the AST-based @Transactional reliably binds the Hibernate session for
+// flush() calls in private methods; the default Grails wrapping does not, which
+// caused TransactionRequiredException at runtime. Do not remove.
 @Transactional
 class Dhis2RegistrationService {
 

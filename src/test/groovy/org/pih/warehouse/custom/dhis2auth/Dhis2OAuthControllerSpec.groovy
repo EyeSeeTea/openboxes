@@ -54,7 +54,7 @@ class Dhis2OAuthControllerSpec extends Specification
     void "initiate stores the PKCE verifier from prepareAuthorize in the session"() {
         given:
         enableOAuth('v42')
-        dhis2OAuthService.prepareAuthorize(_) >> new AuthorizeRequest(
+        dhis2OAuthService.prepareAuthorize(_, _) >> new AuthorizeRequest(
             url: 'https://dhis2.example.com/oauth2/authorize', codeVerifier: 'verifier-xyz')
 
         when:
@@ -88,7 +88,7 @@ class Dhis2OAuthControllerSpec extends Specification
     void "initiate leaves the PKCE verifier null when prepareAuthorize returns none"() {
         given:
         enableOAuth('v40')
-        dhis2OAuthService.prepareAuthorize(_) >> new AuthorizeRequest(
+        dhis2OAuthService.prepareAuthorize(_, _) >> new AuthorizeRequest(
             url: 'https://dhis2.example.com/uaa/oauth/authorize', codeVerifier: null)
 
         when:
@@ -98,9 +98,88 @@ class Dhis2OAuthControllerSpec extends Specification
         session.dhis2OAuthCodeVerifier == null
     }
 
+    void "embedded initiate on v42 attempts a silent prompt=none authorize"() {
+        given:
+        enableOAuth('v42')
+        enableIframe()
+        dhis2OAuthService.isSilentAuthSupported() >> true
+        dhis2OAuthService.prepareAuthorize(_, true) >> new AuthorizeRequest(
+            url: 'https://dhis2.example.com/oauth2/authorize?prompt=none', codeVerifier: 'verifier-xyz')
+
+        when:
+        params.embedded = 'true'
+        controller.initiate()
+
+        then:
+        session.dhis2OAuthSilent == true
+        session.dhis2OAuthCodeVerifier == 'verifier-xyz'
+        response.redirectedUrl == 'https://dhis2.example.com/oauth2/authorize?prompt=none'
+    }
+
+    void "embedded initiate does not go silent when embedding is disabled"() {
+        given:
+        enableOAuth('v42')
+        dhis2OAuthService.prepareAuthorize(_, _) >> new AuthorizeRequest(
+            url: 'https://dhis2.example.com/oauth2/authorize', codeVerifier: 'v')
+
+        when:
+        params.embedded = 'true'
+        controller.initiate()
+
+        then:
+        session.dhis2OAuthSilent == false
+        response.redirectedUrl == 'https://dhis2.example.com/oauth2/authorize'
+    }
+
+    void "callback breaks out of the iframe when a silent attempt returns login_required"() {
+        given:
+        enableOAuth('v42')
+
+        when:
+        session.dhis2OAuthState = STATE
+        session.dhis2OAuthSilent = true
+        params.state = STATE
+        params.error = 'login_required'
+        controller.callback()
+
+        then:
+        view == '/custom/dhis2auth/breakout'
+        session.dhis2OAuthSilent == null
+        0 * dhis2OAuthService.exchangeCode(*_)
+    }
+
+    void "callback redirects to login when an error arrives outside a silent attempt"() {
+        when:
+        session.dhis2OAuthState = STATE
+        params.state = STATE
+        params.error = 'access_denied'
+        controller.callback()
+
+        then:
+        response.redirectedUrl == '/auth/login'
+        0 * dhis2OAuthService.exchangeCode(*_)
+    }
+
+    void "callback does not break out for login_required when the attempt was not silent"() {
+        when:
+        session.dhis2OAuthState = STATE
+        session.dhis2OAuthSilent = false
+        params.state = STATE
+        params.error = 'login_required'
+        controller.callback()
+
+        then: "it redirects to login (a break-out would render the breakout view, not redirect)"
+        response.redirectedUrl == '/auth/login'
+        0 * dhis2OAuthService.exchangeCode(*_)
+    }
+
     private void enableOAuth(String profile) {
         controller.grailsApplication.config.openboxes.custom.dhis2.oauth.enabled = true
         controller.grailsApplication.config.openboxes.custom.dhis2.oauth.profile = profile
+    }
+
+    private void enableIframe() {
+        controller.grailsApplication.config.openboxes.custom.iframe.frameAncestors = ['https://dhis2.example.com']
     }
 
     void "callback for an active user establishes a session and redirects to the dashboard"() {
