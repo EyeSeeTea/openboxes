@@ -88,9 +88,28 @@ class AuthTagLib {
             out << body()
         }
     }
+    def canCreateOutboundMovement = { attrs, body ->
+        Map<String, Object> permissions = customRolePolicyService.getCustomRolePermissions(session?.user, session?.warehouse?.id)
+        if (permissions.canCreateOutboundMovement) {
+            out << body()
+        }
+    }
     def canManageProducts = { attrs, body ->
         Map<String, Object> permissions = customRolePolicyService.getCustomRolePermissions(session?.user, session?.warehouse?.id)
         if (userService.isUserAdmin(session?.user) || permissions.canManageProducts) {
+            out << body()
+        }
+    }
+    def canRecordStock = { attrs, body ->
+        Map<String, Object> access = customRolePolicyService.evaluateRouteAccess(
+                session?.user,
+                session?.warehouse?.id,
+                "inventoryItem",
+                "showRecordInventory",
+                attrs.params instanceof Map ? attrs.params : [:],
+                null
+        )
+        if (access.allowed || (!access.hasPolicy && userService.isUserManager(session?.user))) {
             out << body()
         }
     }

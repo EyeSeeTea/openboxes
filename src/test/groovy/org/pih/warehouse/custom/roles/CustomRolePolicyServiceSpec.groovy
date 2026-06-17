@@ -5,12 +5,15 @@ import org.pih.warehouse.core.Location
 import org.pih.warehouse.core.Role
 import org.pih.warehouse.core.RoleType
 import org.pih.warehouse.core.User
+import org.pih.warehouse.requisition.Requisition
+import org.pih.warehouse.requisition.RequisitionSourceType
 import spock.lang.Specification
 
 class CustomRolePolicyServiceSpec extends Specification implements ServiceUnitTest<CustomRolePolicyService> {
 
     def setup() {
         GroovySystem.metaClassRegistry.removeMetaClass(Location)
+        GroovySystem.metaClassRegistry.removeMetaClass(Requisition)
         GroovySystem.metaClassRegistry.removeMetaClass(User)
         Location.metaClass.static.get = { String id ->
             Stub(Location) {
@@ -21,6 +24,7 @@ class CustomRolePolicyServiceSpec extends Specification implements ServiceUnitTe
 
     def cleanup() {
         GroovySystem.metaClassRegistry.removeMetaClass(Location)
+        GroovySystem.metaClassRegistry.removeMetaClass(Requisition)
         GroovySystem.metaClassRegistry.removeMetaClass(User)
     }
 
@@ -223,6 +227,127 @@ class CustomRolePolicyServiceSpec extends Specification implements ServiceUnitTe
         !access.denied
     }
 
+    def "should allow facility storekeeper to create stock requests"() {
+        given:
+        User user = mockUser([RoleType.ROLE_FACILITY_STOREKEEPER], [RoleType.ROLE_FACILITY_STOREKEEPER])
+
+        when:
+        Map<String, Object> access = service.evaluateRouteAccess(user, 'loc-1', 'stockMovement', 'createRequest')
+
+        then:
+        access.hasPolicy
+        !access.denied
+        access.allowed
+    }
+
+    def "should allow facility storekeeper to create stock requests through the api"() {
+        given:
+        User user = mockUser([RoleType.ROLE_FACILITY_STOREKEEPER], [RoleType.ROLE_FACILITY_STOREKEEPER])
+        def request = [JSON: [sourceType: RequisitionSourceType.ELECTRONIC.name()]]
+
+        when:
+        Map<String, Object> access = service.evaluateRouteAccess(user, 'loc-1', 'stockMovementApi', 'create', [:], request)
+
+        then:
+        access.hasPolicy
+        !access.denied
+        access.allowed
+    }
+
+    def "should allow facility storekeeper to complete record stock workflow"() {
+        given:
+        User user = mockUser([RoleType.ROLE_FACILITY_STOREKEEPER], [RoleType.ROLE_FACILITY_STOREKEEPER])
+
+        when:
+        Map<String, Object> showAccess = service.evaluateRouteAccess(user, 'loc-1', 'inventoryItem', 'showRecordInventory')
+        Map<String, Object> saveAccess = service.evaluateRouteAccess(user, 'loc-1', 'inventoryItem', 'saveRecordInventory')
+        Map<String, Object> apiAccess = service.evaluateRouteAccess(user, 'loc-1', 'recordStockApi', 'saveRecordStock')
+
+        then:
+        showAccess.hasPolicy
+        !showAccess.denied
+        showAccess.allowed
+        saveAccess.hasPolicy
+        !saveAccess.denied
+        saveAccess.allowed
+        apiAccess.hasPolicy
+        !apiAccess.denied
+        apiAccess.allowed
+    }
+
+    def "should allow regional warehouse to create and save inventory adjustments"() {
+        given:
+        User user = mockUser([RoleType.ROLE_REGIONAL_WAREHOUSE], [RoleType.ROLE_REGIONAL_WAREHOUSE])
+
+        when:
+        Map<String, Object> createAccess = service.evaluateRouteAccess(user, 'loc-1', 'inventory', 'createAdjustment')
+        Map<String, Object> saveAccess = service.evaluateRouteAccess(user, 'loc-1', 'inventory', 'saveAdjustmentTransaction')
+
+        then:
+        createAccess.hasPolicy
+        !createAccess.denied
+        createAccess.allowed
+        saveAccess.hasPolicy
+        !saveAccess.denied
+        saveAccess.allowed
+    }
+
+    def "should allow regional warehouse to create stock requests"() {
+        given:
+        User user = mockUser([RoleType.ROLE_REGIONAL_WAREHOUSE], [RoleType.ROLE_REGIONAL_WAREHOUSE])
+
+        when:
+        Map<String, Object> access = service.evaluateRouteAccess(user, 'loc-1', 'stockMovement', 'createRequest')
+
+        then:
+        access.hasPolicy
+        !access.denied
+        access.allowed
+    }
+
+    def "should allow regional warehouse to update stock requests through the api"() {
+        given:
+        User user = mockUser([RoleType.ROLE_REGIONAL_WAREHOUSE], [RoleType.ROLE_REGIONAL_WAREHOUSE])
+        mockElectronicRequisition('req-1')
+
+        when:
+        Map<String, Object> readAccess = service.evaluateRouteAccess(user, 'loc-1', 'stockMovementApi', 'read', [id: 'req-1'], null)
+        Map<String, Object> updateAccess = service.evaluateRouteAccess(user, 'loc-1', 'stockMovementApi', 'updateRequisition', [id: 'req-1'], null)
+        Map<String, Object> itemAccess = service.evaluateRouteAccess(user, 'loc-1', 'stockMovementItemApi', 'getStockMovementItems', [id: 'req-1'], null)
+
+        then:
+        readAccess.hasPolicy
+        !readAccess.denied
+        readAccess.allowed
+        updateAccess.hasPolicy
+        !updateAccess.denied
+        updateAccess.allowed
+        itemAccess.hasPolicy
+        !itemAccess.denied
+        itemAccess.allowed
+    }
+
+    def "should allow regional warehouse to complete record stock workflow"() {
+        given:
+        User user = mockUser([RoleType.ROLE_REGIONAL_WAREHOUSE], [RoleType.ROLE_REGIONAL_WAREHOUSE])
+
+        when:
+        Map<String, Object> showAccess = service.evaluateRouteAccess(user, 'loc-1', 'inventoryItem', 'showRecordInventory')
+        Map<String, Object> saveAccess = service.evaluateRouteAccess(user, 'loc-1', 'inventoryItem', 'saveRecordInventory')
+        Map<String, Object> apiAccess = service.evaluateRouteAccess(user, 'loc-1', 'recordStockApi', 'saveRecordStock')
+
+        then:
+        showAccess.hasPolicy
+        !showAccess.denied
+        showAccess.allowed
+        saveAccess.hasPolicy
+        !saveAccess.denied
+        saveAccess.allowed
+        apiAccess.hasPolicy
+        !apiAccess.denied
+        apiAccess.allowed
+    }
+
     def "should remove inbound create actions from regional warehouse menu"() {
         given:
         User user = mockUser([RoleType.ROLE_REGIONAL_WAREHOUSE], [RoleType.ROLE_REGIONAL_WAREHOUSE])
@@ -344,5 +469,17 @@ class CustomRolePolicyServiceSpec extends Specification implements ServiceUnitTe
 
     private Role role(RoleType roleType) {
         return new Role(roleType: roleType, name: roleType.name())
+    }
+
+    private void mockElectronicRequisition(String id) {
+        Requisition.metaClass.static.get = { String requisitionId ->
+            if (requisitionId != id) {
+                return null
+            }
+
+            Stub(Requisition) {
+                getSourceType() >> RequisitionSourceType.ELECTRONIC
+            }
+        }
     }
 }

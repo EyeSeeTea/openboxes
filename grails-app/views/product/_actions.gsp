@@ -19,10 +19,12 @@
 			</g:link>
 		</div>
 		<div class="action-menu-item">
-			<g:link controller="product" action="edit" id="${productInstance?.id }">
-				<img src="${resource(dir: 'images/icons/silk', file: 'pencil.png')}"/>&nbsp;
-				<warehouse:message code="product.edit.label"/>
-			</g:link>
+			<g:canManageProducts>
+				<g:link controller="product" action="edit" id="${productInstance?.id }">
+					<img src="${resource(dir: 'images/icons/silk', file: 'pencil.png')}"/>&nbsp;
+					<warehouse:message code="product.edit.label"/>
+				</g:link>
+			</g:canManageProducts>
 		</div>
 		<div class="action-menu-item">
 			<g:link controller="inventoryItem" action="showTransactionLog" params="['product.id': productInstance?.id, 'disableFilter':true]">
@@ -42,11 +44,13 @@
 			<hr />
 		</div>
 		<div class="action-menu-item">
-			<g:link name="recordInventoryLink" controller="inventoryItem" action="showRecordInventory"
-					params="['product.id': productInstance?.id,'inventory.id':inventoryInstance?.id]">
-				<img src="${resource(dir: 'images/icons/silk', file: 'book.png')}"/>&nbsp;
-				<warehouse:message code="inventory.record.label"/>
-			</g:link>
+			<g:canRecordStock>
+				<g:link name="recordInventoryLink" controller="inventoryItem" action="showRecordInventory"
+						params="['product.id': productInstance?.id,'inventory.id':inventoryInstance?.id]">
+					<img src="${resource(dir: 'images/icons/silk', file: 'book.png')}"/>&nbsp;
+					<warehouse:message code="inventory.record.label"/>
+				</g:link>
+			</g:canRecordStock>
 		</div>
 		<div class="action-menu-item">
 			<g:link controller="inventory" action="createInboundTransfer" params="['product.id':productInstance?.id]">
@@ -55,10 +59,12 @@
 			</g:link>
 		</div>
 		<div class="action-menu-item">
-			<g:link controller="inventory" action="createOutboundTransfer" params="['product.id':productInstance?.id]">
-				<img src="${resource(dir:'images/icons/silk',file:'package_go.png')}"/>&nbsp;
-				<warehouse:message code="inventory.outgoingTransfer.label" />
-			</g:link>
+			<g:canCreateOutboundMovement>
+				<g:link controller="inventory" action="createOutboundTransfer" params="['product.id':productInstance?.id]">
+					<img src="${resource(dir:'images/icons/silk',file:'package_go.png')}"/>&nbsp;
+					<warehouse:message code="inventory.outgoingTransfer.label" />
+				</g:link>
+			</g:canCreateOutboundMovement>
 		</div>
 		<g:supports activityCode="${org.pih.warehouse.core.ActivityCode.ADJUST_INVENTORY}">
 			<div class="action-menu-item">
@@ -129,15 +135,17 @@
 		</div>
 		<g:if test="${productInstance.id}">
 			<div class="action-menu-item">
-				<g:link controller="product" action="delete" id="${productInstance.id}"
-						onclick="return confirm('${warehouse.message(code: 'default.button.delete.confirm.message', default: 'Are you sure?')}');">
-					<img src="${resource(dir:'images/icons/silk',file:'bin.png')}" style="vertical-align: middle" />&nbsp;
-					<warehouse:message
-						code="default.delete.label"
-						args="[g.message(code: 'product.label', default: 'Product')]"
-						default="Delete Product"
-					/>
-				</g:link>
+				<g:canManageProducts>
+					<g:link controller="product" action="delete" id="${productInstance.id}"
+							onclick="return confirm('${warehouse.message(code: 'default.button.delete.confirm.message', default: 'Are you sure?')}');">
+						<img src="${resource(dir:'images/icons/silk',file:'bin.png')}" style="vertical-align: middle" />&nbsp;
+						<warehouse:message
+							code="default.delete.label"
+							args="[g.message(code: 'product.label', default: 'Product')]"
+							default="Delete Product"
+						/>
+					</g:link>
+				</g:canManageProducts>
 			</div>
 			<div class="action-menu-item">
 				<g:link controller="product" action="renderCreatedEmail" id="${productInstance?.id}">

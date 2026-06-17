@@ -7,17 +7,21 @@
 	<div class="action-menu-item">
 		<hr/>
 	</div>
-	<div class="action-menu-item">					
-		<g:link controller="inventoryItem" action="showRecordInventory" params="['product.id': product?.id,'inventory.id':inventory?.id]">
-			<img src="${resource(dir: 'images/icons/silk', file: 'clipboard.png')}"/>&nbsp;
-			<warehouse:message code="inventory.record.label"/>
-		</g:link>
+	<div class="action-menu-item">
+		<g:canRecordStock>
+			<g:link controller="inventoryItem" action="showRecordInventory" params="['product.id': product?.id,'inventory.id':inventory?.id]">
+				<img src="${resource(dir: 'images/icons/silk', file: 'clipboard.png')}"/>&nbsp;
+				<warehouse:message code="inventory.record.label"/>
+			</g:link>
+		</g:canRecordStock>
 	</div>				
 	<div class="action-menu-item">					
-		<g:link controller="product" action="edit" id="${product?.id }">
-			<img src="${resource(dir: 'images/icons/silk', file: 'pencil.png')}"/>&nbsp;
-			<warehouse:message code="product.edit.label"/>
-		</g:link>
+		<g:canManageProducts>
+			<g:link controller="product" action="edit" id="${product?.id }">
+				<img src="${resource(dir: 'images/icons/silk', file: 'pencil.png')}"/>&nbsp;
+				<warehouse:message code="product.edit.label"/>
+			</g:link>
+		</g:canManageProducts>
 	</div>
 	<div class="action-menu-item">					
 		<g:link controller="inventoryItem" action="editInventoryLevel" params="['product.id': product?.id, 'inventory.id':inventory?.id]">
