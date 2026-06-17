@@ -1396,6 +1396,3 @@ openboxes.inventoryCount.transactionTypes = [
         Constants.PRODUCT_INVENTORY_TRANSACTION_TYPE_ID,
         Constants.INVENTORY_BASELINE_TRANSACTION_TYPE_ID
 ]
-
-// Lot/expiry control deferred to receipt for this client instance
-openboxes.custom.lotControl.deferToReceipt = true
