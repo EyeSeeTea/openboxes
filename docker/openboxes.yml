@@ -6,11 +6,11 @@
 grails:
     mail:
         enabled: true
-        host: smtp.example.com
+        host: ssl0.ovh.net
         port: 587
-        username: noreply@example.com
+        username: noreply@eyeseetea.com
         password: CHANGE_ME
-        from: noreply@example.com
+        from: noreply@eyeseetea.com
         prefix: '[UNICEF TJK Openboxes]'
 
 openboxes:
@@ -32,7 +32,7 @@ openboxes:
                 enabled: false
 
         # -------------------------------------------------------------------------
-        # DHIS2 OAuth2 SSO — TODO(TJK): fill in real values, then set enabled: true.
+        # DHIS2 OAuth2 SSO
         # Register redirectUri exactly as shown in DHIS2 → System Settings → OAuth2
         # Clients. Inject clientSecret via env var / deploy-time override — never
         # commit the real secret. See openboxes.client-template.yml for v40/v42 notes.
@@ -43,9 +43,9 @@ openboxes:
                 profile: v42
                 clientId: openboxes
                 clientSecret: CHANGE_ME
-                authorizeUrl: https://dhis2.example.com/oauth2/authorize
-                tokenUrl: https://dhis2.example.com/oauth2/token
-                redirectUri: https://openboxes.example.com/oauth/dhis2/callback
+                authorizeUrl: https://d2instance/oauth2/authorize
+                tokenUrl: https://d2instance/oauth2/token
+                redirectUri: https://obinstance/openboxes/oauth/dhis2/callback
                 scopes: openid username
                 clientAuth: basic
 
@@ -54,7 +54,8 @@ openboxes:
         # on silent SSO and SameSite=None cookies (requires server.use-forward-headers
         # below behind a TLS proxy). See openboxes.client-template.yml for the full note.
         iframe:
-            frameAncestors: []
+            frameAncestors:
+                - https://d2instance
 
     jobs:
         sendStockAlertsJob:
