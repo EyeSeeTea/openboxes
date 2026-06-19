@@ -139,7 +139,23 @@ branches with no visible change; set `showAmcInRequisition: true` per client in
 | `grails-app/i18n/messages.properties` | Add `react.stockMovement.amc.label = AMC` and tooltip key | i18n for AMC column (root bundle required) |
 
 Custom (isolated, no upstream conflict):
-`grails-app/services/org/pih/warehouse/custom/consumptionDemand/ConsumptionDemandService.groovy`
+- `grails-app/services/org/pih/warehouse/custom/consumptionDemand/ConsumptionDemandService.groovy`
+  — live query + AMC formula.
+- `src/js/custom/amcInRequisition/utils/amcColumn.js` — pure column helpers (`formatAmc`,
+  `withAmcColumn`, `stripAmcColumn`) imported by both AddItemsPage and EditPage (matches the existing
+  `custom/outboundExpiryRestrictions/utils/expiryHelpers` import precedent in EditPage). Unit-tested.
+- `src/integration-test/groovy/org/pih/warehouse/custom/consumptionDemand/ConsumptionDemandServiceIntegrationSpec.groovy`
+  — formula + window + zero-consumption tests.
+- `src/js/custom/amcInRequisition/__tests__/amcColumn.test.jsx` — column-gating + formatter tests.
+
+**Implementation note (line numbers):** the `StockMovementService` edits are the service injection
+(beside `forecastingService`, ~line 104) plus an `amc` entry at the four demand sites — both
+`getAddPageItem` maps (after `monthlyDemand`), `calculateFieldsForElectronicRequisitionItem` (after
+`quantityDemandRequesting`), and `buildEditPageItems` (after `quantityDemandFulfilling`, scoped to
+`requisition.destination`). On the frontend, AMC is added to the four **demand-bearing** AddItemsPage
+configs (`NO_STOCKLIST_FIELDS`, `STOCKLIST_FIELDS_PULL_TYPE`,
+`REQUEST_FROM_WARD_STOCKLIST_FIELDS_PULL_TYPE`, `REQUEST_FROM_WARD_FIELDS`) and all three EditPage
+configs; the two push-type configs are excluded (no Demand column — see Resolved OQ#3).
 
 ## Deploy status
 
@@ -173,19 +189,34 @@ Custom (isolated, no upstream conflict):
   and compute `windowDays` exactly as the report does (`numberOfDays = toDate − fromDate`, same
   inclusive bounds) so the divisor matches.
 
-## Open Questions
+## Resolved Questions (continued)
 
-- **Which AddItemsPage variants get the column.** AddItemsPage has five field configs
-  (`NO_STOCKLIST_FIELDS`, `STOCKLIST_FIELDS_PUSH_TYPE`, `STOCKLIST_FIELDS_PULL_TYPE`,
-  `REQUEST_FROM_WARD_STOCKLIST_FIELDS_PUSH_TYPE`, `REQUEST_FROM_WARD_STOCKLIST_FIELDS_PULL_TYPE`), not
-  one. Scope currently targets `NO_STOCKLIST_FIELDS` only. Confirm with the PM whether TJK uses the
-  stocklist / ward request flows and whether AMC should appear there.
-- **AMC display type.** Demand renders `as Integer`; the Consumption Report formats AMC to `###.#`
-  (decimals). Decide whether the AMC column shows a rounded integer (matching the Demand column) or a
-  decimal value.
-- **N+1 query cost.** Whether the per-line-item consumption query is acceptable for large
-  requisitions, or whether a batch-fetch `getMonthlyConsumption(Location, List<Product>)` overload
-  should be added upfront.
+- **OQ#3 — Which AddItemsPage variants get the column (RESOLVED: the four demand-bearing configs;
+  push-type configs excluded).** Implementation found AddItemsPage actually has **six** line-item
+  configs, not five — the task list omitted `REQUEST_FROM_WARD_FIELDS` (the ward ad-hoc flow). TJK
+  confirmed it uses ward requests. AMC is therefore added to the four configs that display a Demand
+  column: `NO_STOCKLIST_FIELDS` (monthlyDemand), `STOCKLIST_FIELDS_PULL_TYPE`
+  (demandPerReplenishmentPeriod), `REQUEST_FROM_WARD_STOCKLIST_FIELDS_PULL_TYPE`
+  (demandPerReplenishmentPeriod), and `REQUEST_FROM_WARD_FIELDS` (monthlyDemand). The two **push-type**
+  configs (`STOCKLIST_FIELDS_PUSH_TYPE`, `REQUEST_FROM_WARD_STOCKLIST_FIELDS_PUSH_TYPE`) display
+  `quantityAllowed` (replenish-to-par max), **not** Demand, so AMC has no Demand column to sit beside
+  there — excluded. Easy to add later if a push flow needs it.
+- **OQ#4 — AMC display type (RESOLVED: one decimal place).** AMC renders to one decimal place
+  (`Math.round(value * 10) / 10`) to match the Consumption Report's `###.#` format, so the column
+  reconciles with the report and small monthly rates don't collapse to `0`. (Superseded an earlier
+  rounded-integer decision, which hid sub-1.0 monthly rates during live QA.) The **service still
+  returns the raw** `SUM / windowDays * 30` BigDecimal — rounding is display-only (in the JSX
+  `formatValue`), so the Consumption-Report reconciliation (spec scenario / task 7.1) holds against
+  the unrounded value.
+- **OQ#5 — N+1 query cost (RESOLVED: accept per-line-item, gated by the feature flag).** The
+  consumption query runs once per line item, mirroring the existing demand-query pattern in the same
+  methods. No batch overload added; it is a single indexed SUM. **`getMonthlyConsumption` now
+  short-circuits to `0` without querying when `openboxes.custom.consumption.showAmcInRequisition` is
+  off** (the default), so deployments that don't surface the column pay zero query cost — mirroring how
+  `ForecastingService.getDemand` short-circuits on `forecasting.enabled`. (Added after code review
+  flagged that the flag previously gated only the frontend render, not the backend computation.)
+  Revisit with a `getMonthlyConsumption(Location, List<Product>)` batch overload only if performance
+  testing on large requisitions with the flag *on* shows a problem (noted under Risks).
 
 (Resolved during spec review: the `averageMonthlyDemand` site at line ~719 is
 `getPendingRequisitionDetails(Location origin, …)` — an origin-scoped pending-requisition helper, not

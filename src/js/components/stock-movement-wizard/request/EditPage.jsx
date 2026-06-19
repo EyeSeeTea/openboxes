@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 
+import { formatAmc, withAmcColumn } from 'custom/amcInRequisition/utils/amcColumn';
 import { renderAvailableCell } from 'custom/outboundExpiryRestrictions/utils/expiryHelpers';
 import arrayMutators from 'final-form-arrays';
 import update from 'immutability-helper';
@@ -39,6 +40,27 @@ const BTN_CLASS_MAPPER = {
   NO: 'btn btn-outline-secondary',
   EARLIER: 'btn btn-outline-warning',
   HIDDEN: 'btn invisible',
+};
+
+const AMC_FIELD = {
+  type: LabelField,
+  label: 'react.stockMovement.amc.label',
+  defaultMessage: 'AMC',
+  flexWidth: '1',
+  headerTooltip: 'react.stockMovement.amc.tooltip',
+  headerDefaultTooltip: 'Average Monthly Consumption',
+  attributes: {
+    numberField: true,
+    formatValue: (value) => {
+      const rounded = formatAmc(value);
+      // formatAmc passes null/undefined/'' through unchanged — only those mean
+      // "no data". A real 0 must still render as 0 (not blank), so guard on
+      // null/undefined/'' rather than a truthy check (0 is falsy).
+      return (rounded === null || rounded === undefined || rounded === '')
+        ? ''
+        : rounded.toLocaleString('en-US');
+    },
+  },
 };
 
 const AD_HOCK_FIELDS = {
@@ -1640,7 +1662,9 @@ class EditItemsPage extends Component {
               ) }
             <form onSubmit={handleSubmit}>
               <div className="table-form">
-                {_.map(this.getFields(), (fieldConfig, fieldName) =>
+                {_.map(this.props.showAmcInRequisition
+                  ? withAmcColumn(this.getFields(), AMC_FIELD)
+                  : this.getFields(), (fieldConfig, fieldName) =>
                   renderFormField(fieldConfig, fieldName, {
                     stockMovementId: values.stockMovementId,
                     hasStockList: !!_.get(values.stocklist, 'id'),
@@ -1705,6 +1729,7 @@ const mapStateToProps = (state) => ({
   currentLocale: state.session.activeLanguage,
   currentUser: state.session.user,
   currentLocation: state.session.currentLocation,
+  showAmcInRequisition: state.session.showAmcInRequisition,
 });
 
 export default withRouter(connect(mapStateToProps, {
@@ -1746,4 +1771,5 @@ EditItemsPage.propTypes = {
     id: PropTypes.string.isRequired,
     name: PropTypes.string.isRequired,
   }).isRequired,
+  showAmcInRequisition: PropTypes.bool.isRequired,
 };

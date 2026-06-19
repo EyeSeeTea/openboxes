@@ -31,6 +31,10 @@ openboxes:
             damaged:
                 enabled: false
 
+        consumption:
+            showAmcInRequisition: true
+            amcPeriod: 365
+
         # -------------------------------------------------------------------------
         # DHIS2 OAuth2 SSO
         # Register redirectUri exactly as shown in DHIS2 → System Settings → OAuth2
