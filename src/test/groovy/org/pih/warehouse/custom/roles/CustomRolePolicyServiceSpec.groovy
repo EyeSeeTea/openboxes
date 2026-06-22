@@ -246,12 +246,109 @@ class CustomRolePolicyServiceSpec extends Specification implements ServiceUnitTe
         def request = [JSON: [sourceType: RequisitionSourceType.ELECTRONIC.name()]]
 
         when:
-        Map<String, Object> access = service.evaluateRouteAccess(user, 'loc-1', 'stockMovementApi', 'create', [:], request)
+        Map<String, Object> access = service.evaluateRouteAccess(
+                user,
+                'loc-1',
+                'stockMovementApi',
+                'create',
+                [:],
+                request
+        )
 
         then:
         access.hasPolicy
         !access.denied
         access.allowed
+    }
+
+    def "should allow facility storekeeper to list stocklists for request creation"() {
+        given:
+        User user = mockUser([RoleType.ROLE_FACILITY_STOREKEEPER], [RoleType.ROLE_FACILITY_STOREKEEPER])
+
+        when:
+        Map<String, Object> access = service.evaluateRouteAccess(user, 'loc-1', 'stocklistApi', 'list')
+
+        then:
+        access.hasPolicy
+        !access.denied
+        access.allowed
+    }
+
+    def "should allow facility storekeeper stock request comments documents and delete routes"() {
+        given:
+        User user = mockUser([RoleType.ROLE_FACILITY_STOREKEEPER], [RoleType.ROLE_FACILITY_STOREKEEPER])
+        mockElectronicRequisition('req-1')
+
+        when:
+        Map<String, Object> addCommentAccess = service.evaluateRouteAccess(user, 'loc-1', 'stockMovement', 'addComment', [id: 'req-1'], null)
+        Map<String, Object> saveCommentAccess = service.evaluateRouteAccess(user, 'loc-1', 'stockMovement', 'saveComment', [stockMovementId: 'req-1'], null)
+        Map<String, Object> addDocumentAccess = service.evaluateRouteAccess(user, 'loc-1', 'stockMovement', 'addDocument', [id: 'req-1'], null)
+        Map<String, Object> uploadDocumentAccess = service.evaluateRouteAccess(user, 'loc-1', 'document', 'uploadDocument', [stockMovementId: 'req-1'], null)
+        Map<String, Object> removeAccess = service.evaluateRouteAccess(user, 'loc-1', 'stockRequest', 'remove', [id: 'req-1'], null)
+
+        then:
+        addCommentAccess.hasPolicy
+        !addCommentAccess.denied
+        addCommentAccess.allowed
+        saveCommentAccess.hasPolicy
+        !saveCommentAccess.denied
+        saveCommentAccess.allowed
+        addDocumentAccess.hasPolicy
+        !addDocumentAccess.denied
+        addDocumentAccess.allowed
+        uploadDocumentAccess.hasPolicy
+        !uploadDocumentAccess.denied
+        uploadDocumentAccess.allowed
+        removeAccess.hasPolicy
+        !removeAccess.denied
+        removeAccess.allowed
+    }
+
+    def "should deny regional warehouse stock request approval routes without approver role"() {
+        given:
+        User user = mockUser([RoleType.ROLE_REGIONAL_WAREHOUSE], [RoleType.ROLE_REGIONAL_WAREHOUSE])
+        mockElectronicRequisition('req-1')
+
+        when:
+        Map<String, Object> updateStatusAccess = service.evaluateRouteAccess(user, 'loc-1', 'stockMovement', 'updateStatus', [id: 'req-1'], null)
+        Map<String, Object> rejectAccess = service.evaluateRouteAccess(user, 'loc-1', 'stockRequest', 'reject', [id: 'req-1'], null)
+        Map<String, Object> rollbackApprovalAccess = service.evaluateRouteAccess(user, 'loc-1', 'stockRequest', 'rollbackApproval', [id: 'req-1'], null)
+
+        then:
+        updateStatusAccess.hasPolicy
+        !updateStatusAccess.denied
+        !updateStatusAccess.allowed
+        rejectAccess.hasPolicy
+        !rejectAccess.denied
+        !rejectAccess.allowed
+        rollbackApprovalAccess.hasPolicy
+        !rollbackApprovalAccess.denied
+        rollbackApprovalAccess.allowed
+    }
+
+    def "should allow regional warehouse stock request approval routes with approver role"() {
+        given:
+        User user = mockUser(
+                [RoleType.ROLE_REGIONAL_WAREHOUSE, RoleType.ROLE_REQUISITION_APPROVER],
+                [RoleType.ROLE_REGIONAL_WAREHOUSE, RoleType.ROLE_REQUISITION_APPROVER]
+        )
+        mockElectronicRequisition('req-1')
+
+        when:
+        Map<String, Object> updateStatusAccess = service.evaluateRouteAccess(user, 'loc-1', 'stockMovement', 'updateStatus', [id: 'req-1'], null)
+        Map<String, Object> rejectAccess = service.evaluateRouteAccess(user, 'loc-1', 'stockRequest', 'reject', [id: 'req-1'], null)
+        Map<String, Object> rollbackApprovalAccess = service.evaluateRouteAccess(user, 'loc-1', 'stockRequest', 'rollbackApproval', [id: 'req-1'], null)
+
+        then:
+        updateStatusAccess.hasPolicy
+        !updateStatusAccess.denied
+        updateStatusAccess.allowed
+        rejectAccess.hasPolicy
+        !rejectAccess.denied
+        rejectAccess.allowed
+        rollbackApprovalAccess.hasPolicy
+        !rollbackApprovalAccess.denied
+        rollbackApprovalAccess.allowed
     }
 
     def "should allow facility storekeeper to complete record stock workflow"() {

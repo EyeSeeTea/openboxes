@@ -52,6 +52,7 @@ class CustomRolePolicyService {
             'stockMovement': ['createRequest'],
             'stockTransfer': ['create', 'edit', 'createInboundReturn'],
             'stockTransferApi': ['list', 'read', 'create', 'update', 'stockTransferCandidates', 'returnCandidates'],
+            'stocklistApi': ['list', 'read'],
     ]
 
     private static final Map<String, List<String>> REGIONAL_WAREHOUSE_ALLOWED_ACTIONS = [
@@ -232,7 +233,7 @@ class CustomRolePolicyService {
         }
 
         boolean denied = isDeniedByPolicy(activePolicy, controllerName, actionName, params ?: [:], request)
-        boolean allowed = !denied && isAllowedByPolicy(activePolicy, controllerName, actionName, params ?: [:], request)
+        boolean allowed = !denied && isAllowedByPolicy(user, locationId, activePolicy, controllerName, actionName, params ?: [:], request)
         return [hasPolicy: true, denied: denied, allowed: allowed, policyRole: activePolicy]
     }
 
@@ -356,14 +357,14 @@ class CustomRolePolicyService {
         return User.get(user.id) ?: user
     }
 
-    private boolean isAllowedByPolicy(RoleType policy, String controllerName, String actionName, Map params, def request) {
+    private boolean isAllowedByPolicy(User user, String locationId, RoleType policy, String controllerName, String actionName, Map params, def request) {
         switch (policy) {
             case RoleType.ROLE_FACILITY_STOREKEEPER:
                 return isRouteAllowed(FACILITY_STOREKEEPER_ALLOWED_ACTIONS, controllerName, actionName) ||
-                        isAllowedStockRequestRoute(controllerName, actionName, params, request)
+                        isAllowedStockRequestRoute(user, locationId, controllerName, actionName, params, request)
             case RoleType.ROLE_REGIONAL_WAREHOUSE:
                 return isRouteAllowed(REGIONAL_WAREHOUSE_ALLOWED_ACTIONS, controllerName, actionName) ||
-                        isAllowedStockRequestRoute(controllerName, actionName, params, request)
+                        isAllowedStockRequestRoute(user, locationId, controllerName, actionName, params, request)
             case RoleType.ROLE_RPC_SUPERUSER:
                 return isRouteAllowed(RPC_SUPERUSER_ALLOWED_ACTIONS, controllerName, actionName)
             case RoleType.ROLE_REPORTING_USER:
@@ -396,7 +397,7 @@ class CustomRolePolicyService {
     // Stock requests and regular inbound movements currently share the same API endpoints.
     // This helper lets the policy stay expressed in matrix terms while the implementation
     // uses the underlying requisition source type to identify stock-request routes.
-    private static boolean isAllowedStockRequestRoute(String controllerName, String actionName, Map params, def request) {
+    private boolean isAllowedStockRequestRoute(User user, String locationId, String controllerName, String actionName, Map params, def request) {
         if (controllerName == 'stockMovementApi' && actionName == 'create') {
             return isStockRequestCreate(params, request)
         }
@@ -409,11 +410,55 @@ class CustomRolePolicyService {
             return isStockRequest(params?.id)
         }
 
+        if (controllerName == 'stockMovement' && actionName in [
+                'show',
+                'edit',
+                'updateStatus',
+                'comments',
+                'documents',
+                'addComment',
+                'saveComment',
+                'updateComment',
+                'editComment',
+                'deleteComment',
+                'addDocument',
+        ]) {
+            if (actionName == 'updateStatus') {
+                return hasApprovalRoutePermission(user, locationId) && isStockRequest(params?.stockMovementId ?: params?.id)
+            }
+            return isStockRequest(params?.stockMovementId ?: params?.id)
+        }
+
+        if (controllerName == 'stockRequest' && actionName == 'remove') {
+            return isStockRequest(params?.id)
+        }
+
+        if (controllerName == 'stockRequest' && actionName == 'reject') {
+            return hasApprovalRoutePermission(user, locationId) && isStockRequest(params?.id)
+        }
+
+        if (controllerName == 'stockRequest' && actionName == 'rollbackApproval') {
+            return isStockRequest(params?.id)
+        }
+
+        if (controllerName == 'document' && actionName == 'uploadDocument') {
+            return isStockRequest(params?.stockMovementId)
+        }
+
         return false
     }
 
+    private boolean hasApprovalRoutePermission(User user, String locationId) {
+        Set<String> effectiveRoleNames = getEffectiveRoleNames(user, locationId)
+        return [
+                RoleType.ROLE_REQUISITION_APPROVER.name(),
+                RoleType.ROLE_ADMIN.name(),
+                RoleType.ROLE_SUPERUSER.name(),
+        ].any { effectiveRoleNames.contains(it) }
+    }
+
     private static boolean isStockRequestCreate(Map params, def request) {
-        String sourceType = params.sourceType ?: request?.JSON?.sourceType
+        String sourceType = params.sourceType ?: getJsonField(request, 'sourceType')
         return sourceType?.toUpperCase() == RequisitionSourceType.ELECTRONIC.name()
     }
 
@@ -467,7 +512,7 @@ class CustomRolePolicyService {
             }
         }
         if (controllerName == 'stockMovementApi') {
-            String direction = params.direction ?: request?.JSON?.direction
+            String direction = params.direction ?: getJsonField(request, 'direction')
             if (actionName == 'list' && direction?.toUpperCase() == 'OUTBOUND') {
                 return true
             }
@@ -479,7 +524,8 @@ class CustomRolePolicyService {
             return true
         }
 
-        if (controllerName in STOCKLIST_MANAGEMENT_CONTROLLERS) {
+        if (controllerName in STOCKLIST_MANAGEMENT_CONTROLLERS &&
+                !(controllerName == 'stocklistApi' && actionName in ['list', 'read'])) {
             return true
         }
 
@@ -494,7 +540,7 @@ class CustomRolePolicyService {
             return !params.id
         }
         if (controllerName == 'stockMovementApi' && actionName == 'create') {
-            String direction = params.direction ?: request?.JSON?.direction
+            String direction = params.direction ?: getJsonField(request, 'direction')
             return direction?.toUpperCase() == 'INBOUND'
         }
         if (controllerName == 'stockMovement' && actionName == 'createCombinedShipments') {
@@ -522,7 +568,7 @@ class CustomRolePolicyService {
             return !params.id
         }
         if (controllerName == 'stockMovementApi' && actionName == 'create') {
-            String direction = params.direction ?: request?.JSON?.direction
+            String direction = params.direction ?: getJsonField(request, 'direction')
             return direction?.toUpperCase() == 'INBOUND'
         }
         if (controllerName == 'stockMovement' && actionName == 'createCombinedShipments') {
@@ -625,7 +671,15 @@ class CustomRolePolicyService {
     }
 
     private static boolean isCreateOperation(Map params, def request) {
-        return !params?.id && !request?.JSON?.id
+        return !params?.id
+    }
+
+    private static String getJsonField(def request, String fieldName) {
+        try {
+            return request?.JSON?."${fieldName}" as String
+        } catch (Exception ignored) {
+            return null
+        }
     }
 
     private ArrayList applyFacilityStorekeeperMenuPolicy(ArrayList menuConfig) {

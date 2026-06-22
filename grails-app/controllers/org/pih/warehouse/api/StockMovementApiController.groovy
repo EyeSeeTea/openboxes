@@ -122,9 +122,9 @@ class StockMovementApiController {
         render([data: stockMovement, totalCount: totalCount] as JSON)
     }
 
-    def create(StockMovement stockMovement) {
-        // Detect whether inbound or outbound stock movement
-        def currentLocation = Location.get(session.warehouse.id)
+    def create() {
+        StockMovement stockMovement = new StockMovement()
+        bindStockMovement(stockMovement, request.JSON as JSONObject)
         StockMovement newStockMovement = stockMovementService.createStockMovement(stockMovement)
         response.status = 201
         render([data: newStockMovement] as JSON)
@@ -132,7 +132,9 @@ class StockMovementApiController {
 
     // TODO Remove it later once all inbound types are shipment
     // and then use endpoint above to create combined shipments
-    def createCombinedShipments(StockMovement stockMovement) {
+    def createCombinedShipments() {
+        StockMovement stockMovement = new StockMovement()
+        bindStockMovement(stockMovement, request.JSON as JSONObject)
         StockMovement newStockMovement = stockMovementService.createShipmentBasedStockMovement(stockMovement)
         response.status = 201
         render([data: newStockMovement] as JSON)
