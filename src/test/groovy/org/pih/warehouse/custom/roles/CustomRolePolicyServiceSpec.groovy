@@ -372,6 +372,31 @@ class CustomRolePolicyServiceSpec extends Specification implements ServiceUnitTe
         apiAccess.allowed
     }
 
+    def "should allow facility storekeeper to complete partial receiving workflow"() {
+        given:
+        User user = mockUser([RoleType.ROLE_FACILITY_STOREKEEPER], [RoleType.ROLE_FACILITY_STOREKEEPER])
+
+        when:
+        Map<String, Object> createAccess = service.evaluateRouteAccess(user, 'loc-1', 'partialReceiving', 'create')
+        Map<String, Object> readAccess = service.evaluateRouteAccess(user, 'loc-1', 'partialReceivingApi', 'read')
+        Map<String, Object> updateAccess = service.evaluateRouteAccess(user, 'loc-1', 'partialReceivingApi', 'update')
+        Map<String, Object> binsAccess = service.evaluateRouteAccess(user, 'loc-1', 'internalLocationApi', 'listReceiving')
+
+        then:
+        createAccess.hasPolicy
+        !createAccess.denied
+        createAccess.allowed
+        readAccess.hasPolicy
+        !readAccess.denied
+        readAccess.allowed
+        updateAccess.hasPolicy
+        !updateAccess.denied
+        updateAccess.allowed
+        binsAccess.hasPolicy
+        !binsAccess.denied
+        binsAccess.allowed
+    }
+
     def "should allow regional warehouse to create and save inventory adjustments"() {
         given:
         User user = mockUser([RoleType.ROLE_REGIONAL_WAREHOUSE], [RoleType.ROLE_REGIONAL_WAREHOUSE])
@@ -410,6 +435,7 @@ class CustomRolePolicyServiceSpec extends Specification implements ServiceUnitTe
         when:
         Map<String, Object> readAccess = service.evaluateRouteAccess(user, 'loc-1', 'stockMovementApi', 'read', [id: 'req-1'], null)
         Map<String, Object> updateAccess = service.evaluateRouteAccess(user, 'loc-1', 'stockMovementApi', 'updateRequisition', [id: 'req-1'], null)
+        Map<String, Object> updateShipmentAccess = service.evaluateRouteAccess(user, 'loc-1', 'stockMovementApi', 'updateShipment', [id: 'req-1'], null)
         Map<String, Object> itemAccess = service.evaluateRouteAccess(user, 'loc-1', 'stockMovementItemApi', 'getStockMovementItems', [id: 'req-1'], null)
 
         then:
@@ -419,9 +445,37 @@ class CustomRolePolicyServiceSpec extends Specification implements ServiceUnitTe
         updateAccess.hasPolicy
         !updateAccess.denied
         updateAccess.allowed
+        updateShipmentAccess.hasPolicy
+        !updateShipmentAccess.denied
+        updateShipmentAccess.allowed
         itemAccess.hasPolicy
         !itemAccess.denied
         itemAccess.allowed
+    }
+
+    def "should allow regional warehouse to complete partial receiving workflow"() {
+        given:
+        User user = mockUser([RoleType.ROLE_REGIONAL_WAREHOUSE], [RoleType.ROLE_REGIONAL_WAREHOUSE])
+
+        when:
+        Map<String, Object> createAccess = service.evaluateRouteAccess(user, 'loc-1', 'partialReceiving', 'create')
+        Map<String, Object> readAccess = service.evaluateRouteAccess(user, 'loc-1', 'partialReceivingApi', 'read')
+        Map<String, Object> updateAccess = service.evaluateRouteAccess(user, 'loc-1', 'partialReceivingApi', 'update')
+        Map<String, Object> binsAccess = service.evaluateRouteAccess(user, 'loc-1', 'internalLocationApi', 'listReceiving')
+
+        then:
+        createAccess.hasPolicy
+        !createAccess.denied
+        createAccess.allowed
+        readAccess.hasPolicy
+        !readAccess.denied
+        readAccess.allowed
+        updateAccess.hasPolicy
+        !updateAccess.denied
+        updateAccess.allowed
+        binsAccess.hasPolicy
+        !binsAccess.denied
+        binsAccess.allowed
     }
 
     def "should allow regional warehouse to complete record stock workflow"() {
@@ -553,6 +607,26 @@ class CustomRolePolicyServiceSpec extends Specification implements ServiceUnitTe
 
         expect:
         service.userHasSupplementalMenuRole(user, location, [RoleType.ROLE_SUPERUSER], 'purchasing')
+    }
+
+    def "should allow rpc superuser to read stock movement items"() {
+        given:
+        User user = mockUser([RoleType.ROLE_RPC_SUPERUSER], [RoleType.ROLE_RPC_SUPERUSER])
+
+        when:
+        Map<String, Object> access = service.evaluateRouteAccess(
+                user,
+                'loc-1',
+                'stockMovementItemApi',
+                'getStockMovementItems',
+                [id: 'req-1'],
+                null
+        )
+
+        then:
+        access.hasPolicy
+        !access.denied
+        access.allowed
     }
 
     private User mockUser(List<RoleType> effectiveRoleTypes, List<RoleType> allRoleTypes) {

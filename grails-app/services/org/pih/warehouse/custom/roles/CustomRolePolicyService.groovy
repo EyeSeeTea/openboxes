@@ -48,6 +48,9 @@ class CustomRolePolicyService {
     private static final Map<String, List<String>> FACILITY_STOREKEEPER_ALLOWED_ACTIONS = [
             'inventory'    : ['createInboundTransfer', 'createConsumed', 'createAdjustment', 'editTransaction', 'deleteTransaction', 'saveTransaction', 'saveAdjustmentTransaction'],
             'inventoryItem': ['showRecordInventory', 'saveRecordInventory', 'adjustStock', 'transferStock'],
+            'internalLocationApi': ['listReceiving'],
+            'partialReceiving': ['create'],
+            'partialReceivingApi': ['read', 'update'],
             'recordStockApi': ['saveRecordStock'],
             'stockMovement': ['createRequest'],
             'stockTransfer': ['create', 'edit', 'createInboundReturn'],
@@ -58,6 +61,9 @@ class CustomRolePolicyService {
     private static final Map<String, List<String>> REGIONAL_WAREHOUSE_ALLOWED_ACTIONS = [
             'inventory'        : ['createInboundTransfer', 'createConsumed', 'createAdjustment', 'editTransaction', 'deleteTransaction', 'saveTransaction', 'saveAdjustmentTransaction'],
             'inventoryItem'    : ['showRecordInventory', 'saveRecordInventory', 'adjustStock', 'transferStock'],
+            'internalLocationApi': ['listReceiving'],
+            'partialReceiving' : ['create'],
+            'partialReceivingApi': ['read', 'update'],
             'recordStockApi'   : ['saveRecordStock'],
             'stockTransfer'    : ['create', 'edit', 'createInboundReturn', 'createOutboundReturn'],
             'stockTransferApi' : ['list', 'read', 'create', 'update', 'stockTransferCandidates', 'returnCandidates'],
@@ -96,6 +102,7 @@ class CustomRolePolicyService {
             'stockTransferApi'   : ['*'],
             'stockMovement'      : ['*'],
             'stockMovementApi'   : ['*'],
+            'stockMovementItemApi': ['*'],
             'stocklist'          : ['*'],
             'stocklistApi'       : ['*'],
             'stocklistItemApi'   : ['*'],
@@ -402,7 +409,7 @@ class CustomRolePolicyService {
             return isStockRequestCreate(params, request)
         }
 
-        if (controllerName == 'stockMovementApi' && actionName in ['read', 'updateRequisition', 'updateItems', 'updateStatus', 'delete']) {
+        if (controllerName == 'stockMovementApi' && actionName in ['read', 'updateRequisition', 'updateItems', 'updateShipment', 'updateStatus', 'delete']) {
             return isStockRequest(params?.id)
         }
 
