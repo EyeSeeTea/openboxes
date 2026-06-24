@@ -187,8 +187,9 @@ Custom (isolated, no upstream conflict):
 - `src/integration-test/groovy/org/pih/warehouse/custom/consumptionDemand/ConsumptionDemandServiceIntegrationSpec.groovy`
   — formula + window + zero-consumption tests.
 - `src/js/custom/amcInRequisition/__tests__/amcColumn.test.jsx` — column-gating + formatter tests.
-- `src/integration-test/groovy/org/pih/warehouse/custom/consumptionDemand/ConsumptionDemandControllerIntegrationSpec.groovy`
-  — **(enhancement)** endpoint returns `{amc: …}` for valid product/location, `0` when flag off.
+- `src/test/groovy/org/pih/warehouse/custom/consumptionDemand/ConsumptionDemandControllerSpec.groovy`
+  — **(enhancement)** controller unit spec (mocked service): renders `{amc: value}`, and `{amc: 0}`
+  when the service returns zero.
 - `src/js/custom/amcInRequisition/__tests__/fetchAmc.test.jsx` — **(enhancement)** helper calls the
   endpoint and returns the value; mocks `apiClient`.
 

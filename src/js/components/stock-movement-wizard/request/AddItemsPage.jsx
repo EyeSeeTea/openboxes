@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 
 import { formatAmc, stripAmcColumn } from 'custom/amcInRequisition/utils/amcColumn';
+import fetchAmc from 'custom/amcInRequisition/utils/fetchAmc';
 import arrayMutators from 'final-form-arrays';
 import update from 'immutability-helper';
 import fileDownload from 'js-file-download';
@@ -1549,17 +1550,20 @@ class AddItemsPage extends Component {
           .then((response) => {
             const monthlyDemand = parseFloat(response.data.monthlyDemand);
             const quantityRequested = monthlyDemand - (response.data.quantityOnHand || 0);
-            this.setState({
-              values: update(values, {
-                lineItems: {
-                  [index]: {
-                    product: { $set: product },
-                    quantityOnHand: { $set: '' },
-                    monthlyDemand: { $set: monthlyDemand },
-                    quantityRequested: { $set: quantityRequested > 0 ? quantityRequested : '0' },
+            fetchAmc(product.id, this.state.values.destination.id).then((amc) => {
+              this.setState({
+                values: update(values, {
+                  lineItems: {
+                    [index]: {
+                      product: { $set: product },
+                      quantityOnHand: { $set: '' },
+                      monthlyDemand: { $set: monthlyDemand },
+                      quantityRequested: { $set: quantityRequested > 0 ? quantityRequested : '0' },
+                      amc: { $set: amc },
+                    },
                   },
-                },
-              }),
+                }),
+              });
             });
           })
           .catch(this.props.hideSpinner());
@@ -1571,18 +1575,21 @@ class AddItemsPage extends Component {
             const { monthlyDemand, quantityAvailable, quantityOnHand } = response.data;
             const quantityRequested = monthlyDemand - quantityAvailable > 0
               ? monthlyDemand - quantityAvailable : '0';
-            this.setState({
-              values: update(values, {
-                lineItems: {
-                  [index]: {
-                    product: { $set: product },
-                    quantityOnHand: { $set: quantityOnHand },
-                    quantityAvailable: { $set: quantityAvailable },
-                    monthlyDemand: { $set: monthlyDemand },
-                    quantityRequested: { $set: quantityRequested },
+            fetchAmc(product.id, this.state.values.destination.id).then((amc) => {
+              this.setState({
+                values: update(values, {
+                  lineItems: {
+                    [index]: {
+                      product: { $set: product },
+                      quantityOnHand: { $set: quantityOnHand },
+                      quantityAvailable: { $set: quantityAvailable },
+                      monthlyDemand: { $set: monthlyDemand },
+                      quantityRequested: { $set: quantityRequested },
+                      amc: { $set: amc },
+                    },
                   },
-                },
-              }),
+                }),
+              });
             });
           })
           .catch(this.props.hideSpinner());
@@ -1597,6 +1604,7 @@ class AddItemsPage extends Component {
               quantityAvailable: { $set: '' },
               monthlyDemand: { $set: '' },
               quantityRequested: { $set: '' },
+              amc: { $set: '' },
             },
           },
         }),
