@@ -64,7 +64,7 @@ class IndicatorDataService {
         for (int i = 0; i < querySize; i++) {
             Integer daysCounter = i * 30
 
-            String label = (i == 0) ? "react.dashboard.timeline.today.label" : "react.dashboard.timeline.within${daysCounter}Days.label"
+            String label = (i == 0) ? "react.dashboard.timeline.alreadyExpired.label" : "react.dashboard.timeline.within${daysCounter}Days.label"
             def monthLabel = [
             code : label,
             message : messageService.getMessage(label)
