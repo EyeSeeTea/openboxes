@@ -91,6 +91,40 @@ Nothing else in the upstream service is touched.
 The root bundle is the only i18n bundle loaded by the React runtime. This is the accepted
 exception to custom-package isolation and matches the upstream convention.
 
+**7. AMC populates on product-select via a dedicated custom endpoint (enhancement).**
+Originally AMC was surfaced only through `StockMovementService` when *saved* line items are fetched,
+so the column stayed blank until save/reload — whereas Demand fills the instant a product is
+selected (`AddItemsPage.updateProductData` GETs the upstream `productDemand` /
+`productAvailabilityAndDemand` endpoints, which return `monthlyDemand` but **not** `amc`). To bring
+AMC to parity, a new isolated custom controller exposes the existing service over HTTP:
+
+```groovy
+// grails-app/controllers/org/pih/warehouse/custom/consumptionDemand/ConsumptionDemandController.groovy
+class ConsumptionDemandController {
+    def consumptionDemandService
+    def getMonthlyConsumption() {
+        Product product = Product.get(params.productId)
+        Location location = Location.get(params.locationId)
+        render([amc: consumptionDemandService.getMonthlyConsumption(location, product)] as JSON)
+    }
+}
+```
+
+- **Routing:** reachable at `/openboxes/consumptionDemand/getMonthlyConsumption?productId=..&locationId=..`
+  via the existing default mapping `"/$controller/$action?/$id?"` (`UrlMappings.groovy:37`). **No
+  `UrlMappings` edit** — keeps the upstream touch surface to one file.
+- **Gating:** no new flag check needed — `getMonthlyConsumption` already short-circuits to `0` when
+  `showAmcInRequisition` is off (Decision 5 / OQ#5), so the endpoint is a no-cost no-op for
+  deployments with the column disabled.
+- **Value parity:** on-select and on-save AMC both call the same service method with
+  `(requisition.destination, product)`, so the two values are identical by construction.
+- **Frontend wiring:** a custom helper `src/js/custom/amcInRequisition/utils/fetchAmc.js` owns the
+  `apiClient` call; the **only** upstream edit is in `AddItemsPage.updateProductData`, which — in
+  both the ward and non-ward branches, after the existing `monthlyDemand` set — sets `amc` on the
+  row from the helper (and clears it in the product-cleared branch). The demand fetch and Needed-Qty
+  autofill are untouched. Scope is AddItemsPage only; EditPage has no product typeahead and keeps
+  loading AMC from saved items.
+
 ## Architecture: ConsumptionDemandService query
 
 ```sql
@@ -130,7 +164,7 @@ branches with no visible change; set `showAmcInRequisition: true` per client in
 | File | Edit | Reason |
 |---|---|---|
 | `grails-app/services/org/pih/warehouse/inventory/StockMovementService.groovy` | Inject `def consumptionDemandService`; add `amc` field (all using `requisition.destination`) at both `getAddPageItem` map sites (884 + 911), `calculateFieldsForElectronicRequisitionItem` (998), and `buildEditPageItems` (~1066) | Surface requesting-location AMC alongside demand in item maps on both screens (incl. stocklist edit variants — see OQ#1) |
-| `src/js/components/stock-movement-wizard/request/AddItemsPage.jsx` | Add AMC column def to `NO_STOCKLIST_FIELDS` (and ward variants if present) | Show column on requester create page |
+| `src/js/components/stock-movement-wizard/request/AddItemsPage.jsx` | Add AMC column def to `NO_STOCKLIST_FIELDS` (and ward variants if present); **(enhancement)** in `updateProductData`, set/clear `amc` on the row from the custom `fetchAmc` helper in both the ward and non-ward branches | Show column on requester create page; populate AMC on product-select (parity with Demand, Decision 7) |
 | `src/js/components/stock-movement-wizard/request/EditPage.jsx` | Add AMC column def to `AD_HOCK_FIELDS`, `STOCKLIST_FIELDS_PUSH_TYPE`, `STOCKLIST_FIELDS_PULL_TYPE` | Show column on fulfiller edit page (all variants) |
 | `grails-app/controllers/org/pih/warehouse/api/ApiController.groovy` | Read + emit `showAmcInRequisition` in session-info `render` payload | Deliver feature flag to frontend |
 | `src/js/reducers/sessionReducer.jsx` | Forward `showAmcInRequisition` into `state.session` | Column reads flag from Redux state |
@@ -141,12 +175,22 @@ branches with no visible change; set `showAmcInRequisition: true` per client in
 Custom (isolated, no upstream conflict):
 - `grails-app/services/org/pih/warehouse/custom/consumptionDemand/ConsumptionDemandService.groovy`
   — live query + AMC formula.
+- `grails-app/controllers/org/pih/warehouse/custom/consumptionDemand/ConsumptionDemandController.groovy`
+  — **(enhancement)** thin HTTP wrapper exposing `getMonthlyConsumption(productId, locationId)` for
+  the on-product-select AMC fetch (Decision 7). Reachable via the default URL mapping — no
+  `UrlMappings` edit.
+- `src/js/custom/amcInRequisition/utils/fetchAmc.js` — **(enhancement)** `apiClient` helper that GETs
+  the custom endpoint and returns the AMC value; called from `AddItemsPage.updateProductData`.
 - `src/js/custom/amcInRequisition/utils/amcColumn.js` — pure column helpers (`formatAmc`,
   `withAmcColumn`, `stripAmcColumn`) imported by both AddItemsPage and EditPage (matches the existing
   `custom/outboundExpiryRestrictions/utils/expiryHelpers` import precedent in EditPage). Unit-tested.
 - `src/integration-test/groovy/org/pih/warehouse/custom/consumptionDemand/ConsumptionDemandServiceIntegrationSpec.groovy`
   — formula + window + zero-consumption tests.
 - `src/js/custom/amcInRequisition/__tests__/amcColumn.test.jsx` — column-gating + formatter tests.
+- `src/integration-test/groovy/org/pih/warehouse/custom/consumptionDemand/ConsumptionDemandControllerIntegrationSpec.groovy`
+  — **(enhancement)** endpoint returns `{amc: …}` for valid product/location, `0` when flag off.
+- `src/js/custom/amcInRequisition/__tests__/fetchAmc.test.jsx` — **(enhancement)** helper calls the
+  endpoint and returns the value; mocks `apiClient`.
 
 **Implementation note (line numbers):** the `StockMovementService` edits are the service injection
 (beside `forecastingService`, ~line 104) plus an `amc` entry at the four demand sites — both

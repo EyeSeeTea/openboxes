@@ -110,11 +110,43 @@ in value, calculation, and position. Adding the AMC column SHALL NOT affect it.
 - **WHEN** this change adds the AMC column
 - **THEN** the autofill still derives from `monthlyDemand`, not from `amc` (no swap)
 
+### Requirement: AMC populates on product selection (create page)
+On the Requisition Create / Add-items page, when a user selects a product for a line item, the
+system SHALL fetch and display that product's AMC for the requesting location
+(`requisition.destination`) immediately — before the line item is saved — mirroring how the Demand
+(`monthlyDemand`) value is already fetched on product selection. The on-select AMC value SHALL equal
+the value shown after save/reload, because both derive from the same computation
+(`ConsumptionDemandService.getMonthlyConsumption(destination, product)`). The fetch SHALL be a
+dedicated custom endpoint and SHALL NOT alter the upstream demand endpoints' responses. When the
+flag is off the AMC value resolves to `0` (the service short-circuits) and no column is shown.
+
+#### Scenario: AMC fills on product selection
+- **GIVEN** `showAmcInRequisition` is `true` and a stock request whose destination has consumption history for a product
+- **WHEN** the user selects that product in an Add Items line
+- **THEN** the AMC cell for that line is populated immediately, without saving the line first
+
+#### Scenario: On-select AMC equals on-save AMC
+- **GIVEN** a product selected on the Add Items page shows an on-select AMC value
+- **WHEN** the line is saved and the page reloaded
+- **THEN** the AMC value from the saved-item path is identical to the on-select value
+
+#### Scenario: Clearing the product clears AMC
+- **GIVEN** a line with a selected product and a populated AMC cell
+- **WHEN** the user clears the product from that line
+- **THEN** the AMC cell is cleared alongside the other product-derived fields
+
+#### Scenario: Demand-on-select behavior is unchanged
+- **WHEN** a product is selected
+- **THEN** the existing `monthlyDemand` fetch and Needed-Qty autofill behave exactly as before; the AMC fetch is an independent, additional call that does not change them
+
 ### Requirement: Custom-package isolation
 All new business logic SHALL live under `org.pih.warehouse.custom.consumptionDemand`. Upstream
 file edits SHALL be additive one-liners (service injection + `amc` field assignment in
 `StockMovementService`, flag read in `ApiController`, flag forward in `sessionReducer`, column
-definition additions in JSX) and SHALL NOT refactor, reformat, or restructure upstream code.
+definition additions in JSX, and the AMC fetch in `AddItemsPage.updateProductData`) and SHALL NOT
+refactor, reformat, or restructure upstream code. The on-select AMC endpoint SHALL be a new custom
+controller (`org.pih.warehouse.custom.consumptionDemand.ConsumptionDemandController`) reachable via
+the existing default URL mapping, requiring no `UrlMappings` edit.
 
 #### Scenario: New Groovy code is isolated
 - **WHEN** the change is reviewed

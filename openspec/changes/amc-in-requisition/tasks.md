@@ -57,3 +57,12 @@
 
 - [x] 9.1 Update `design.md` upstream touch points to match final line numbers after implementation.
 - [ ] 9.2 Set "Deploy status" in `design.md` once the branch is merged.
+
+## 10. Enhancement — AMC populates on product-select (parity with Demand)
+
+- [ ] 10.1 Create `grails-app/controllers/org/pih/warehouse/custom/consumptionDemand/ConsumptionDemandController.groovy` with action `getMonthlyConsumption` reading `params.productId` / `params.locationId`, delegating to `consumptionDemandService.getMonthlyConsumption(location, product)` and rendering `[amc: value] as JSON`.
+- [ ] 10.2 Confirm the endpoint resolves via the default mapping `"/$controller/$action?/$id?"` (`UrlMappings.groovy:37`) at `/consumptionDemand/getMonthlyConsumption` — **no `UrlMappings` edit**. Confirm it returns `0` (no query cost) when `showAmcInRequisition` is off, since the service already short-circuits.
+- [ ] 10.3 Create `src/js/custom/amcInRequisition/utils/fetchAmc.js` — `apiClient.get('/consumptionDemand/getMonthlyConsumption', { params: { productId, locationId } })` → resolve the `amc` value; isolate all network logic here.
+- [ ] 10.4 In `AddItemsPage.updateProductData` (upstream — surgical), in **both** the ward (`isRequestFromWard`) and non-ward branches, after the existing `monthlyDemand` set, call the helper with `(product.id, this.state.values.destination.id)` and set `amc` on the line item. In the product-cleared `else` branch, set `amc` to `''` alongside the other cleared fields. Leave the demand fetch and Needed-Qty autofill untouched.
+- [ ] 10.5 Tests: `ConsumptionDemandControllerIntegrationSpec` (returns `{amc: …}`; `0` when flag off) and `fetchAmc.test.jsx` (calls endpoint, returns value, `apiClient` mocked).
+- [ ] 10.6 Verify live: select a product whose destination has in-window consumption → AMC fills on select (before save); confirm the on-select value equals the value after save/reload; clearing the product clears AMC; flag off → no column and no fetch.

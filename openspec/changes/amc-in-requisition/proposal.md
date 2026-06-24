@@ -21,6 +21,12 @@ Consumption Report manually.
 - All new logic is isolated under the `org.pih.warehouse.custom.consumptionDemand` package and the
   `openboxes.custom.consumption.*` config namespace — upstream file edits are surgical, additive
   one-liners only.
+- **(Enhancement)** On the Create/Add-items page, AMC now populates **on product-select** (parity
+  with Demand), not just after save/reload. A new isolated custom controller
+  (`ConsumptionDemandController`) exposes the existing service over HTTP, and
+  `AddItemsPage.updateProductData` fetches AMC for the requesting location at selection time. The
+  on-select value is identical to the saved-item value (same service method); the only upstream edit
+  is the one block in `updateProductData`.
 
 ## Capabilities
 
