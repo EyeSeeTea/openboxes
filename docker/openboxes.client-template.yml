@@ -183,6 +183,18 @@ openboxes:
     #     demandPeriod: 365
 
     # -------------------------------------------------------------------------
+    # Custom: AMC (Average Monthly Consumption) column in the requisition flow
+    # showAmcInRequisition (default false) gates a read-only AMC column beside
+    # Demand on the requisition create/edit screens, computed from Consumption
+    # transactions (type id 2) at the requesting location. amcPeriod (days) is
+    # the consumption window; falls back to forecasting.demandPeriod, then 365.
+    # -------------------------------------------------------------------------
+    # custom:
+    #     consumption:
+    #         showAmcInRequisition: false
+    #         amcPeriod: 365
+
+    # -------------------------------------------------------------------------
     # Signup / reCAPTCHA
     # Disable signup for closed deployments. If kept enabled, set reCAPTCHA keys.
     # -------------------------------------------------------------------------

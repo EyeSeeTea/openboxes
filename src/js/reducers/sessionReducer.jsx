@@ -87,6 +87,7 @@ const initialState = {
   isAutosaveEnabled: false,
   cycleCountMaxSelectedProducts: 50,
   maxUploadFileSize: 2097152,
+  showAmcInRequisition: false,
   deferLotControlToReceipt: false,
 };
 
@@ -138,6 +139,7 @@ export default function sessionReducer(state = initialState, action) {
         isAutosaveEnabled: _.get(action, 'payload.data.data.isAutosaveEnabled', false),
         cycleCountMaxSelectedProducts: _.get(action, 'payload.data.data.cycleCountMaxSelectedProducts', 50),
         maxUploadFileSize: _.get(action, 'payload.data.data.maxUploadFileSize', 2097152),
+        showAmcInRequisition: _.get(action, 'payload.data.data.showAmcInRequisition', false),
         deferLotControlToReceipt: _.get(action, 'payload.data.data.deferLotControlToReceipt', false),
       };
     case FETCH_MENU_CONFIG:

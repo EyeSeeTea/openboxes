@@ -1,5 +1,7 @@
 import React, { Component } from 'react';
 
+import { formatAmc, stripAmcColumn } from 'custom/amcInRequisition/utils/amcColumn';
+import fetchAmc from 'custom/amcInRequisition/utils/fetchAmc';
 import arrayMutators from 'final-form-arrays';
 import update from 'immutability-helper';
 import fileDownload from 'js-file-download';
@@ -159,6 +161,19 @@ const FIELDS = {
   },
 };
 
+const AMC_FIELD = {
+  type: LabelField,
+  label: 'react.stockMovement.amc.label',
+  defaultMessage: 'AMC',
+  flexWidth: '1.7',
+  headerTooltip: 'react.stockMovement.amc.tooltip',
+  headerDefaultTooltip: 'Average Monthly Consumption',
+  attributes: {
+    type: 'number',
+    formatValue: formatAmc,
+  },
+};
+
 const DELETE_BUTTON_FIELD = {
   type: ButtonField,
   label: 'react.default.button.delete.label',
@@ -224,6 +239,7 @@ const NO_STOCKLIST_FIELDS = {
       quantityOnHand: FIELDS.quantityOnHand,
       quantityAvailable: FIELDS.quantityAvailable,
       monthlyDemand: FIELDS.monthlyDemand,
+      amc: AMC_FIELD,
       quantityRequested: {
         ...FIELDS.quantityRequested,
         flexWidth: '2.5',
@@ -298,6 +314,7 @@ const STOCKLIST_FIELDS_PULL_TYPE = {
         }),
       },
       demandPerReplenishmentPeriod: FIELDS.demandPerReplenishmentPeriod,
+      amc: AMC_FIELD,
       quantityOnHand: FIELDS.quantityOnHand,
       quantityAvailable: FIELDS.quantityAvailable,
       quantityRequested: FIELDS.quantityRequested,
@@ -422,6 +439,15 @@ const REQUEST_FROM_WARD_STOCKLIST_FIELDS_PULL_TYPE = {
           className: 'text-right',
         },
       },
+      amc: {
+        ...AMC_FIELD,
+        flexWidth: '1',
+        headerAlign: 'right',
+        attributes: {
+          ...AMC_FIELD.attributes,
+          className: 'text-right',
+        },
+      },
       quantityOnHand: {
         ...FIELDS.quantityOnHandAtRequestSite,
         label: 'react.stockMovement.quantityOnHand.label',
@@ -528,6 +554,15 @@ const REQUEST_FROM_WARD_FIELDS = {
         headerDefaultTooltip: 'The average of your previous requests for this product.',
         attributes: {
           type: 'number',
+          className: 'text-right',
+        },
+      },
+      amc: {
+        ...AMC_FIELD,
+        flexWidth: '0.8',
+        headerAlign: 'right',
+        attributes: {
+          ...AMC_FIELD.attributes,
           className: 'text-right',
         },
       },
@@ -1515,17 +1550,20 @@ class AddItemsPage extends Component {
           .then((response) => {
             const monthlyDemand = parseFloat(response.data.monthlyDemand);
             const quantityRequested = monthlyDemand - (response.data.quantityOnHand || 0);
-            this.setState({
-              values: update(values, {
-                lineItems: {
-                  [index]: {
-                    product: { $set: product },
-                    quantityOnHand: { $set: '' },
-                    monthlyDemand: { $set: monthlyDemand },
-                    quantityRequested: { $set: quantityRequested > 0 ? quantityRequested : '0' },
+            fetchAmc(product.id, this.state.values.destination.id).then((amc) => {
+              this.setState({
+                values: update(values, {
+                  lineItems: {
+                    [index]: {
+                      product: { $set: product },
+                      quantityOnHand: { $set: '' },
+                      monthlyDemand: { $set: monthlyDemand },
+                      quantityRequested: { $set: quantityRequested > 0 ? quantityRequested : '0' },
+                      amc: { $set: amc },
+                    },
                   },
-                },
-              }),
+                }),
+              });
             });
           })
           .catch(this.props.hideSpinner());
@@ -1537,18 +1575,21 @@ class AddItemsPage extends Component {
             const { monthlyDemand, quantityAvailable, quantityOnHand } = response.data;
             const quantityRequested = monthlyDemand - quantityAvailable > 0
               ? monthlyDemand - quantityAvailable : '0';
-            this.setState({
-              values: update(values, {
-                lineItems: {
-                  [index]: {
-                    product: { $set: product },
-                    quantityOnHand: { $set: quantityOnHand },
-                    quantityAvailable: { $set: quantityAvailable },
-                    monthlyDemand: { $set: monthlyDemand },
-                    quantityRequested: { $set: quantityRequested },
+            fetchAmc(product.id, this.state.values.destination.id).then((amc) => {
+              this.setState({
+                values: update(values, {
+                  lineItems: {
+                    [index]: {
+                      product: { $set: product },
+                      quantityOnHand: { $set: quantityOnHand },
+                      quantityAvailable: { $set: quantityAvailable },
+                      monthlyDemand: { $set: monthlyDemand },
+                      quantityRequested: { $set: quantityRequested },
+                      amc: { $set: amc },
+                    },
                   },
-                },
-              }),
+                }),
+              });
             });
           })
           .catch(this.props.hideSpinner());
@@ -1563,6 +1604,7 @@ class AddItemsPage extends Component {
               quantityAvailable: { $set: '' },
               monthlyDemand: { $set: '' },
               quantityRequested: { $set: '' },
+              amc: { $set: '' },
             },
           },
         }),
@@ -1711,7 +1753,8 @@ class AddItemsPage extends Component {
             </span>
             <form onSubmit={handleSubmit}>
               <div className="table-form">
-                {_.map(this.getFields(), (fieldConfig, fieldName) =>
+                {_.map(this.props.showAmcInRequisition
+                  ? this.getFields() : stripAmcColumn(this.getFields()), (fieldConfig, fieldName) =>
                   renderFormField(fieldConfig, fieldName, {
                     stocklist: values.stocklist,
                     removeItem: this.removeItem,
@@ -1776,6 +1819,7 @@ const mapStateToProps = (state) => ({
   pageSize: state.session.pageSize,
   currentLocationId: state.session.currentLocation.id,
   supportedActivities: state.session.supportedActivities,
+  showAmcInRequisition: state.session.showAmcInRequisition,
 });
 
 const mapDispatchToProps = {
@@ -1813,6 +1857,7 @@ AddItemsPage.propTypes = {
   pageSize: PropTypes.number.isRequired,
   currentLocationId: PropTypes.string.isRequired,
   supportedActivities: PropTypes.arrayOf(PropTypes.string).isRequired,
+  showAmcInRequisition: PropTypes.bool.isRequired,
   history: PropTypes.shape({
     push: PropTypes.func,
   }).isRequired,

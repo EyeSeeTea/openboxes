@@ -101,6 +101,7 @@ class StockMovementService {
     LocationService locationService
     DataService dataService
     ForecastingService forecastingService
+    def consumptionDemandService
     OutboundStockMovementService outboundStockMovementService
     UserService userService
     RequisitionDataService requisitionDataService
@@ -882,6 +883,7 @@ class StockMovementService {
                         statusCode                      : stockMovementItem.statusCode,
                         sortOrder                       : stockMovementItem.sortOrder,
                         monthlyDemand                   : demand?.monthlyDemand ?: 0,
+                        amc                             : consumptionDemandService.getMonthlyConsumption(requisition.destination, stockMovementItem.product),
                         demandPerReplenishmentPeriod    : Math.ceil((demand?.dailyDemand ?: 0) * (template?.replenishmentPeriod ?: 30)),
                         manuallyAdded                   : stockMovementItem.manuallyAdded,
                 ]
@@ -909,6 +911,7 @@ class StockMovementService {
                         statusCode                      : stockMovementItem.statusCode,
                         sortOrder                       : stockMovementItem.sortOrder,
                         monthlyDemand                   : demand?.monthlyDemand ?: 0,
+                        amc                             : consumptionDemandService.getMonthlyConsumption(requisition.destination, stockMovementItem.product),
                         demandPerReplenishmentPeriod    : Math.ceil((demand?.dailyDemand ?: 0) * (template?.replenishmentPeriod ?: 30)),
                         manuallyAdded                   : stockMovementItem.manuallyAdded,
                 ]
@@ -996,6 +999,7 @@ class StockMovementService {
             def quantityDemand = forecastingService.getDemand(requisition.destination, null, editPageItem.product)
             editPageItem << [
                     quantityDemandRequesting        : quantityDemand?.monthlyDemand?:0,
+                    amc                             : consumptionDemandService.getMonthlyConsumption(requisition.destination, editPageItem.product),
                     demandPerReplenishmentPeriod    : Math.ceil((quantityDemand?.dailyDemand?:0) * (template?.replenishmentPeriod?:30))
             ]
         } else {
@@ -1064,6 +1068,7 @@ class StockMovementService {
                 quantityRevised             : it.quantity_revised,
                 quantityCanceled            : it.quantity_canceled,
                 quantityDemandFulfilling    : quantityDemandFulfilling ? quantityDemandFulfilling.monthlyDemand : 0,
+                amc                         : consumptionDemandService.getMonthlyConsumption(requisition.destination, productsMap[it.product_id]),
                 quantityOnHand              : (quantityOnHand && quantityOnHand > 0 ? quantityOnHand : 0),
                 quantityAvailable           : (quantityAvailable && quantityAvailable > 0 ? quantityAvailable : 0),
                 quantityPickable            : quantityPickable,
