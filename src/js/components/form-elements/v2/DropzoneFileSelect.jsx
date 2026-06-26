@@ -237,4 +237,5 @@ DropzoneFileSelect.defaultProps = {
   isFormDisabled: false,
   showButtonOnly: false,
   throwErrorOnInvalidFiles: false,
+  onChange: () => {},
 };
