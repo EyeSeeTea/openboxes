@@ -87,10 +87,12 @@
                     <warehouse:message code="default.button.list.label" />
                 </g:link>
             </g:hideIfIsNonInventoryManagedAndCanSubmitRequest>
-            <g:link controller="stockMovement" action="create" class="button">
-                <img src="${resource(dir: 'images/icons/silk', file: 'add.png')}" />&nbsp;
-                <warehouse:message code="default.button.create.label" />
-            </g:link>
+            <g:canCreateStockMovementFromShow stockMovement="${stockMovement}">
+                <g:link controller="stockMovement" action="create" class="button">
+                    <img src="${resource(dir: 'images/icons/silk', file: 'add.png')}" />&nbsp;
+                    <warehouse:message code="default.button.create.label" />
+                </g:link>
+            </g:canCreateStockMovementFromShow>
         </div>
         <div class="button-group">
             <%-- TODO  Move status to stock movement; make consistent across all types --%>
@@ -115,10 +117,12 @@
                         <warehouse:message code="default.button.edit.label" />
                     </g:link>
                 </g:else>
-                <g:link controller="partialReceiving" action="create" id="${stockMovement?.shipment?.id}" class="button">
-                    <img src="${resource(dir: 'images/icons/', file: 'handtruck.png')}" />&nbsp;
-                    <warehouse:message code="default.button.receive.label" />
-                </g:link>
+                <g:if test="${stockMovement?.isReceivingAuthorized(currentLocation)}">
+                    <g:link controller="partialReceiving" action="create" id="${stockMovement?.shipment?.id}" class="button">
+                        <img src="${resource(dir: 'images/icons/', file: 'handtruck.png')}" />&nbsp;
+                        <warehouse:message code="default.button.receive.label" />
+                    </g:link>
+                </g:if>
                 <g:isUserAdmin>
                     <g:if test="${stockMovement?.hasBeenReceived() || stockMovement?.hasBeenPartiallyReceived()}">
                         <g:link controller="partialReceiving" action="rollbackLastReceipt" id="${stockMovement?.shipment?.id}" class="button">
