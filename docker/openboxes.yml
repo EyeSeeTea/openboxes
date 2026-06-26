@@ -59,9 +59,9 @@ openboxes:
         # to embed OB (empty = no third-party embedding). A non-empty list also turns
         # on silent SSO and SameSite=None cookies (requires server.use-forward-headers
         # below behind a TLS proxy). See openboxes.client-template.yml for the full note.
-        iframe:
-            frameAncestors:
-                - https://d2instance
+        #iframe:
+        #    frameAncestors:
+        #        - https://d2instance
 
     jobs:
         sendStockAlertsJob:
