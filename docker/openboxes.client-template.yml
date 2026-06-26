@@ -204,6 +204,10 @@ openboxes:
     #     adjustments:
     #         damaged:
     #             enabled: false
+    #     lotControl:
+    #         # When true, lot+expiry are only required at receiving, not at inbound creation.
+    #         # Default (key absent or false): lot+expiry required at inbound add-items (upstream behavior).
+    #         deferToReceipt: false
 
     # -------------------------------------------------------------------------
     # DHIS2 OAuth2 SSO (dhis2-oauth-core / dhis2-oauth-v42)
