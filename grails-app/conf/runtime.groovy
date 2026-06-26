@@ -945,7 +945,7 @@ openboxes {
                     }
                     labels {
                         state5 = [
-                            [code : "react.dashboard.timeline.today.label", message : "today"],
+                            [code : "react.dashboard.timeline.alreadyExpired.label", message : "already expired"],
                             [code : "react.dashboard.timeline.within30Days.label", message : "within 30 days"],
                             [code : "react.dashboard.timeline.within90Days.label", message : "within 90 days"],
                             [code : "react.dashboard.timeline.within180Days.label", message : "within 180 days"],
