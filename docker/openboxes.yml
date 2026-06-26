@@ -30,6 +30,8 @@ openboxes:
         adjustments:
             damaged:
                 enabled: false
+        lotControl:
+            deferToReceipt: true
 
         consumption:
             showAmcInRequisition: true

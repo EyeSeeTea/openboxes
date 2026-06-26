@@ -282,9 +282,10 @@ class StockMovement implements Validateable{
         // stock request /stockRequest/remove/:id
         if (electronicType) {
             User user = AuthService.currentUser
+            boolean isRequestor = requestedBy?.id == user?.id
             def accessRule = ConfigHelper.findAccessRule("stockRequest", "remove")
             def userService = Holders.grailsApplication.mainContext.getBean("userService")
-            if (!userService.isUserInRole(user, accessRule?.accessRules?.minimumRequiredRole)) {
+            if (!isRequestor && !userService.isUserInRole(user, accessRule?.accessRules?.minimumRequiredRole)) {
                 throw new IllegalAccessException("You don't have minimum required role to perform this action")
             }
         }

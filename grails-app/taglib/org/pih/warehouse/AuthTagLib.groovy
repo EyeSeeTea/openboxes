@@ -178,4 +178,14 @@ class AuthTagLib {
                 hasCustomPolicy)
             out << body()
     }
+
+    def canCreateStockMovementFromShow = { attrs, body ->
+        boolean isElectronicType = Boolean.TRUE.equals(attrs.stockMovement?.electronicType)
+        boolean isRestrictedCustomRole = userService.hasRoleFacilityStorekeeper(session?.user) ||
+                userService.hasRoleRegionalWarehouse(session?.user)
+
+        if (!isElectronicType || !isRestrictedCustomRole) {
+            out << body()
+        }
+    }
 }

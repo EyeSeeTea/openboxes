@@ -26,7 +26,7 @@
 
 ## 5. Verify
 
-- [ ] 5.1 Retheme test: change `--ob-primary*` only, reload a GSP page and a React page → both recolor; semantic green/red/amber and chart series unchanged.
+- [x] 5.1 Retheme test: change `--ob-primary*` only, reload a GSP page and a React page → both recolor; semantic green/red/amber and chart series unchanged.
 - [x] 5.2 `git diff`: only the new `custom/obTheme.css` + the three layout one-liners + the `CLAUDE.md` pointer; no upstream stylesheet or component modified; nothing under `bundle*` staged.
 - [x] 5.3 Confirm no `THEME.md`, no `theme.css`/`themeBridge.css`/`themeFonts.css`, no font files.
 

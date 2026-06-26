@@ -88,6 +88,7 @@ const initialState = {
   cycleCountMaxSelectedProducts: 50,
   maxUploadFileSize: 2097152,
   showAmcInRequisition: false,
+  deferLotControlToReceipt: false,
 };
 
 export default function sessionReducer(state = initialState, action) {
@@ -139,6 +140,7 @@ export default function sessionReducer(state = initialState, action) {
         cycleCountMaxSelectedProducts: _.get(action, 'payload.data.data.cycleCountMaxSelectedProducts', 50),
         maxUploadFileSize: _.get(action, 'payload.data.data.maxUploadFileSize', 2097152),
         showAmcInRequisition: _.get(action, 'payload.data.data.showAmcInRequisition', false),
+        deferLotControlToReceipt: _.get(action, 'payload.data.data.deferLotControlToReceipt', false),
       };
     case FETCH_MENU_CONFIG:
       return {
