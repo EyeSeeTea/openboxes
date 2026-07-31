@@ -59,6 +59,10 @@ databaseChangeLog = {
         include(file: release.toString() + "/changelog.xml")
     }
 
+    // Custom migrations (EST fork). Aggregated by grails-app/migrations/custom/changelog.groovy.
+    // See .claude/rules/custom-package-isolation.md.
+    include file: 'custom/changelog.groovy'
+
     // Rebuild all views
     include(file: 'views/changelog.xml')
 }

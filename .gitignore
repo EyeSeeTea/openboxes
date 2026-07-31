@@ -49,3 +49,6 @@ docker/mysql
 docker/openboxes.war
 .gradle
 .~*#
+
+.claude/.context/
+.claude/scheduled_tasks.lock

@@ -1,0 +1,361 @@
+# =============================================================================
+# OpenBoxes per-client override configuration — TEMPLATE
+#
+# Copy this file to `openboxes.yml` (or mount it directly at
+# /app/.grails/openboxes.yml) and uncomment / edit the values the client
+# needs. Anything left commented falls back to the defaults in
+# grails-app/conf/application.yml.
+#
+# Loading order (last wins) is defined in application.yml:
+#   1. classpath:META-INF/grails.build.info
+#   2. ${catalina.base}/.grails/openboxes-config.properties
+#   3. ${catalina.base}/.grails/openboxes-config.groovy
+#   4. ${catalina.base}/.grails/openboxes.yml          <-- this file
+#   5. ~/.grails/openboxes-config.properties
+#   6. ~/.grails/openboxes-config.groovy
+#   7. ~/.grails/openboxes.yml
+#
+# YAML notes:
+#   - Indentation matters: 4 spaces (matches application.yml). No tabs.
+#   - Lists use real YAML arrays — much cleaner than the legacy properties-file
+#     bracket-indexing (foo[0]=a, foo[1]=b).
+#   - Setting a list here REPLACES the upstream list (no append). When pulling
+#     upstream, diff against application.yml and add any new entries here.
+#   - Use openboxes-config.groovy if you need conditional logic or env-specific
+#     overrides.
+#   - Secrets (DB passwords, SMTP passwords, API keys) should NOT be committed —
+#     inject via env vars in docker-compose.yml or a sysadmin-managed override
+#     file at deploy time.
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# Database
+# In docker-compose.yml these are normally provided via DATASOURCE_* env vars.
+# Uncomment here only if you are NOT using the env-var path.
+# -----------------------------------------------------------------------------
+# dataSource:
+#     url: jdbc:mysql://db/openboxes?serverTimezone=UTC&useSSL=false
+#     username: openboxes
+#     password: CHANGE_ME
+
+
+# -----------------------------------------------------------------------------
+# Server / session
+# -----------------------------------------------------------------------------
+# server:
+#     contextPath: /openboxes
+#     session:
+#         timeout: 7200
+
+
+# -----------------------------------------------------------------------------
+# Mail / SMTP
+# Disabled by default. Enable + fill in for outbound notifications.
+# Passwords belong in env vars or a sysadmin-managed file, NOT here.
+# -----------------------------------------------------------------------------
+grails:
+    mail:
+        enabled: false
+        # host: smtp.example.com
+        # port: 587
+        # username: noreply@client.example.com
+        # password: CHANGE_ME
+        # from: noreply@client.example.com
+        # prefix: '[OpenBoxes - ClientName]'
+
+# Separate "error mail" channel (legacy — mail.error.* in application.yml)
+# mail:
+#     error:
+#         enabled: false
+#         to: errors@client.example.com
+#         server: smtp.example.com
+#         port: 587
+#         from: noreply@client.example.com
+#         username: noreply@client.example.com
+#         password: CHANGE_ME
+
+
+openboxes:
+
+    # -------------------------------------------------------------------------
+    # Branding (UI logo + report logo)
+    # -------------------------------------------------------------------------
+    # logo:
+    #     url: ${server.contextPath}/assets/client_logo_40x40.png
+    #     label: Client Name
+    # report:
+    #     logo:
+    #         url: https://client.example.com/img/logo_100.png
+
+    # -------------------------------------------------------------------------
+    # Mail recipients (feedback / error channels)
+    # -------------------------------------------------------------------------
+    # mail:
+    #     feedback:
+    #         enabled: true
+    #         recipients:
+    #             - ops@client.example.com
+    #     errors:
+    #         enabled: true
+    #         recipients:
+    #             - errors@client.example.com
+
+    # -------------------------------------------------------------------------
+    # Admin (currently unused in code — see LOCATION_CODES_ACTIONS notes)
+    # -------------------------------------------------------------------------
+    # admin:
+    #     email: admin@client.example.com
+
+    # -------------------------------------------------------------------------
+    # Locale & currency
+    # Setting `supportedLocales` here REPLACES the upstream list — list every
+    # locale the client needs (including 'en' if applicable). Each entry must
+    # have a matching messages_<locale>.properties under grails-app/i18n/.
+    # -------------------------------------------------------------------------
+    # locale:
+    #     defaultLocale: en
+    #     localizationModeLocale: en
+    #     supportedLocales: ['en', 'es', 'fr']
+    #     defaultCurrencyCode: USD
+    #     defaultCurrencySymbol: '$'
+    #     supportedCurrencyCodes: ['USD', 'EUR']
+    #     # Exchange-rate sync (only if updateExchangeRatesJob is enabled)
+    #     currencyApi:
+    #         apiKey: CHANGE_ME
+
+    # -------------------------------------------------------------------------
+    # Fiscal year (dashboard reporting)
+    # Format: MM/DD. Default is PIH-style 07/01–06/30.
+    # -------------------------------------------------------------------------
+    # dashboard:
+    #     yearTypes:
+    #         fiscalYear:
+    #             start: 01/01
+    #             end: 12/31
+    #             labelYearPrefix: FY
+    #             yearFormat: yyyy
+
+    # -------------------------------------------------------------------------
+    # Identifier formats
+    # N=digit, L=uppercase letter, A=alphanumeric. Sequence pattern per record.
+    # -------------------------------------------------------------------------
+    identifier:
+        order:
+            format: NNNLLL
+        product:
+            format: LLNN
+        requisition:
+            format: NNNLLL
+        shipment:
+            format: NNNLLL
+        transaction:
+            format: AAA-AAA-AAA
+
+    # -------------------------------------------------------------------------
+    # Login / location selection
+    # Activities required on a Location for users to log into it.
+    # -------------------------------------------------------------------------
+    # chooseLocation:
+    #     requiredActivities: ['MANAGE_INVENTORY']
+
+    # -------------------------------------------------------------------------
+    # Receiving
+    # -------------------------------------------------------------------------
+    # receiving:
+    #     createReceivingLocation:
+    #         enabled: true
+    #     receivingLocation:
+    #         prefix: R
+
+    # -------------------------------------------------------------------------
+    # Expiration date floor
+    # Format: MM/DD/YYYY. Earliest expiry the UI will accept.
+    # -------------------------------------------------------------------------
+    # expirationDate:
+    #     minValue: 01/01/2000
+
+    # -------------------------------------------------------------------------
+    # Forecasting
+    # -------------------------------------------------------------------------
+    # forecasting:
+    #     enabled: true
+    #     demandPeriod: 365
+
+    # -------------------------------------------------------------------------
+    # Signup / reCAPTCHA
+    # Disable signup for closed deployments. If kept enabled, set reCAPTCHA keys.
+    # -------------------------------------------------------------------------
+    # signup:
+    #     enabled: false
+    #     recaptcha:
+    #         enabled: false
+    #         v2:
+    #             siteKey: CHANGE_ME
+    #             secretKey: CHANGE_ME
+
+    # -------------------------------------------------------------------------
+    # DHIS2 OAuth2 SSO (dhis2-oauth-core / dhis2-oauth-v42)
+    # ONE provider per deployment. Uncomment the single block below, set
+    # enabled: true, and choose `profile` to match your DHIS2 version. The
+    # `profile` value selects which endpoint/scope semantics OB uses — you do
+    # NOT define two blocks. Register the redirectUri exactly as shown in DHIS2
+    # → System Settings → OAuth2 Clients. Inject clientSecret via env var —
+    # never commit the value. clientSecret must be a 36-char UUID (DHIS2 req).
+    #
+    # Pick the endpoint/scope set for your DHIS2 version:
+    #   profile: v40  (DHIS2 <= 2.41, legacy UAA provider)
+    #       authorizeUrl: https://dhis2.example.com/uaa/oauth/authorize
+    #       tokenUrl:     https://dhis2.example.com/uaa/oauth/token
+    #       scopes:       ALL          (or omit — defaults to ALL)
+    #       clientAuth:   (n/a — always HTTP Basic)
+    #   profile: v42  (DHIS2 >= 2.42, Spring Authorization Server / OIDC)
+    #       authorizeUrl: https://dhis2.example.com/oauth2/authorize
+    #       tokenUrl:     https://dhis2.example.com/oauth2/token
+    #       scopes:       openid username
+    #       clientAuth:   basic (default) | post (client_secret_post)
+    # v42 identity: the SAS access token is NOT accepted on DHIS2 /api/* endpoints,
+    # so OB identifies the user by the `sub` claim (the DHIS2 username) read from the
+    # id_token. `openid` scope is therefore REQUIRED (it yields the id_token). v42
+    # users are linked by username only — no UID/name/email; an admin fills name on
+    # approval. Do NOT add `email` scope (DHIS2 token mint throws for users without
+    # an email). v42 needs NO userUrl. The v42 path always sends PKCE (S256).
+    #
+    # DHIS2-side client setup (the admin UI has no fields for these — set via
+    # `PATCH /api/oAuth2Clients/{uid}`, and RE-APPLY if you edit the client in the
+    # UI, which wipes them):
+    #   - scopes:                     openid,username
+    #   - clientAuthenticationMethods: client_secret_basic (or client_secret_post)
+    #   - clientSecret:               store the BCRYPT HASH in DHIS2 (it stores the
+    #                                 value plaintext but matches with bcrypt); keep
+    #                                 the plaintext in OB's clientSecret below.
+    # -------------------------------------------------------------------------
+    # custom:                          # fork-custom config namespace (EST)
+    #     dhis2:
+    #         oauth:
+    #             enabled: false
+    #             profile: v42                 # v40 | v42 — see endpoint sets above
+    #             clientId: openboxes
+    #             clientSecret: CHANGE_ME      # plaintext (bcrypt hash goes in DHIS2)
+    #             authorizeUrl: https://dhis2.example.com/oauth2/authorize
+    #             tokenUrl: https://dhis2.example.com/oauth2/token
+    #             # userUrl: https://dhis2.example.com/api/me   # v40 ONLY — not used by v42
+    #             redirectUri: https://openboxes.example.com/oauth/dhis2/callback
+    #             scopes: openid username      # v40: ALL (or omit)
+    #             clientAuth: basic            # v42 only: basic | post
+
+    # -------------------------------------------------------------------------
+    # Iframe embedding / CSP frame-ancestors (dhis2-iframe-embedding)
+    # frameAncestors: the DHIS2 origin(s) allowed to embed OB in an iframe.
+    # Empty/unset (default) => `frame-ancestors 'self'` (no third-party embedding),
+    # behaviourally equivalent to the old X-Frame-Options: SAMEORIGIN.
+    # Setting a non-empty list also flips the session cookie to
+    # `SameSite=None; Secure` and turns on the v42 silent-SSO entry point
+    # (/oauth/dhis2/initiate?embedded=true). v40 falls back to in-frame login.
+    # -------------------------------------------------------------------------
+    # custom:
+    #     iframe:
+    #         frameAncestors: []       # e.g. ['https://dhis2.example.com']
+
+# Forwarded-proto: REQUIRED when embedding behind a TLS-terminating proxy, so OB
+# knows the request is HTTPS and stamps the SameSite=None session cookie Secure
+# (browsers reject SameSite=None without Secure). Root-level key, not under openboxes.
+# server:
+#     use-forward-headers: true
+
+    # -------------------------------------------------------------------------
+    # LDAP (optional — enable only for clients using corporate auth)
+    # -------------------------------------------------------------------------
+    # ldap:
+    #     enabled: false
+    #     context:
+    #         managerDn: cn=svc-openboxes,dc=client,dc=example,dc=com
+    #         managerPassword: CHANGE_ME
+    #         server:
+    #             host: ldap.client.example.com
+    #             port: 389
+    #     search:
+    #         base: dc=client,dc=example,dc=com
+    #         filter: (uid={0})
+    #         searchSubtree: true
+    #         attributesToReturn: ['mail', 'givenName']
+
+    # -------------------------------------------------------------------------
+    # Barcode scanner / printer
+    # -------------------------------------------------------------------------
+    scannerDetection:
+        enabled: false
+    # barcode:
+    #     printer:
+    #         name: printer-thermalprinter
+    #         ipAddress: 127.0.0.1
+    #         port: 9100
+
+    # -------------------------------------------------------------------------
+    # Job schedules
+    # Cron expressions are Quartz format: sec min hour day-of-month month day-of-week
+    # -------------------------------------------------------------------------
+    # jobs:
+    #     # Stock alert email — days-of-expiry threshold + when to run
+    #     sendStockAlertsJob:
+    #         enabled: true
+    #         daysUntilExpiry: 60
+    #         cronExpression: 0 0 0 * * ?
+    #     # Product availability materialised view refresh (hot path — keep aggressive)
+    #     refreshProductAvailabilityJob:
+    #         cronExpression: 0 0 0/2 * * ?
+    #     # Historical QoH backfill — off by default; turn on for clients that want it
+    #     calculateHistoricalQuantityJob:
+    #         enabled: false
+    #         daysToProcess: 540
+    #     # Exchange-rate sync — off by default
+    #     updateExchangeRatesJob:
+    #         enabled: false
+
+    # -------------------------------------------------------------------------
+    # Third-party widgets
+    # All disabled below by default. HelpScout in upstream defaults ships ENABLED
+    # with PIH's beacon key — explicitly disable for client deployments unless
+    # they have their own beacon configured.
+    # -------------------------------------------------------------------------
+    helpscout:
+        widget:
+            enabled: false
+            # key: CLIENT_BEACON_KEY
+            # color: '#3AB4B1'
+
+    fullstory:
+        enabled: false
+        # org: CLIENT_FS_ORG
+
+    hotjar:
+        enabled: false
+        # hjid: 0
+
+    uservoice:
+        widget:
+            enabled: false
+
+    zopim:
+        widget:
+            enabled: false
+
+    jira:
+        issue:
+            collector:
+                enabled: false
+
+    # -------------------------------------------------------------------------
+    # Anonymisation (rarely enabled — only if the client wants user data masked)
+    # -------------------------------------------------------------------------
+    # anonymize:
+    #     enabled: false
+
+
+# -----------------------------------------------------------------------------
+# Sentry (error tracking)
+# Prefer the SENTRY_DSN_BACKEND env var (read by application.yml).
+# Use this key only if env-var injection isn't available.
+# -----------------------------------------------------------------------------
+# sentry:
+#     dsn: https://PUBLIC_KEY@sentry.io/PROJECT_ID

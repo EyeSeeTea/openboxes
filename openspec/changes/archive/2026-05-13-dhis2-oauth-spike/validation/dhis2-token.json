@@ -1,0 +1,10 @@
+{
+  "_note": "Captured via Resource Owner Password Credentials grant (grant_type=password). Token structure is identical to Authorization Code exchange — same endpoint, same response shape.",
+  "_endpoint": "POST /uaa/oauth/token",
+  "_client_id": "openboxes-spike",
+  "access_token": "<redacted>",
+  "token_type": "bearer",
+  "refresh_token": "<redacted>",
+  "expires_in": 43199,
+  "scope": "ALL"
+}

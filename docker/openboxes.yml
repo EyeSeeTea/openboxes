@@ -1,0 +1,39 @@
+# Local per-client override configuration.
+# see openboxes.client-template.yml for available keys
+---
+openboxes:
+    # -------------------------------------------------------------------------
+    # DHIS2 OAuth2 SSO
+    # Client registered in DHIS2 during dhis2-oauth-spike.
+    # Redirect URI must match exactly what is registered in DHIS2 OAuth2 Clients.
+    # -------------------------------------------------------------------------
+    custom:
+        dhis2:
+            oauth:
+                enabled: false
+                clientId: openboxes
+                clientSecret: <client-secret>
+                authorizeUrl: https://dev.eyeseetea.com/play/uaa/oauth/authorize
+                tokenUrl: https://dev.eyeseetea.com/play/uaa/oauth/token
+                userUrl: https://dev.eyeseetea.com/play/api/me
+                redirectUri: http://localhost:8080/openboxes/oauth/dhis2/callback
+
+        # -------------------------------------------------------------------------
+        # DHIS2 iframe embedding (dhis2-iframe-embedding)
+        # frameAncestors: DHIS2 origin(s) allowed to embed OB in an iframe. Empty/unset
+        # (default) => frame-ancestors 'self' (no third-party embedding). A non-empty
+        # list also gates silent SSO (prompt=none) and switches the session cookie to
+        # SameSite=None. SameSite=None needs Secure: in production serve OB over TLS with
+        # `server.use-forward-headers: true` (below); for plain-HTTP localhost testing
+        # only, add `server.session.cookie.secure: true` (never ship that to a real host).
+        # -------------------------------------------------------------------------
+        iframe:
+            frameAncestors: []        # e.g. ['https://dhis2.example.com'] or ['http://localhost:8081']
+
+# Forwarded-proto — root-level key, a sibling of `openboxes` (NOT under it).
+# REQUIRED when OB runs behind a TLS-terminating proxy (the iframe-embedding case): it
+# lets OB trust X-Forwarded-Proto so it stamps the SameSite=None session cookie Secure
+# and builds https self-links. Harmless when not behind a proxy. See
+# openboxes.client-template.yml for the full forwarded-proto note.
+server:
+    use-forward-headers: true
